@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -18,8 +17,10 @@ import {
   ShoppingCart,
   TrendingDown,
   Package,
+  QrCode,
 } from "lucide-react";
 import VenueCard from "@/app/components/VenueCard";
+import QRCode from "qrcode";
 
 export default function MachineTable() {
   const [machines, setMachines] = useState([]);
@@ -35,13 +36,106 @@ export default function MachineTable() {
   const [venueData, setVenueData] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [reportError, setReportError] = useState("");
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageSize = 10;
   const totalPages = Math.ceil(totalCount / pageSize);
-
   const modalRef = useRef(null);
+
+  // Separate states for encrypted IDs and QR codes
+  const [encryptedIds, setEncryptedIds] = useState({});
+  const [loadingEncryptedIds, setLoadingEncryptedIds] = useState({});
+
+  const [qrUrls, setQrUrls] = useState({});
+  const [loadingQrCodes, setLoadingQrCodes] = useState({});
+
+  // QR Modal state
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [selectedQrCode, setSelectedQrCode] = useState("");
+  const [selectedMachineForQr, setSelectedMachineForQr] = useState(null);
+  const qrModalRef = useRef(null);
+
+  // Get encrypted ID only
+  const getEncryptedMachineId = async (machineId) => {
+    if (!machineId) return;
+    setLoadingEncryptedIds((prev) => ({ ...prev, [machineId]: true }));
+
+    try {
+      const res = await fetch(
+        `/api/get-encrypted-machine-id?machineId=${machineId}`
+      );
+      const data = await res.json();
+      if (data.encryptedMachineId) {
+        console.log("Encrypted ID:", data.encryptedMachineId);
+        setEncryptedIds((prev) => ({
+          ...prev,
+          [machineId]: data.encryptedMachineId,
+        }));
+      } else {
+        console.error("No encryptedMachineId in response:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching encryptedMachineId:", error);
+    } finally {
+      setLoadingEncryptedIds((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+
+  // Get QR code separately
+  const getQrCode = async (machineId) => {
+    if (!machineId) return;
+    setLoadingQrCodes((prev) => ({ ...prev, [machineId]: true }));
+
+    try {
+      const res = await fetch(
+        `/api/get-encrypted-machine-id?machineId=${machineId}`
+      );
+      const data = await res.json();
+      if (data.qrUrl) {
+        console.log("QR URL:", data.qrUrl);
+        setQrUrls((prev) => ({
+          ...prev,
+          [machineId]: data.qrUrl,
+        }));
+      } else {
+        console.error("No qrUrl in response:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching QR URL:", error);
+    } finally {
+      setLoadingQrCodes((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+
+  // View QR code in modal
+  const handleViewQr = async (machine) => {
+    const qrUrl = qrUrls[machine.id];
+    if (!qrUrl) return;
+
+    try {
+      // Generate QR code from the URL using qrcode library
+      const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      });
+
+      setSelectedQrCode(qrCodeDataUrl);
+      setSelectedMachineForQr(machine);
+      setIsQrModalOpen(true);
+    } catch (error) {
+      console.error("Error generating QR code:", error);
+    }
+  };
+
+  const closeQrModal = () => {
+    setIsQrModalOpen(false);
+    setSelectedQrCode("");
+    setSelectedMachineForQr(null);
+  };
 
   useEffect(() => {
     if (isModalOpen) {
@@ -51,6 +145,14 @@ export default function MachineTable() {
     }
   }, [isModalOpen]);
 
+  useEffect(() => {
+    if (isQrModalOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isQrModalOpen]);
+
   // Close modal on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -58,15 +160,28 @@ export default function MachineTable() {
         setIsModalOpen(false);
       }
     }
-
     if (isModalOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isModalOpen]);
+
+  // Close QR modal on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (qrModalRef.current && !qrModalRef.current.contains(event.target)) {
+        closeQrModal();
+      }
+    }
+    if (isQrModalOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isQrModalOpen]);
 
   useEffect(() => {
     const pageFromUrl = Number.parseInt(searchParams.get("page")) || 1;
@@ -126,7 +241,6 @@ export default function MachineTable() {
     setReportingData(null);
     setVenueData(null);
     setReportError("");
-
     // Fetch venue data immediately when modal opens
     try {
       const venueResponse = await fetch(
@@ -154,31 +268,24 @@ export default function MachineTable() {
       setReportError("Please select both from and to dates");
       return;
     }
-
     if (!selectedMachine) {
       setReportError("No machine selected");
       return;
     }
-
     setLoadingReport(true);
     setReportError("");
-
     try {
       // Format dates for the API (add time components)
       const startDateTime = `${fromDate}T00:00:00`;
       const endDateTime = `${toDate}T23:59:59`;
-
       console.log("Fetching sales data for machine:", selectedMachine.id);
-
       const response = await fetch(
         `/api/machine-sales?machineId=${selectedMachine.id}&startDate=${startDateTime}&endDate=${endDateTime}`
       );
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch sales data");
       }
-
       const salesData = await response.json();
       setReportingData(salesData);
     } catch (error) {
@@ -274,9 +381,6 @@ export default function MachineTable() {
           <Monitor className="h-10 w-10 text-blue-600" />
           <p className="text-gray-800">Machines</p>
         </h1>
-        {/* <p className="text-gray-600">
-          Showing {machines.length} of {totalCount} machines
-        </p> */}
       </div>
 
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
@@ -288,9 +392,12 @@ export default function MachineTable() {
                   ID
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                  Encrypted Machine ID
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
-                    {/* <Building2 className="h-4 w-4" /> */}
-                    Encrypted Machine ID
+                    <QrCode className="h-4 w-4" />
+                    QR Code
                   </div>
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
@@ -320,7 +427,7 @@ export default function MachineTable() {
               {machines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -346,45 +453,50 @@ export default function MachineTable() {
                         </span>
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4">
-                      <button
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium focus:outline-none ${
-                          machine.venue
-                            ? "bg-green-100 text-green-800 hover:bg-green-200"
-                            : "bg-red-100 text-red-800 hover:bg-red-200"
-                        }`}
-                        type="button"
-                      >
-                        {machine.venue?.name || "GET"}
-                      </button>
-                    </td> */}
-                    <td className="px-6 py-4">
-                      <button
-                        className="px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-medium hover:bg-red-200"
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const machineId = machine.id
-                            const res = await fetch(`/api/get-encrypted-machine-id/${machineId}`);
-                            const data = await res.json();
-                            alert(`Encrypted ID: ${data}`);
 
-                            // if (data?.encryptedId) {
-                            //   // Optional: display with alert, modal, toast, or state
-                            //   alert(`Encrypted ID: ${data.encryptedId}`);
-                            //   // or update your table UI with new value
-                            // } else {
-                            //   alert("Failed to get encrypted ID");
-                            // }
-                          } catch (err) {
-                            console.error(err);
-                            alert("Error fetching encrypted ID");
-                          }
-                        }}
-                      >
-                        GET
-                      </button>
+                    {/* Encrypted ID Column */}
+                    <td className="px-6 py-4">
+                      {encryptedIds[machine.id] ? (
+                        <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold hover:bg-green-200">
+                          {encryptedIds[machine.id]}
+                        </span>
+                      ) : (
+                        <button
+                          className="px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-medium hover:bg-red-200"
+                          type="button"
+                          disabled={loadingEncryptedIds[machine.id]}
+                          onClick={() => getEncryptedMachineId(machine.id)}
+                        >
+                          {loadingEncryptedIds[machine.id]
+                            ? "Loading..."
+                            : "GET"}
+                        </button>
+                      )}
                     </td>
+
+                    {/* QR Code Column */}
+                    <td className="px-6 py-4">
+                      {qrUrls[machine.id] ? (
+                        <button
+                          className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium hover:bg-blue-200 flex items-center gap-1"
+                          type="button"
+                          onClick={() => handleViewQr(machine)}
+                        >
+                          {/* <QrCode className="h-3 w-3" /> */}
+                          View
+                        </button>
+                      ) : (
+                        <button
+                          className="px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-medium hover:bg-orange-200"
+                          type="button"
+                          disabled={loadingQrCodes[machine.id]}
+                          onClick={() => getQrCode(machine.id)}
+                        >
+                          {loadingQrCodes[machine.id] ? "Loading..." : "GET"}
+                        </button>
+                      )}
+                    </td>
+
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {machine.friendlyName || "N/A"}
@@ -484,18 +596,70 @@ export default function MachineTable() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* QR Code Modal */}
+      {isQrModalOpen && selectedQrCode && selectedMachineForQr && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div
+            ref={qrModalRef}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+          >
+            <button
+              onClick={closeQrModal}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-4">
+                <QrCode className="h-8 w-8 text-blue-600 mr-2" />
+                <p className="text-2xl font-bold text-gray-800">QR Code</p>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Machine:{" "}
+                  {selectedMachineForQr.friendlyName || selectedMachineForQr.id}
+                </p>
+                {encryptedIds[selectedMachineForQr.id] && (
+                  <p className="text-xs text-gray-500">
+                    Encrypted ID: {encryptedIds[selectedMachineForQr.id]}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-4">
+                <img
+                  src={selectedQrCode || "/placeholder.svg"}
+                  alt="QR Code"
+                  className="w-full h-auto max-w-xs mx-auto"
+                />
+              </div>
+
+              <div className="text-xs text-gray-500 mb-4">
+                <p>Scan this QR code with your mobile device</p>
+                <p className="mt-1 break-all">
+                  {qrUrls[selectedMachineForQr.id]}
+                </p>
+              </div>
+
+              <button
+                onClick={closeQrModal}
+                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:cursor-pointer transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Modal (existing reporting modal) */}
       {isModalOpen && selectedMachine && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-3xl flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-3xl flex items-center justify-center z-40 px-4"
           ref={modalRef}
         >
-          {/* <button
-            onClick={closeModal}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors fixed top-12 right-4 z-50"
-          >
-            <X className="h-5 w-5 text-red-600" />
-          </button> */}
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex overflow-hidden">
             {/* Left Panel - Machine Details (30%) */}
             <div className="w-[30%] bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
@@ -503,7 +667,6 @@ export default function MachineTable() {
                 <h2 className="text-2xl font-bold" style={{ color: "black" }}>
                   Machine Details
                 </h2>
-
                 <button
                   onClick={closeModal}
                   className="p-2 hover:bg-gray-200 rounded-full transition-colors"
@@ -511,7 +674,6 @@ export default function MachineTable() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
               <div className="space-y-4">
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <h3 className="font-semibold text-gray-700 mb-2">
@@ -532,9 +694,7 @@ export default function MachineTable() {
                     </div>
                   </div>
                 </div>
-
                 <VenueCard venueData={venueData} />
-
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <h3 className="font-semibold text-gray-700 mb-2">
                     Location Details
@@ -550,7 +710,6 @@ export default function MachineTable() {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <h3 className="font-semibold text-gray-700 mb-2">
                     Device Information
@@ -573,7 +732,6 @@ export default function MachineTable() {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <h3 className="font-semibold text-gray-700 mb-2">Settings</h3>
                   <div className="space-y-2 text-sm">
@@ -590,7 +748,6 @@ export default function MachineTable() {
                 </div>
               </div>
             </div>
-
             {/* Right Panel - Date Selection & Reporting (70%) */}
             <div className="w-[70%] p-6 overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
@@ -605,7 +762,6 @@ export default function MachineTable() {
                   <div className="bg-green-500 rounded-full h-3 w-3 animate-pulse"></div>{" "}
                 </div>
               </div>
-
               {/* Date Range Selection */}
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -652,7 +808,6 @@ export default function MachineTable() {
                   </div>
                 )}
               </div>
-
               {/* Loading State */}
               {loadingReport && (
                 <div className="text-center py-12">
@@ -660,7 +815,6 @@ export default function MachineTable() {
                   <p className="text-lg text-gray-600">Loading sales data...</p>
                 </div>
               )}
-
               {/* Reporting Cards */}
               {reportingData && !loadingReport && (
                 <div className="space-y-6">
@@ -718,7 +872,6 @@ export default function MachineTable() {
                       </div>
                     </div>
                   </div>
-
                   {/* Additional Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -755,7 +908,6 @@ export default function MachineTable() {
                       </div>
                     </div>
                   </div>
-
                   {/* Top Products */}
                   <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                     <h4 className="text-lg font-semibold text-gray-700 mb-4">
@@ -793,7 +945,6 @@ export default function MachineTable() {
                       </p>
                     )}
                   </div>
-
                   {/* Raw Data Summary */}
                   <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                     <h4 className="text-lg font-semibold text-gray-700 mb-4">
@@ -828,7 +979,6 @@ export default function MachineTable() {
                   </div>
                 </div>
               )}
-
               {!reportingData && !loadingReport && (
                 <div className="text-center py-12 text-gray-500">
                   <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
