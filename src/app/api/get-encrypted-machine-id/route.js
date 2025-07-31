@@ -1,40 +1,39 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const machineId = searchParams.get("machineId") || "10"
+    const { searchParams } = new URL(request.url);
+    const machineId = searchParams.get("machineId");
 
-    console.log("API Route - Fetching encrypted machine ID for:", { machineId })
+    if (!machineId) {
+      return NextResponse.json({ error: "Missing machineId" }, { status: 400 });
+    }
 
-    // const apiUrl = `https://vendlive.com/api/2.0/machines/?page=${page}&pageSize=${pageSize}`
-    const apiUrl = `https://lzt46wo8hf.execute-api.eu-central-1.amazonaws.com/Prod/frydge/machine_internal/qrlink/${machineId}`
-    console.log("API URL:", apiUrl)
+    const apiUrl = `https://lzt46wo8hf.execute-api.eu-central-1.amazonaws.com/Prod/frydge/machine_internal/qrlink/${machineId}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        accept: "application/json"
+        accept: "application/json",
       },
-    })
-
-    console.log("External API Response status:", response.status)
+    });
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("External API Error:", errorText)
+      const errorText = await response.text();
+      console.error("External API Error:", errorText);
       return NextResponse.json(
         { error: `External API error: ${response.status} - ${errorText}` },
-        { status: response.status },
-      )
+        { status: response.status }
+      );
     }
 
-    const data = await response.json()
-    console.log("External API Success :", data)
-
-    return NextResponse.json(data, { status: 200 })
+    const data = await response.json();
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("API Route Error:", error)
-    return NextResponse.json({ error: `Server error: ${error.message}` }, { status: 500 })
+    console.error("API Route Error:", error);
+    return NextResponse.json(
+      { error: `Server error: ${error.message}` },
+      { status: 500 }
+    );
   }
 }
