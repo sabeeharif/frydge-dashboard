@@ -18,6 +18,9 @@ import {
   TrendingDown,
   Package,
   QrCode,
+  Power,
+  PowerOff,
+  RefreshCcw,
 } from "lucide-react";
 import VenueCard from "@/app/components/VenueCard";
 import QRCode from "qrcode";
@@ -135,6 +138,63 @@ export default function MachineTable() {
     setIsQrModalOpen(false);
     setSelectedQrCode("");
     setSelectedMachineForQr(null);
+  };
+
+  // Handle machine enable/disable
+  const handleToggleMachine = async (machine) => {
+    const updatedState = !machine.enabled;
+
+    try {
+      const res = await fetch("/api/enable-machine", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          machineId: machine.id,
+          enabled: updatedState,
+          removeOrders: false,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        alert(`Machine ${updatedState ? "enabled" : "disabled"} successfully`);
+        // Optionally: Refresh state
+        // fetchMachines(); // if you have a method to reload data
+      } else {
+        alert(result.error || "Failed to update machine state");
+      }
+    } catch (error) {
+      console.error("Toggle Error:", error);
+      alert("Something went wrong while updating the machine.");
+    }
+  };
+
+  // Handle machine sync
+  const handleSyncMachine = async (machine) => {
+    try {
+      const res = await fetch("/api/sync-machine", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ machineId: machine.id }),
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        alert("Machine channels synced successfully.");
+        // Optionally refresh the machine state
+      } else {
+        alert(result.error || "Failed to sync machine.");
+      }
+    } catch (error) {
+      console.error("Sync Error:", error);
+      alert("Something went wrong while syncing.");
+    }
   };
 
   useEffect(() => {
@@ -421,6 +481,9 @@ export default function MachineTable() {
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                   Device Name
                 </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                  <div className="flex items-center gap-2">Action</div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -533,6 +596,38 @@ export default function MachineTable() {
                       <div className="text-sm font-medium text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceName || "N/A"}
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1
+                          ${
+                            machine.enabled
+                              ? "bg-green-100 text-green-800 hover:bg-green-200"
+                              : "bg-red-100 text-red-800 hover:bg-red-200"
+                          }`}
+                        onClick={() => handleToggleMachine(machine)}
+                      >
+                        {machine.enabled ? (
+                          <>
+                            <Power className="h-4 w-4" />
+                            Enable
+                          </>
+                        ) : (
+                          <>
+                            <PowerOff className="h-4 w-4" />
+                            Disable
+                          </>
+                        )}
+                      </button>
+
+                      {/* Sync Button */}
+                      <button
+                        className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium hover:bg-yellow-200 flex items-center gap-1"
+                        onClick={() => handleSyncMachine(machine)}
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        Sync
+                      </button>
                     </td>
                   </tr>
                 ))
