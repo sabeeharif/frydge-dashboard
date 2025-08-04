@@ -21,6 +21,7 @@ import {
   Power,
   PowerOff,
   RefreshCcw,
+  Settings,
 } from "lucide-react";
 import VenueCard from "@/app/components/VenueCard";
 import QRCode from "qrcode";
@@ -48,7 +49,6 @@ export default function MachineTable() {
   // Separate states for encrypted IDs and QR codes
   const [encryptedIds, setEncryptedIds] = useState({});
   const [loadingEncryptedIds, setLoadingEncryptedIds] = useState({});
-
   const [qrUrls, setQrUrls] = useState({});
   const [loadingQrCodes, setLoadingQrCodes] = useState({});
 
@@ -57,6 +57,15 @@ export default function MachineTable() {
   const [selectedQrCode, setSelectedQrCode] = useState("");
   const [selectedMachineForQr, setSelectedMachineForQr] = useState(null);
   const qrModalRef = useRef(null);
+
+  // Enable/Disable Modal state
+  const [isEnableModalOpen, setIsEnableModalOpen] = useState(false);
+  const [selectedMachineForToggle, setSelectedMachineForToggle] =
+    useState(null);
+  const [enabledState, setEnabledState] = useState(false);
+  const [removeOrdersState, setRemoveOrdersState] = useState(false);
+  const [loadingToggle, setLoadingToggle] = useState(false);
+  const enableModalRef = useRef(null);
 
   // Get encrypted ID only
   const getEncryptedMachineId = async (machineId) => {
@@ -140,10 +149,25 @@ export default function MachineTable() {
     setSelectedMachineForQr(null);
   };
 
-  // Handle machine enable/disable
-  const handleToggleMachine = async (machine) => {
-    const updatedState = !machine.enabled;
+  // Handle machine enable/disable modal
+  const handleToggleMachine = (machine) => {
+    setSelectedMachineForToggle(machine);
+    setEnabledState(machine.enabled || false);
+    setRemoveOrdersState(false); // Default to false
+    setIsEnableModalOpen(true);
+  };
 
+  const closeEnableModal = () => {
+    setIsEnableModalOpen(false);
+    setSelectedMachineForToggle(null);
+    setEnabledState(false);
+    setRemoveOrdersState(false);
+  };
+
+  const handleSubmitToggle = async () => {
+    if (!selectedMachineForToggle) return;
+
+    setLoadingToggle(true);
     try {
       const res = await fetch("/api/enable-machine", {
         method: "PATCH",
@@ -151,24 +175,26 @@ export default function MachineTable() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          machineId: machine.id,
-          enabled: updatedState,
-          removeOrders: false,
+          machineId: selectedMachineForToggle.id,
+          enabled: enabledState,
+          removeOrders: removeOrdersState,
         }),
       });
 
       const result = await res.json();
-
       if (res.ok) {
-        alert(`Machine ${updatedState ? "enabled" : "disabled"} successfully`);
-        // Optionally: Refresh state
-        // fetchMachines(); // if you have a method to reload data
+        alert(`Machine ${enabledState ? "enabled" : "disabled"} successfully`);
+        closeEnableModal();
+        // Refresh the machines data
+        fetchMachines(currentPage);
       } else {
         alert(result.error || "Failed to update machine state");
       }
     } catch (error) {
       console.error("Toggle Error:", error);
       alert("Something went wrong while updating the machine.");
+    } finally {
+      setLoadingToggle(false);
     }
   };
 
@@ -176,7 +202,7 @@ export default function MachineTable() {
   const handleSyncMachine = async (machine) => {
     try {
       const res = await fetch("/api/sync-machine", {
-        method: "PATCH",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -184,7 +210,6 @@ export default function MachineTable() {
       });
 
       const result = await res.json();
-
       if (res.ok) {
         alert("Machine channels synced successfully.");
         // Optionally refresh the machine state
@@ -212,6 +237,14 @@ export default function MachineTable() {
       document.body.classList.remove("overflow-hidden");
     }
   }, [isQrModalOpen]);
+
+  useEffect(() => {
+    if (isEnableModalOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isEnableModalOpen]);
 
   // Close modal on outside click
   useEffect(() => {
@@ -242,6 +275,24 @@ export default function MachineTable() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isQrModalOpen]);
+
+  // Close enable modal on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        enableModalRef.current &&
+        !enableModalRef.current.contains(event.target)
+      ) {
+        closeEnableModal();
+      }
+    }
+    if (isEnableModalOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEnableModalOpen]);
 
   useEffect(() => {
     const pageFromUrl = Number.parseInt(searchParams.get("page")) || 1;
@@ -490,7 +541,7 @@ export default function MachineTable() {
               {machines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -501,7 +552,7 @@ export default function MachineTable() {
                 machines.map((machine, index) => (
                   <tr
                     key={machine.id}
-                    // onClick={() => handleRowClick(machine)}
+                    // onClick={() => handleRowClick(machine)} do not enable row click and uncomment this line also do not remove the onClick handler
                     className={`${
                       index % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-blue-50 transition-colors duration-200 cursor-pointer`}
@@ -545,7 +596,6 @@ export default function MachineTable() {
                           type="button"
                           onClick={() => handleViewQr(machine)}
                         >
-                          {/* <QrCode className="h-3 w-3" /> */}
                           View
                         </button>
                       ) : (
@@ -598,36 +648,26 @@ export default function MachineTable() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1
-                          ${
-                            machine.enabled
-                              ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-red-100 text-red-800 hover:bg-red-200"
-                          }`}
-                        onClick={() => handleToggleMachine(machine)}
-                      >
-                        {machine.enabled ? (
+                      <div className="flex flex-col gap-2">
+                        {/* Enable/Disable Button */}
+                        <button
+                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200`}
+                          onClick={() => handleToggleMachine(machine)}
+                        >
                           <>
-                            <Power className="h-4 w-4" />
-                            Enable
+                            <Power className="h-3 w-3" />
+                            Enable/Disable
                           </>
-                        ) : (
-                          <>
-                            <PowerOff className="h-4 w-4" />
-                            Disable
-                          </>
-                        )}
-                      </button>
-
-                      {/* Sync Button */}
-                      <button
-                        className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium hover:bg-yellow-200 flex items-center gap-1"
-                        onClick={() => handleSyncMachine(machine)}
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                        Sync
-                      </button>
+                        </button>
+                        {/* Sync Button */}
+                        <button
+                          className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium hover:bg-yellow-200 flex items-center gap-1"
+                          onClick={() => handleSyncMachine(machine)}
+                        >
+                          <RefreshCcw className="h-3 w-3" />
+                          Sync
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -687,6 +727,112 @@ export default function MachineTable() {
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Enable/Disable Modal */}
+      {isEnableModalOpen && selectedMachineForToggle && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div
+            ref={enableModalRef}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+          >
+            <button
+              onClick={closeEnableModal}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-4">
+                <Settings className="h-8 w-8 text-blue-600 mr-2" />
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Machine Settings
+                </h2>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Machine:{" "}
+                  {selectedMachineForToggle.friendlyName ||
+                    selectedMachineForToggle.id}
+                </p>
+                <p className="text-xs text-gray-500">
+                  ID: {selectedMachineForToggle.id}
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {/* Enabled Checkbox */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <label
+                      htmlFor="enabled"
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      Enable Machine
+                    </label>
+                    <p className="text-xs text-gray-500 ml-2">
+                      {enabledState
+                        ? "Machine will be active"
+                        : "Machine will be inactive"}
+                    </p>
+                  </div>
+                  <input
+                    id="enabled"
+                    type="checkbox"
+                    checked={enabledState}
+                    onChange={(e) => setEnabledState(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Remove Orders Checkbox */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <label
+                      htmlFor="removeOrders"
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      Remove Orders
+                    </label>
+                    <p className="text-xs text-gray-500 ml-2">
+                      {removeOrdersState
+                        ? "Existing orders will be removed"
+                        : "Keep existing orders"}
+                    </p>
+                  </div>
+                  <input
+                    id="removeOrders"
+                    type="checkbox"
+                    checked={removeOrdersState}
+                    onChange={(e) => setRemoveOrdersState(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={closeEnableModal}
+                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitToggle}
+                  disabled={loadingToggle}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loadingToggle && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {loadingToggle ? "Updating..." : "Update Machine"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
