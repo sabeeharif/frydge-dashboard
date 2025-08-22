@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -19,12 +19,14 @@ import {
   Package,
   QrCode,
   Power,
-  PowerOff,
   RefreshCcw,
   Settings,
+  Search,
 } from "lucide-react";
 import VenueCard from "@/app/components/VenueCard";
 import QRCode from "qrcode";
+import Loader from "@/app/components/Loader";
+import { useToast } from "@/app/contexts/ToastContext";
 
 export default function MachineTable() {
   const [machines, setMachines] = useState([]);
@@ -51,6 +53,7 @@ export default function MachineTable() {
   const [loadingEncryptedIds, setLoadingEncryptedIds] = useState({});
   const [qrUrls, setQrUrls] = useState({});
   const [loadingQrCodes, setLoadingQrCodes] = useState({});
+  const [isSync, setIsSync] = useState({});
 
   // QR Modal state
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -66,6 +69,130 @@ export default function MachineTable() {
   const [removeOrdersState, setRemoveOrdersState] = useState(false);
   const [loadingToggle, setLoadingToggle] = useState(false);
   const enableModalRef = useRef(null);
+
+  const { success, error: toastError } = useToast();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allMachines, setAllMachines] = useState([]);
+  const [isLoadingAllMachines, setIsLoadingAllMachines] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState("");
+  const [hasStartedProgressiveFetch, setHasStartedProgressiveFetch] =
+    useState(false);
+
+  const startProgressiveFetch = useCallback(async () => {
+    if (isLoadingAllMachines || hasStartedProgressiveFetch) return;
+
+    setHasStartedProgressiveFetch(true);
+    setIsLoadingAllMachines(true);
+    setLoadingProgress("Starting progressive fetch...");
+
+    try {
+      const allFetchedMachines = [];
+      const totalPages = Math.ceil(totalCount / 20); // Use 20 per page for faster fetching
+
+      for (let page = 1; page <= totalPages; page++) {
+        setLoadingProgress(`Loading page ${page} of ${totalPages}...`);
+
+        const response = await fetch(`/api/machines?page=${page}&pageSize=20`);
+        if (!response.ok) break;
+
+        const data = await response.json();
+        allFetchedMachines.push(...(data.results || []));
+
+        // Add delay to prevent overwhelming the API
+        if (page < totalPages) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+
+      setAllMachines(allFetchedMachines);
+      setLoadingProgress(`Loaded ${allFetchedMachines.length} machines`);
+
+      setTimeout(() => {
+        setLoadingProgress("All machines ready for search");
+      }, 1000);
+    } catch (error) {
+      console.error("Error in progressive fetch:", error);
+      setLoadingProgress("Error loading machines");
+    } finally {
+      setIsLoadingAllMachines(false);
+    }
+  }, [totalCount, isLoadingAllMachines, hasStartedProgressiveFetch]);
+
+  useEffect(() => {
+    if (
+      totalCount > 0 &&
+      !hasStartedProgressiveFetch &&
+      !isLoadingAllMachines
+    ) {
+      const timer = setTimeout(() => {
+        startProgressiveFetch();
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    totalCount,
+    startProgressiveFetch,
+    hasStartedProgressiveFetch,
+    isLoadingAllMachines,
+  ]);
+
+  const getDisplayedMachines = () => {
+    if (!searchTerm) return machines;
+
+    // Search through all machines if available
+    if (allMachines.length === totalCount && totalCount > 0) {
+      return allMachines.filter(
+        (machine) =>
+          machine.id
+            ?.toString()
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          machine.friendlyName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          machine.venue?.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          machine.location?.description
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          machine.maxItemsPerDevice?.[0]?.deviceId
+            ?.toString()
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          machine.maxItemsPerDevice?.[0]?.deviceName
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Fallback to current page search
+    return machines.filter(
+      (machine) =>
+        machine.id
+          ?.toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        machine.friendlyName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        machine.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        machine.location?.description
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        machine.maxItemsPerDevice?.[0]?.deviceId
+          ?.toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        machine.maxItemsPerDevice?.[0]?.deviceName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const displayedMachines = getDisplayedMachines();
 
   // Get encrypted ID only
   const getEncryptedMachineId = async (machineId) => {
@@ -183,42 +310,47 @@ export default function MachineTable() {
 
       const result = await res.json();
       if (res.ok) {
-        alert(`Machine ${enabledState ? "enabled" : "disabled"} successfully`);
+        success(
+          `Machine ${enabledState ? "enabled" : "disabled"} successfully`
+        );
         closeEnableModal();
         // Refresh the machines data
         fetchMachines(currentPage);
       } else {
-        alert(result.error || "Failed to update machine state");
+        error(result.error || "Failed to update machine state");
       }
     } catch (error) {
       console.error("Toggle Error:", error);
-      alert("Something went wrong while updating the machine.");
+      error("Something went wrong while updating the machine.");
     } finally {
       setLoadingToggle(false);
     }
   };
 
   // Handle machine sync
-  const handleSyncMachine = async (machine) => {
+  const handleSyncMachine = async (machineId) => {
     try {
+      setIsSync((prev) => ({ ...prev, [machineId]: true }));
+
       const res = await fetch("/api/sync-machine", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ machineId: machine.id }),
+        body: JSON.stringify({ machineId }),
       });
 
       const result = await res.json();
       if (res.ok) {
-        alert("Machine channels synced successfully.");
+        setIsSync((prev) => ({ ...prev, [machineId]: false }));
+        success("Machine channels synced successfully.");
         // Optionally refresh the machine state
       } else {
-        alert(result.error || "Failed to sync machine.");
+        error(result.error || "Failed to sync machine.");
       }
     } catch (error) {
       console.error("Sync Error:", error);
-      alert("Something went wrong while syncing.");
+      error("Something went wrong while syncing.");
     }
   };
 
@@ -444,19 +576,8 @@ export default function MachineTable() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-300 rounded mb-6 w-64"></div>
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="h-16 bg-gray-100"></div>
-            {[...Array(10)].map((_, i) => (
-              <div
-                key={i}
-                className="h-12 bg-gray-50 border-t border-gray-200"
-              ></div>
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
       </div>
     );
   }
@@ -493,6 +614,29 @@ export default function MachineTable() {
           <p className="text-gray-800">Machines</p>
         </h1>
       </div>
+
+      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="flex items-center bg-white  rounded-full px-3">
+          <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+          <input
+            type="text"
+            placeholder="Search machines by ID, name, venue, location, or device..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full py-2 bg-transparent outline-none text-gray-900 "
+          />
+        </div>
+      </div>
+       {searchTerm && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-blue-800 text-sm">
+            Found {displayedMachines.length} machine{displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
+            {allMachines.length > 0
+              ? ` (searching through ${allMachines.length} total machines)`
+              : " (searching current page only)"}
+          </p>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
@@ -538,18 +682,22 @@ export default function MachineTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {machines.length === 0 ? (
+              {displayedMachines.length === 0 ? (
                 <tr>
                   <td
                     colSpan={9}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">No machines found</p>
+                    <p className="text-lg">
+                      {searchTerm.trim()
+                        ? "No machines found matching your search"
+                        : "No machines found"}
+                    </p>
                   </td>
                 </tr>
               ) : (
-                machines.map((machine, index) => (
+                displayedMachines.map((machine, index) => (
                   <tr
                     key={machine.id}
                     // onClick={() => handleRowClick(machine)} do not enable row click and uncomment this line also do not remove the onClick handler
@@ -662,10 +810,11 @@ export default function MachineTable() {
                         {/* Sync Button */}
                         <button
                           className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium hover:bg-yellow-200 flex items-center gap-1"
-                          onClick={() => handleSyncMachine(machine)}
+                          onClick={() => handleSyncMachine(machine.id)}
+                          disabled={isSync[machine.id]}
                         >
                           <RefreshCcw className="h-3 w-3" />
-                          Sync
+                          {isSync[machine.id] ? "Syncing..." : "Sync"}
                         </button>
                       </div>
                     </td>

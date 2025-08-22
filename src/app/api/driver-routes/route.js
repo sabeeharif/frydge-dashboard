@@ -8,12 +8,81 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const routeId = searchParams.get("routeId")
+    const limit = searchParams.get("limit") || "10"
+    const lastKey = searchParams.get("lastKey")
+    const userId = searchParams.get("userId")
+    const fetchAll = searchParams.get("fetchAll") === "true"
+    const search = searchParams.get("search")
 
-    let url = API_BASE_URL
-    if (routeId) {
-      url += `?routeId=${routeId}`
+    // If fetchAll is true, we'll fetch all routes by iterating through pages
+    if (fetchAll) {
+      const allRoutes = []
+      let currentLastKey = null
+
+      do {
+        const params = new URLSearchParams()
+        if (routeId) params.append("routeId", routeId)
+        if (userId) params.append("userId", userId)
+        if (search) params.append("search", search)
+        params.append("limit", "50") // Use larger limit for bulk fetching
+        if (currentLastKey) params.append("lastKey", currentLastKey)
+
+        const url = `${API_BASE_URL}?${params.toString()}`
+        console.log("Fetching from URL:", url)
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: AUTH_TOKEN,
+          },
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Get Routes API Error:", response.status, errorText)
+          return NextResponse.json({ error: errorText }, { status: response.status })
+        }
+
+        const data = await response.json()
+
+        // Add routes to our collection
+        if (data.routes && Array.isArray(data.routes)) {
+          allRoutes.push(...data.routes)
+        } else if (Array.isArray(data)) {
+          allRoutes.push(...data)
+        }
+
+        // Update lastKey for next iteration
+        currentLastKey = data.lastKey
+      } while (currentLastKey)
+
+      let filteredRoutes = allRoutes
+      if (search) {
+        const searchLower = search.toLowerCase()
+        filteredRoutes = allRoutes.filter((route) => {
+          return (
+            route.routeName?.toLowerCase().includes(searchLower) ||
+            route.driverName?.toLowerCase().includes(searchLower) ||
+            route.driverEmail?.toLowerCase().includes(searchLower) ||
+            route.name?.toLowerCase().includes(searchLower) ||
+            route.email?.toLowerCase().includes(searchLower)
+          )
+        })
+      }
+
+      return NextResponse.json({ routes: filteredRoutes, totalCount: filteredRoutes.length }, { status: 200 })
     }
 
+    // Regular paginated request
+    const params = new URLSearchParams()
+    if (routeId) params.append("routeId", routeId)
+    if (userId) params.append("userId", userId)
+    if (search) params.append("search", search)
+    params.append("limit", limit)
+    if (lastKey && lastKey !== "null") params.append("lastKey", lastKey)
+
+    const url = `${API_BASE_URL}?${params.toString()}`
     console.log("Fetching from URL:", url)
 
     const response = await fetch(url, {
@@ -31,6 +100,20 @@ export async function GET(request) {
     }
 
     const data = await response.json()
+
+    if (search && data.routes && Array.isArray(data.routes)) {
+      const searchLower = search.toLowerCase()
+      data.routes = data.routes.filter((route) => {
+        return (
+          route.routeName?.toLowerCase().includes(searchLower) ||
+          route.driverName?.toLowerCase().includes(searchLower) ||
+          route.driverEmail?.toLowerCase().includes(searchLower) ||
+          route.name?.toLowerCase().includes(searchLower) ||
+          route.email?.toLowerCase().includes(searchLower)
+        )
+      })
+    }
+
     console.log("Routes API Response:", data)
     return NextResponse.json(data, { status: 200 })
   } catch (error) {
