@@ -19,6 +19,7 @@ import {
   Package,
   QrCode,
   Power,
+  PowerOff,
   RefreshCcw,
   Settings,
   Search,
@@ -69,6 +70,14 @@ export default function MachineTable() {
   const [removeOrdersState, setRemoveOrdersState] = useState(false);
   const [loadingToggle, setLoadingToggle] = useState(false);
   const enableModalRef = useRef(null);
+
+  //=====change start
+  // VendLive device states
+  const [deviceStatuses, setDeviceStatuses] = useState({});
+  const [loadingDeviceStatus, setLoadingDeviceStatus] = useState({});
+  const [vendliveEnabledState, setVendliveEnabledState] = useState(false);
+  const [loadingVendliveToggle, setLoadingVendliveToggle] = useState(false);
+  //=====change end
 
   const { success, error: toastError } = useToast();
 
@@ -194,6 +203,36 @@ export default function MachineTable() {
 
   const displayedMachines = getDisplayedMachines();
 
+  //=====change start
+  // Get device status from VendLive
+  const getDeviceStatus = async (machineId) => {
+    const deviceId = machines.find((m) => m.id === machineId)
+      ?.maxItemsPerDevice?.[0]?.deviceId;
+    if (!deviceId || !machineId) return;
+
+    setLoadingDeviceStatus((prev) => ({ ...prev, [machineId]: true }));
+
+    try {
+      const res = await fetch(
+        `/api/device-status?deviceId=${deviceId}&machineId=${machineId}`
+      );
+      const data = await res.json();
+      if (res.ok && data.enabled !== undefined) {
+        setDeviceStatuses((prev) => ({
+          ...prev,
+          [machineId]: data.enabled,
+        }));
+      } else {
+        console.error("Error fetching device status:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching device status:", error);
+    } finally {
+      setLoadingDeviceStatus((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+  //=====change end
+
   // Get encrypted ID only
   const getEncryptedMachineId = async (machineId) => {
     if (!machineId) return;
@@ -277,10 +316,18 @@ export default function MachineTable() {
   };
 
   // Handle machine enable/disable modal
-  const handleToggleMachine = (machine) => {
+  const handleToggleMachine = async (machine) => {
     setSelectedMachineForToggle(machine);
     setEnabledState(machine.enabled || false);
     setRemoveOrdersState(false); // Default to false
+    //=====change start
+    // Get device status when opening modal
+    const deviceId = machine.maxItemsPerDevice?.[0]?.deviceId;
+    if (deviceId) {
+      await getDeviceStatus(machine.id);
+      setVendliveEnabledState(deviceStatuses[machine.id] || false);
+    }
+    //=====change end
     setIsEnableModalOpen(true);
   };
 
@@ -289,6 +336,8 @@ export default function MachineTable() {
     setSelectedMachineForToggle(null);
     setEnabledState(false);
     setRemoveOrdersState(false);
+    //change
+    setVendliveEnabledState(false);
   };
 
   const handleSubmitToggle = async () => {
@@ -317,15 +366,64 @@ export default function MachineTable() {
         // Refresh the machines data
         fetchMachines(currentPage);
       } else {
-        error(result.error || "Failed to update machine state");
+        toastError(result.error || "Failed to update machine state");
       }
     } catch (error) {
       console.error("Toggle Error:", error);
-      error("Something went wrong while updating the machine.");
+      toastError("Something went wrong while updating the machine.");
     } finally {
       setLoadingToggle(false);
     }
   };
+
+  //=====change start
+  // Handle VendLive device toggle
+  const handleVendliveToggle = async () => {
+    if (!selectedMachineForToggle) return;
+
+    const deviceId = selectedMachineForToggle.maxItemsPerDevice?.[0]?.deviceId;
+    if (!deviceId) {
+      toastError("Device ID not found for this machine");
+      return;
+    }
+
+    setLoadingVendliveToggle(true);
+    try {
+      const res = await fetch("/api/device-toggle", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deviceId: deviceId,
+          machineId: selectedMachineForToggle.id,
+          enabled: vendliveEnabledState,
+        }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        success(
+          `Device ${
+            vendliveEnabledState ? "enabled" : "disabled"
+          } on VendLive successfully`
+        );
+        // Update local state
+        setDeviceStatuses((prev) => ({
+          ...prev,
+          [selectedMachineForToggle.id]: vendliveEnabledState,
+        }));
+      } else {
+        toastError(result.error || "Failed to update device state on VendLive");
+      }
+    } catch (error) {
+      console.error("VendLive Toggle Error:", error);
+      toastError("Something went wrong while updating the device on VendLive.");
+    } finally {
+      setLoadingVendliveToggle(false);
+    }
+  };
+  //=====change end
 
   // Handle machine sync
   const handleSyncMachine = async (machineId) => {
@@ -346,11 +444,11 @@ export default function MachineTable() {
         success("Machine channels synced successfully.");
         // Optionally refresh the machine state
       } else {
-        error(result.error || "Failed to sync machine.");
+        toastError(result.error || "Failed to sync machine.");
       }
     } catch (error) {
       console.error("Sync Error:", error);
-      error("Something went wrong while syncing.");
+      toastError("Something went wrong while syncing.");
     }
   };
 
@@ -627,10 +725,11 @@ export default function MachineTable() {
           />
         </div>
       </div>
-       {searchTerm && (
+      {searchTerm && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-800 text-sm">
-            Found {displayedMachines.length} machine{displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
+            Found {displayedMachines.length} machine
+            {displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
             {allMachines.length > 0
               ? ` (searching through ${allMachines.length} total machines)`
               : " (searching current page only)"}
@@ -676,6 +775,10 @@ export default function MachineTable() {
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                   Device Name
                 </th>
+                {/* change */}
+                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                  VendLive Status
+                </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">Action</div>
                 </th>
@@ -685,7 +788,7 @@ export default function MachineTable() {
               {displayedMachines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -700,10 +803,14 @@ export default function MachineTable() {
                 displayedMachines.map((machine, index) => (
                   <tr
                     key={machine.id}
-                    // onClick={() => handleRowClick(machine)} do not enable row click and uncomment this line also do not remove the onClick handler
+                    // onClick={() => handleRowClick(machine)} // keep but do not enable row click
                     className={`${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-blue-50 transition-colors duration-200 cursor-pointer`}
+                      machine.id == 11233
+                        ? "bg-red-200 text-white hover:bg-red-400" // red background + white text for visibility
+                        : index % 2 === 0
+                        ? "bg-white"
+                        : "bg-gray-50"
+                    } hover:bg-blue-100 transition-colors duration-200 cursor-pointer`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -794,6 +901,41 @@ export default function MachineTable() {
                       <div className="text-sm font-medium text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceName || "N/A"}
                       </div>
+                    </td>
+                    {/* change */}
+                    <td className="px-6 py-4">
+                      {deviceStatuses[machine.id] !== undefined ? (
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            deviceStatuses[machine.id]
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {deviceStatuses[machine.id] ? (
+                            <>
+                              <Power className="h-3 w-3 mr-1" />
+                              Enabled
+                            </>
+                          ) : (
+                            <>
+                              <PowerOff className="h-3 w-3 mr-1" />
+                              Disabled
+                            </>
+                          )}
+                        </span>
+                      ) : (
+                        <button
+                          className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium hover:bg-gray-200"
+                          type="button"
+                          disabled={loadingDeviceStatus[machine.id]}
+                          onClick={() => getDeviceStatus(machine.id)}
+                        >
+                          {loadingDeviceStatus[machine.id]
+                            ? "Loading..."
+                            : "Check"}
+                        </button>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
@@ -913,21 +1055,38 @@ export default function MachineTable() {
                 </p>
               </div>
 
+              {/* ===== VendLive Device Enable/Disable Section ===== */}
               <div className="space-y-4 mb-6">
-                {/* Enabled Checkbox */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <label
+                      htmlFor="vendliveEnabled"
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      Enable/Disable Machine On VendLive :
+                    </label>
+                  </div>
+                  <input
+                    id="vendliveEnabled"
+                    type="checkbox"
+                    checked={vendliveEnabledState}
+                    onChange={(e) => setVendliveEnabledState(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* ===== Machine Toggles Section ===== */}
+              <div className="space-y-4 mb-6">
+                {/* Enable Machine */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center">
                     <label
                       htmlFor="enabled"
                       className="text-sm font-medium text-gray-700 cursor-pointer"
                     >
-                      Enable Machine
+                      Enable/Disable Machine On App :
                     </label>
-                    <p className="text-xs text-gray-500 ml-2">
-                      {enabledState
-                        ? "Machine will be active"
-                        : "Machine will be inactive"}
-                    </p>
                   </div>
                   <input
                     id="enabled"
@@ -938,20 +1097,15 @@ export default function MachineTable() {
                   />
                 </div>
 
-                {/* Remove Orders Checkbox */}
+                {/* Remove Orders */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center">
                     <label
                       htmlFor="removeOrders"
                       className="text-sm font-medium text-gray-700 cursor-pointer"
                     >
-                      Remove Orders
+                      Remove Orders :
                     </label>
-                    <p className="text-xs text-gray-500 ml-2">
-                      {removeOrdersState
-                        ? "Existing orders will be removed"
-                        : "Keep existing orders"}
-                    </p>
                   </div>
                   <input
                     id="removeOrders"
@@ -963,6 +1117,7 @@ export default function MachineTable() {
                 </div>
               </div>
 
+              {/* ===== Action Buttons ===== */}
               <div className="flex gap-3">
                 <button
                   onClick={closeEnableModal}
@@ -971,14 +1126,19 @@ export default function MachineTable() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleSubmitToggle}
-                  disabled={loadingToggle}
+                  onClick={() => {
+                    handleSubmitToggle();
+                    handleVendliveToggle();
+                  }}
+                  disabled={loadingToggle || loadingVendliveToggle}
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loadingToggle && (
+                  {(loadingToggle || loadingVendliveToggle) && (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
-                  {loadingToggle ? "Updating..." : "Update Machine"}
+                  {loadingToggle || loadingVendliveToggle
+                    ? "Updating..."
+                    : "Update Machine"}
                 </button>
               </div>
             </div>
