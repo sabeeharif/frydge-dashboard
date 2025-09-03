@@ -5,19 +5,18 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   const body = await request.json();
   const { email, password } = body;
-  const accountId = 121;
+
   
   try {
-    const vendLiveRes = await fetch("https://vendlive.com/api/1.0/custom/login/", {
+    const vendLiveRes = await fetch("https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "e91c470f2413536befad8ae6df34541e5dff5b2e",
+        Authorization: "ZnJ5ZGdlQDEyMzQhQCM=",
       },
       body: JSON.stringify({
         email,
         password,
-        account_id: accountId,
       }),
     });
     

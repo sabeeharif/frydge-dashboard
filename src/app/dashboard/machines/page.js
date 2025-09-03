@@ -103,6 +103,12 @@ export default function MachineTable() {
         setLoadingProgress(`Loading page ${page} of ${totalPages}...`);
 
         const response = await fetch(`/api/machines?page=${page}&pageSize=20`);
+        if ([400, 401, 403].includes(response.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
         if (!response.ok) break;
 
         const data = await response.json();
@@ -216,6 +222,13 @@ export default function MachineTable() {
       const res = await fetch(
         `/api/device-status?deviceId=${deviceId}&machineId=${machineId}`
       );
+
+      if ([400, 401, 403].includes(res.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
       const data = await res.json();
       if (res.ok && data.enabled !== undefined) {
         setDeviceStatuses((prev) => ({
@@ -402,6 +415,12 @@ export default function MachineTable() {
       });
 
       const result = await res.json();
+      if ([400, 401, 403].includes(res.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
       if (res.ok) {
         success(
           `Device ${
@@ -439,6 +458,12 @@ export default function MachineTable() {
       });
 
       const result = await res.json();
+      if ([400, 401, 403].includes(res.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
       if (res.ok) {
         setIsSync((prev) => ({ ...prev, [machineId]: false }));
         success("Machine channels synced successfully.");
