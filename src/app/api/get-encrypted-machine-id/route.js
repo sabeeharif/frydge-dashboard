@@ -9,7 +9,7 @@ export async function GET(request) {
       return NextResponse.json({ error: "Missing machineId" }, { status: 400 });
     }
 
-    const apiUrl = `https://lzt46wo8hf.execute-api.eu-central-1.amazonaws.com/Prod/frydge/machine_internal/qrlink/${machineId}`;
+    const apiUrl = `https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/machine_internal/qrlink/${machineId}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
