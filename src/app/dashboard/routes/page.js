@@ -57,7 +57,12 @@ export default function RoutesPage() {
     try {
       setLoadingUsers(true)
       const response = await fetch("/api/users?pageSize=50")
-      if (!response.ok) throw new Error("Failed to fetch users")
+      if ([400, 401, 403].includes(response.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
       const data = await response.json()
       setUsers(data.results || data || [])
     } catch (err) {
@@ -72,6 +77,12 @@ export default function RoutesPage() {
     try {
       setLoading(true)
       const response = await fetch("/api/routes")
+      if ([400, 401, 403].includes(response.status)) {
+        console.warn("Session expired or invalid. Redirecting to login...");
+        toastError("Session expired. Please log in again.");
+        window.location.href = "/"; // force redirect to login
+        return;
+      }
       if (!response.ok) throw new Error("Failed to fetch machine locations")
       const data = await response.json()
       setMachineLocations(data.results || data || [])
