@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Search, User, Navigation, Edit, Trash2, Save, Plus, X, RefreshCw, Eye, MapPin } from "lucide-react"
+import { Search, User, Navigation, Edit, Trash2, Save, Plus, X, RefreshCw, Eye, MapPin, Bot } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
 import Loader from "@/app/components/Loader"
 
@@ -26,6 +26,10 @@ export default function RoutesPage() {
   const [routeName, setRouteName] = useState("")
   const [loadingRoutes, setLoadingRoutes] = useState(false)
   const [savingRoute, setSavingRoute] = useState(false)
+  const [vacantLocations, setVacantLocations] = useState([])
+  const [loadingVacantLocations, setLoadingVacantLocations] = useState(false)
+  const [vacantLocationSearchTerm, setVacantLocationSearchTerm] = useState("")
+  const [editVacantLocationSearchTerm, setEditVacantLocationSearchTerm] = useState("")
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -58,10 +62,10 @@ export default function RoutesPage() {
       setLoadingUsers(true)
       const response = await fetch("/api/users?pageSize=50")
       if ([400, 401, 403].includes(response.status)) {
-        console.warn("Session expired or invalid. Redirecting to login...");
-        toastError("Session expired. Please log in again.");
-        window.location.href = "/"; // force redirect to login
-        return;
+        console.warn("Session expired or invalid. Redirecting to login...")
+        error("Session expired. Please log in again.")
+        window.location.href = "/" // force redirect to login
+        return
       }
       const data = await response.json()
       setUsers(data.results || data || [])
@@ -78,10 +82,10 @@ export default function RoutesPage() {
       setLoading(true)
       const response = await fetch("/api/routes")
       if ([400, 401, 403].includes(response.status)) {
-        console.warn("Session expired or invalid. Redirecting to login...");
-        toastError("Session expired. Please log in again.");
-        window.location.href = "/"; // force redirect to login
-        return;
+        console.warn("Session expired or invalid. Redirecting to login...")
+        error("Session expired. Please log in again.")
+        window.location.href = "/" // force redirect to login
+        return
       }
       if (!response.ok) throw new Error("Failed to fetch machine locations")
       const data = await response.json()
@@ -145,6 +149,46 @@ export default function RoutesPage() {
       setLoadingRoutes(false)
     }
   }
+  // get vacant locations for route creation
+  const fetchVacantRoutes = async () => {
+    try {
+      setLoadingVacantLocations(true)
+      setErrorMsg("")
+      console.log("Fetching vacant locations...")
+      const response = await fetch(`/api/vacant-locations`)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Fetched vacant locations data:", data)
+
+      let locations = []
+      if (data.vacantLocations && Array.isArray(data.vacantLocations)) {
+        locations = data.vacantLocations
+      } else if (Array.isArray(data)) {
+        locations = data
+      } else if (data.locations && Array.isArray(data.locations)) {
+        locations = data.locations
+      } else if (data.data && Array.isArray(data.data)) {
+        locations = data.data
+      } else if (data.results && Array.isArray(data.results)) {
+        locations = data.results
+      } else {
+        console.warn("Unexpected vacant locations data structure:", data)
+        locations = []
+      }
+
+      setVacantLocations(locations)
+    } catch (err) {
+      console.error("Error fetching vacant locations:", err)
+      setErrorMsg(`Failed to load vacant locations: ${err.message}`)
+    } finally {
+      setLoadingVacantLocations(false)
+    }
+  }
 
   // Update the fetchRouteDetails function to handle the correct response structure
   const fetchRouteDetails = async (routeId) => {
@@ -192,6 +236,14 @@ export default function RoutesPage() {
     (location) =>
       location.name?.toLowerCase().includes(locationSearchTerm.toLowerCase()) ||
       location.address?.toLowerCase().includes(locationSearchTerm.toLowerCase()),
+  )
+
+  const filteredVacantLocations = vacantLocations.filter(
+    (location) =>
+      location.name?.toLowerCase().includes(vacantLocationSearchTerm.toLowerCase()) ||
+      location.locationName?.toLowerCase().includes(vacantLocationSearchTerm.toLowerCase()) ||
+      location.address?.toLowerCase().includes(vacantLocationSearchTerm.toLowerCase()) ||
+      location.machine?.name?.toLowerCase().includes(vacantLocationSearchTerm.toLowerCase()),
   )
 
   const handleRiderSelect = (user) => {
@@ -278,6 +330,8 @@ export default function RoutesPage() {
   // Modal handlers
   const openCreateModal = () => {
     clearForm()
+    setVacantLocationSearchTerm("")
+    fetchVacantRoutes()
     setShowCreateModal(true)
   }
 
@@ -330,6 +384,10 @@ export default function RoutesPage() {
 
       console.log("Formatted venues for editing:", formattedVenues)
       setSelectedLocations(formattedVenues)
+
+      await fetchVacantRoutes()
+      setEditVacantLocationSearchTerm("")
+
       setShowEditModal(true)
     } else {
       error("Failed to load route details for editing")
@@ -607,8 +665,8 @@ export default function RoutesPage() {
         {searchTerm && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
             <p className="text-blue-800 text-sm">
-              Found {displayedMachines.length} machine{displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}
-              "
+              Found {displayedMachines.length} machine
+              {displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
               {allMachines.length > 0
                 ? ` (searching through ${allMachines.length} total machines)`
                 : " (searching current page only)"}
@@ -625,6 +683,7 @@ export default function RoutesPage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Rider Name</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Locations</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Route Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -673,6 +732,9 @@ export default function RoutesPage() {
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">{route.routeName}</div>
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{route.status}</div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <button
@@ -718,7 +780,7 @@ export default function RoutesPage() {
         {/* Create Route Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <p className="text-2xl font-bold text-gray-800">Create New Route</p>
@@ -728,185 +790,200 @@ export default function RoutesPage() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Route Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Route Name</label>
-                  <input
-                    type="text"
-                    value={routeName}
-                    onChange={(e) => setRouteName(e.target.value)}
-                    placeholder="Enter route name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+              <div className="flex h-full">
+                {/* Left Side - Vacant Locations */}
+                <div className="w-1/2 p-6 border-r border-gray-200">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Vacant Locations</h3>
+                    <p className="text-sm text-gray-600">Click on a location to add it to your route</p>
+                  </div>
+
+                  <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <div className="flex items-center bg-white rounded-full px-3">
+                      <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+                      <input
+                        type="text"
+                        placeholder="Search machines by ID, name, venue, location, or device..."
+                        value={vacantLocationSearchTerm}
+                        onChange={(e) => setVacantLocationSearchTerm(e.target.value)}
+                        className="w-full py-2 bg-transparent outline-none text-gray-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-96 overflow-y-auto">
+                    {loadingVacantLocations ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-gray-500">Loading vacant locations...</div>
+                      </div>
+                    ) : filteredVacantLocations.length > 0 ? (
+                      <div className="space-y-2">
+                        {filteredVacantLocations.map((location) => (
+                          <div
+                            key={location.id}
+                            onClick={() => handleLocationSelect(location)}
+                            className="p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 cursor-pointer transition-colors"
+                          >
+                            <div className="font-semibold text-gray-900 mb-1">{location.name}</div>
+                            <div className="text-sm text-gray-700 mb-1">📍 {location.locationName}</div>
+                            <div className="text-sm text-gray-600 mb-2">{location.address}</div>
+                            {location.machine && (
+                              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                🤖 {location.machine.name}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : vacantLocationSearchTerm ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No locations found matching "{vacantLocationSearchTerm}"
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No vacant locations available</div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Rider Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Rider</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                {/* Right Side - Form */}
+                <div className="w-1/2 p-6 space-y-6">
+                  {/* Route Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Route Name</label>
                     <input
                       type="text"
-                      placeholder="Search riders..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value)
-                        setShowRiderDropdown(true)
-                      }}
-                      onFocus={() => setShowRiderDropdown(true)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={routeName}
+                      onChange={(e) => setRouteName(e.target.value)}
+                      placeholder="Enter route name"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
+                  </div>
 
-                    {showRiderDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {loadingUsers ? (
-                          <div className="px-4 py-3 text-gray-500">Loading users...</div>
-                        ) : filteredUsers.length > 0 ? (
-                          filteredUsers.map((user) => (
-                            <div
-                              key={user.id}
-                              onClick={() => handleRiderSelect(user)}
-                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="flex items-center gap-3">
-                                <User className="h-4 w-4 text-blue-600" />
-                                <div>
-                                  <div className="font-medium text-gray-900">
-                                    {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
+                  {/* Rider Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Rider</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <input
+                        type="text"
+                        placeholder="Search riders..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value)
+                          setShowRiderDropdown(true)
+                        }}
+                        onFocus={() => setShowRiderDropdown(true)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+
+                      {showRiderDropdown && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {loadingUsers ? (
+                            <div className="px-4 py-3 text-gray-500">Loading users...</div>
+                          ) : filteredUsers.length > 0 ? (
+                            filteredUsers.map((user) => (
+                              <div
+                                key={user.id}
+                                onClick={() => handleRiderSelect(user)}
+                                className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <User className="h-4 w-4 text-blue-600" />
+                                  <div>
+                                    <div className="font-medium text-gray-900">
+                                      {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
+                                    </div>
+                                    <div className="text-blue-600 text-sm">{user.email}</div>
                                   </div>
-                                  <div className="text-blue-600 text-sm">{user.email}</div>
                                 </div>
                               </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3 text-gray-500">No users found</div>
-                        )}
+                            ))
+                          ) : (
+                            <div className="px-4 py-3 text-gray-500">No users found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedRider && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-3">
+                          <User className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium text-blue-900">
+                            {`${selectedRider.firstName || ""} ${selectedRider.lastName || ""}`.trim()}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {selectedRider && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-3">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium text-blue-900">
-                          {`${selectedRider.firstName || ""} ${selectedRider.lastName || ""}`.trim()}
-                        </span>
+                  {errorMsg && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-red-800">Error</h3>
+                          <p className="text-red-700 text-sm mt-1">{errorMsg}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Locations */}
+                  {selectedLocations.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Route Stops ({selectedLocations.length}) - Use arrows to set priority
+                      </label>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {selectedLocations.map((location, index) => (
+                          <div key={location.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                              {location.priority}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900">{location.name}</div>
+                              <div className="text-gray-600 text-sm truncate">{location.address}</div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => moveLocationUp(index)}
+                                disabled={index === 0}
+                                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
+                                title="Move up (Higher priority)"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                onClick={() => moveLocationDown(index)}
+                                disabled={index === selectedLocations.length - 1}
+                                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
+                                title="Move down (Lower priority)"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                onClick={() => removeLocation(location.id)}
+                                className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                title="Remove location"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* Location Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add Locations</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      placeholder="Search locations..."
-                      value={locationSearchTerm}
-                      onChange={(e) => {
-                        setLocationSearchTerm(e.target.value)
-                        setShowLocationDropdown(true)
-                      }}
-                      onFocus={() => setShowLocationDropdown(true)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    />
-
-                    {showLocationDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {loading ? (
-                          <div className="px-4 py-3 text-gray-500">Loading...</div>
-                        ) : filteredLocations.length > 0 ? (
-                          filteredLocations.map((location) => (
-                            <div
-                              key={location.id}
-                              onClick={() => handleLocationSelect(location)}
-                              className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="font-medium text-gray-900">
-                                {location.name || `Location ${location.id}`}
-                              </div>
-                              <div className="text-gray-600 text-sm truncate">{location.address || "No address"}</div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3 text-gray-500">No locations found</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {errorMsg && (
-                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">Error</h3>
-                        <p className="text-red-700 text-sm mt-1">{errorMsg}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Selected Locations */}
-                {selectedLocations.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Route Stops ({selectedLocations.length}) - Use arrows to set priority
-                    </label>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {selectedLocations.map((location, index) => (
-                        <div key={location.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            {location.priority}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900">{location.name}</div>
-                            <div className="text-gray-600 text-sm truncate">{location.address}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => moveLocationUp(index)}
-                              disabled={index === 0}
-                              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
-                              title="Move up (Higher priority)"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              onClick={() => moveLocationDown(index)}
-                              disabled={index === selectedLocations.length - 1}
-                              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
-                              title="Move down (Lower priority)"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              onClick={() => removeLocation(location.id)}
-                              className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                              title="Remove location"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
@@ -919,20 +996,18 @@ export default function RoutesPage() {
                 <button
                   onClick={handleCreateRoute}
                   disabled={savingRoute || !selectedRider || selectedLocations.length === 0 || !routeName.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Save className="h-4 w-4" />
                   {savingRoute ? "Creating..." : "Create Route"}
                 </button>
               </div>
             </div>
           </div>
         )}
-
         {/* Edit Route Modal */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <p className="text-2xl font-bold text-gray-800">Edit Route</p>
@@ -942,196 +1017,286 @@ export default function RoutesPage() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Route ID (Read-only) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Route ID (Cannot be changed)</label>
-                  <input
-                    type="text"
-                    value={editingRoute?.routeId || ""}
-                    disabled
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
-                  />
-                </div>
+              <div className="flex h-[calc(90vh-120px)]">
+                {/* Left Panel - Vacant Locations */}
+                <div className="w-1/2 border-r border-gray-200 p-6 overflow-y-auto">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Available Vacant Locations</h3>
 
-                {/* Route Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Route Name</label>
-                  <input
-                    type="text"
-                    value={routeName}
-                    onChange={(e) => setRouteName(e.target.value)}
-                    placeholder="Enter route name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                  {/* Search Input for Vacant Locations */}
+                  <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <div className="flex items-center bg-white rounded-full px-3">
+                      <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+                      <input
+                        type="text"
+                        placeholder="Search machines by ID, name, venue, location, or device..."
+                        value={editVacantLocationSearchTerm}
+                        onChange={(e) => setEditVacantLocationSearchTerm(e.target.value)}
+                        className="w-full py-2 bg-transparent outline-none text-gray-900"
+                      />
+                    </div>
+                  </div>
 
-                {/* Rider Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Rider</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      placeholder="Search riders..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value)
-                        setShowRiderDropdown(true)
-                      }}
-                      onFocus={() => setShowRiderDropdown(true)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                  {/* Vacant Locations List */}
+                  <div className="space-y-3">
+                    {loadingVacantLocations ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <span className="ml-2 text-gray-600">Loading vacant locations...</span>
+                      </div>
+                    ) : (
+                      (() => {
+                        const filteredVacantLocations = vacantLocations.filter((location) => {
+                          if (!editVacantLocationSearchTerm) return true
+                          const searchLower = editVacantLocationSearchTerm.toLowerCase()
+                          return (
+                            location.name?.toLowerCase().includes(searchLower) ||
+                            location.locationName?.toLowerCase().includes(searchLower) ||
+                            location.address?.toLowerCase().includes(searchLower) ||
+                            location.machine?.name?.toLowerCase().includes(searchLower) ||
+                            location.id?.toString().includes(searchLower) ||
+                            location.machine?.id?.toString().includes(searchLower)
+                          )
+                        })
 
-                    {showRiderDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {loadingUsers ? (
-                          <div className="px-4 py-3 text-gray-500">Loading users...</div>
-                        ) : filteredUsers.length > 0 ? (
-                          filteredUsers.map((user) => (
+                        return filteredVacantLocations.length > 0 ? (
+                          filteredVacantLocations.map((location) => (
                             <div
-                              key={user.id}
-                              onClick={() => handleRiderSelect(user)}
-                              className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              key={location.id}
+                              onClick={() => handleLocationSelect(location)}
+                              className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all duration-200"
                             >
-                              <div className="flex items-center gap-3">
-                                <User className="h-4 w-4 text-blue-600" />
-                                <div>
-                                  <div className="font-medium text-gray-900">
-                                    {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 mb-1">{location.name}</h4>
+                                  <div className="flex items-center text-sm text-gray-600 mb-1">
+                                    <MapPin className="w-4 h-4 mr-1" />
+                                    {location.locationName}
                                   </div>
-                                  <div className="text-blue-600 text-sm">{user.email}</div>
+                                  <p className="text-sm text-gray-600 mb-2">{location.address}</p>
+                                  <div className="flex items-center">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      <Bot className="w-3 h-3 mr-1" />
+                                      {location.machine?.name}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           ))
+                        ) : editVacantLocationSearchTerm ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>No vacant locations found matching "{editVacantLocationSearchTerm}"</p>
+                          </div>
                         ) : (
-                          <div className="px-4 py-3 text-gray-500">No users found</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedRider && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-3">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium text-blue-900">
-                          {`${selectedRider.firstName || ""} ${selectedRider.lastName || ""}`.trim()}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Location Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add Locations</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      placeholder="Search locations..."
-                      value={locationSearchTerm}
-                      onChange={(e) => {
-                        setLocationSearchTerm(e.target.value)
-                        setShowLocationDropdown(true)
-                      }}
-                      onFocus={() => setShowLocationDropdown(true)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    />
-
-                    {showLocationDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {loading ? (
-                          <div className="px-4 py-3 text-gray-500">Loading...</div>
-                        ) : filteredLocations.length > 0 ? (
-                          filteredLocations.map((location) => (
-                            <div
-                              key={location.id}
-                              onClick={() => handleLocationSelect(location)}
-                              className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="font-medium text-gray-900">
-                                {location.name || `Location ${location.id}`}
-                              </div>
-                              <div className="text-gray-600 text-sm truncate">{location.address || "No address"}</div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3 text-gray-500">No locations found</div>
-                        )}
-                      </div>
+                          <div className="text-center py-8 text-gray-500">
+                            <MapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>No vacant locations available</p>
+                          </div>
+                        )
+                      })()
                     )}
                   </div>
                 </div>
 
-                {errorMsg && (
-                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">Error</h3>
-                        <p className="text-red-700 text-sm mt-1">{errorMsg}</p>
-                      </div>
+                {/* Right Panel - Route Form */}
+                <div className="w-1/2 p-6 overflow-y-auto">
+                  <div className="space-y-6">
+                    {/* Route ID (Read-only) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Route ID (Cannot be changed)
+                      </label>
+                      <input
+                        type="text"
+                        value={editingRoute?.routeId || ""}
+                        disabled
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+                      />
                     </div>
-                  </div>
-                )}
 
-                {/* Selected Locations */}
-                {selectedLocations.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Route Stops ({selectedLocations.length}) - Use arrows to set priority
-                    </label>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {selectedLocations.map((location, index) => (
-                        <div key={location.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            {location.priority}
+                    {/* Route Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Route Name</label>
+                      <input
+                        type="text"
+                        value={routeName}
+                        onChange={(e) => setRouteName(e.target.value)}
+                        placeholder="Enter route name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    {/* Rider Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Rider</label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <input
+                          type="text"
+                          placeholder="Search riders..."
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value)
+                            setShowRiderDropdown(true)
+                          }}
+                          onFocus={() => setShowRiderDropdown(true)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+
+                        {showRiderDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {loadingUsers ? (
+                              <div className="px-4 py-3 text-gray-500">Loading users...</div>
+                            ) : filteredUsers.length > 0 ? (
+                              filteredUsers.map((user) => (
+                                <div
+                                  key={user.id}
+                                  onClick={() => handleRiderSelect(user)}
+                                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <User className="h-4 w-4 text-blue-600" />
+                                    <div>
+                                      <div className="font-medium text-gray-900">
+                                        {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
+                                      </div>
+                                      <div className="text-blue-600 text-sm">{user.email}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-gray-500">No users found</div>
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900">{location.name}</div>
-                            <div className="text-gray-600 text-sm truncate">{location.address}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => moveLocationUp(index)}
-                              disabled={index === 0}
-                              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
-                              title="Move up (Higher priority)"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              onClick={() => moveLocationDown(index)}
-                              disabled={index === selectedLocations.length - 1}
-                              className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
-                              title="Move down (Lower priority)"
-                            >
-                              ↓
-                            </button>
-                            <button
-                              onClick={() => removeLocation(location.id)}
-                              className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                              title="Remove location"
-                            >
-                              ×
-                            </button>
+                        )}
+                      </div>
+
+                      {selectedRider && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-3">
+                            <User className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-blue-900">
+                              {`${selectedRider.firstName || ""} ${selectedRider.lastName || ""}`.trim()}
+                            </span>
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
+
+                    {/* Location Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Add Locations</label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <input
+                          type="text"
+                          placeholder="Search locations..."
+                          value={locationSearchTerm}
+                          onChange={(e) => {
+                            setLocationSearchTerm(e.target.value)
+                            setShowLocationDropdown(true)
+                          }}
+                          onFocus={() => setShowLocationDropdown(true)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        />
+
+                        {showLocationDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {loading ? (
+                              <div className="px-4 py-3 text-gray-500">Loading...</div>
+                            ) : filteredLocations.length > 0 ? (
+                              filteredLocations.map((location) => (
+                                <div
+                                  key={location.id}
+                                  onClick={() => handleLocationSelect(location)}
+                                  className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="font-medium text-gray-900">
+                                    {location.name || `Location ${location.id}`}
+                                  </div>
+                                  <div className="text-gray-600 text-sm truncate">
+                                    {location.address || "No address"}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-gray-500">No locations found</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {errorMsg && (
+                      <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-red-800">Error</h3>
+                            <p className="text-red-700 text-sm mt-1">{errorMsg}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Selected Locations */}
+                    {selectedLocations.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Route Stops ({selectedLocations.length}) - Use arrows to set priority
+                        </label>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {selectedLocations.map((location, index) => (
+                            <div key={location.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                              <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                {location.priority}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900">{location.name}</div>
+                                <div className="text-gray-600 text-sm truncate">{location.address}</div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => moveLocationUp(index)}
+                                  disabled={index === 0}
+                                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
+                                  title="Move up (Higher priority)"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  onClick={() => moveLocationDown(index)}
+                                  disabled={index === selectedLocations.length - 1}
+                                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30"
+                                  title="Move down (Lower priority)"
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  onClick={() => removeLocation(location.id)}
+                                  className="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                  title="Remove location"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
