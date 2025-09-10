@@ -14,6 +14,7 @@ import {
   DollarSign,
   User,
   CreditCard,
+  CloudCog,
 } from "lucide-react"
 import Loader from "@/app/components/Loader"
 import { useToast } from "@/app/contexts/ToastContext"
@@ -70,16 +71,24 @@ export default function AppOrders() {
 
   // Extract customer email from remoteOrderObject
   const getCustomerEmail = (order) => {
-    try {
-      if (order.order?.remoteOrderObject) {
-        const remoteOrder = JSON.parse(order.order.remoteOrderObject.replace(/'/g, '"'))
-        return remoteOrder.email || "N/A"
-      }
-    } catch (e) {
-      console.error("Error parsing remoteOrderObject:", e)
-    }
-    return "N/A"
+  try {
+    let remoteOrderStr = order.order?.remoteOrderObject;
+    if (!remoteOrderStr) return "N/A";
+
+    // Fix common Python-to-JSON differences
+    remoteOrderStr = remoteOrderStr
+      .replace(/'/g, '"')               // single → double quotes
+      .replace(/\bFalse\b/g, "false")   // Python False → JSON false
+      .replace(/\bTrue\b/g, "true")     // Python True → JSON true
+      .replace(/\bNone\b/g, "null");    // Python None → JSON null
+
+    const remoteOrder = JSON.parse(remoteOrderStr);
+    return remoteOrder.email || "N/A";
+  } catch (e) {
+    console.error("Error parsing remoteOrderObject:", e);
+    return "N/A";
   }
+};
 
   // Extract order items from remoteOrderObject
   const getOrderItems = (order) => {
@@ -483,15 +492,15 @@ export default function AppOrders() {
                         <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
                           {(currentPage - 1) * pageSize + index + 1}
                         </div>
-                        <span className="text-sm font-medium text-gray-900">#{order.order_id}</span>
+                        <span className="text-sm font-medium text-gray-900">{order.order_id}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <User className="h-4 w-4 text-gray-400 mr-2" />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">Customer #{order.order?.customerId}</div>
-                          <div className="text-sm text-gray-500">{getCustomerEmail(order)}</div>
+                          <div className="text-sm font-medium text-gray-900">{getCustomerEmail(order)}</div>
+                          <div className="text-xs text-gray-500">ID: {order.order?.customerId}</div>
                         </div>
                       </div>
                     </td>
