@@ -7,11 +7,13 @@ import {
   Settings,
   Users,
   Navigation,
+  Trello,
 } from "lucide-react";
 
 export const navItems = [
   { name: "Overview", path: "/dashboard/overview", icon: Home },
   { name: "Users", path: "/dashboard/users", icon: Users },
+  { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
   { name: "Machines", path: "/dashboard/machines", icon: Package },
   { name: "Routes", path: "/dashboard/routes", icon: Navigation },
   { name: "Location", path: "/dashboard/locations", icon: MapPin }, // Changed from Package to MapPin
