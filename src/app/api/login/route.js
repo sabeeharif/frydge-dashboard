@@ -30,6 +30,7 @@ export async function POST(request) {
       return NextResponse.json({
         message: "Login successful",
         authToken: vendLiveData.key,
+        user: vendLiveData.user,
       });
     } else if (vendLiveRes.status === 400 && vendLiveData.nonFieldErrors) {
       return NextResponse.json({ error: "Wrong username or password!" }, { status: 401 });

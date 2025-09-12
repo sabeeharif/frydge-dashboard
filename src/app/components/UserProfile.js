@@ -24,6 +24,7 @@ export default function UserProfile({ isCollapsed }) {
       });
       
       if (response.ok) {
+        localStorage.removeItem("userData");
         success("Logged out successfully!");
         router.push("/");
       } else {
