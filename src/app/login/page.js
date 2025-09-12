@@ -30,8 +30,10 @@ export default function LoginPage() {
       if (!res.ok) {
         error(data.error || "Login failed");
       } else {
+        localStorage.setItem("userData", JSON.stringify(data));
         success("Login successful!");
         router.push("/dashboard/overview");
+
       }
     } catch (err) {
       error("An unexpected error occurred.");
