@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/app/lib/session";
 
 export async function GET(request) {
   try {
+    // Get session and check authentication
+    const session = await getSession();
+    
+    if (!session.isLoggedIn || !session.authToken) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please login first." },
+        { status: 401 }
+      );
+    }
+
     const response = await fetch("https://vendlive.com/api/1.0/get-machine-locations/?format=json", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Token e91c470f2413536befad8ae6df34541e5dff5b2e",
+        "Authorization": `Token ${session.authToken}`,
       },
     });
 

@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server"
+import { getSession } from "@/app/lib/session";
 
 export async function GET(request) {
   try {
+    // Get session and check authentication
+    const session = await getSession();
+    
+    if (!session.isLoggedIn || !session.authToken) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please login first." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url)
     const page = searchParams.get("page") || "1"
     const pageSize = searchParams.get("pageSize") || "10"
@@ -15,7 +26,7 @@ export async function GET(request) {
       method: "GET",
       headers: {
         accept: "application/json",
-        Authorization: "Token e91c470f2413536befad8ae6df34541e5dff5b2e",
+        Authorization: `Token ${session.authToken}`,
         Cookie: "csrftoken=a6ljPcBqekHldi9e7ityilrnaQNlFzK5; sessionid=sqexgg3akmvaw056rjp2ktisf5auwvku",
       },
     })

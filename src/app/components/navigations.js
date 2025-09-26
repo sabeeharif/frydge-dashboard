@@ -32,7 +32,7 @@ export const navItems = [
   { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
   { name: "Machines", path: "/dashboard/machines", icon: Package },
   { name: "Routes", path: "/dashboard/routes", icon: Navigation },
-  { name: "Location", path: "/dashboard/locations", icon: MapPin },
-  { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
-  { name: "Settings", path: "/dashboard/settings", icon: Settings },
+  // { name: "Location", path: "/dashboard/locations", icon: MapPin },
+  // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
+  // { name: "Settings", path: "/dashboard/settings", icon: Settings },
 ];
