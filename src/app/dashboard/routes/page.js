@@ -68,7 +68,7 @@ export default function RoutesPage() {
         return
       }
       const data = await response.json()
-      setUsers(data.results || data || [])
+      setUsers(data.users || data.results || data || [])
     } catch (err) {
       console.error("Error fetching users:", err)
       setErrorMsg("Failed to load users")
@@ -225,11 +225,11 @@ export default function RoutesPage() {
   }
 
   // Filter functions
-  const filteredUsers = users.filter(
+  const filteredUsers = users?.filter(
     (user) =>
       user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.dsbEmail?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const filteredLocations = machineLocations.filter(
@@ -322,7 +322,7 @@ export default function RoutesPage() {
   const getRiderName = (userId) => {
     const user = users.find((u) => u.id === userId)
     if (user) {
-      return `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email
+      return `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.dsbEmail
     }
     return `User ${userId}`
   }
@@ -348,7 +348,7 @@ export default function RoutesPage() {
       const user = users.find((u) => u.id === routeDetails.userId)
       if (user) {
         setSelectedRider(user)
-        setSearchTerm(`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email)
+        setSearchTerm(`${user.firstName || ""} ${user.lastName || ""}`.trim() || user.dsbEmail)
       } else {
         console.warn("User not found for userId:", routeDetails.userId)
         setSelectedRider({
@@ -620,6 +620,7 @@ export default function RoutesPage() {
       </div>
     )
   }
+  console.log("users", users)
   return (
     <div className="p-8 space-y-8">
       <div className="max-w-7xl mx-auto">
@@ -893,7 +894,7 @@ export default function RoutesPage() {
                                     <div className="font-medium text-gray-900">
                                       {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
                                     </div>
-                                    <div className="text-blue-600 text-sm">{user.email}</div>
+                                    <div className="text-blue-600 text-sm">{user.dsbEmail}</div>
                                   </div>
                                 </div>
                               </div>
@@ -1161,7 +1162,7 @@ export default function RoutesPage() {
                                       <div className="font-medium text-gray-900">
                                         {`${user.firstName || ""} ${user.lastName || ""}`.trim()}
                                       </div>
-                                      <div className="text-blue-600 text-sm">{user.email}</div>
+                                      <div className="text-blue-600 text-sm">{user.dsbEmail}</div>
                                     </div>
                                   </div>
                                 </div>
