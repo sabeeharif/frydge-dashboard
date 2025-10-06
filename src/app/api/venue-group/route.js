@@ -57,11 +57,11 @@ export async function GET(request) {
 
     // Transform the response to match frontend expectations
     const transformedResponse = {
-      venueGroups: data.venueGroupData || data.data || [],
+      venueGroups: data.groups || data.venueGroupData || data.data || [],
       lastKey: data.lastKey || null,
       hasMore: !!data.lastKey,
       message: data.message || "Venue groups retrieved",
-      total: data.total || data.venueGroupData?.length || data.data?.length || 0,
+      total: data.total || data.groups?.length || data.venueGroupData?.length || data.data?.length || 0,
     }
 
     return NextResponse.json(transformedResponse, { status: 200 })

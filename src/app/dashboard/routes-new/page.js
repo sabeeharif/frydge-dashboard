@@ -832,7 +832,7 @@ export default function RoutesNewPage() {
                         <p className="text-gray-600">Assign venues and groups to drivers using drag and drop</p>
                     </div>
                     <div className="">
-                    {/* <button
+                        {/* <button
                         onClick={async () => {
                             console.log('Manual refresh triggered')
                             if (drivers?.length > 0 && !isLoadingRoutes) {
@@ -848,16 +848,16 @@ export default function RoutesNewPage() {
                         </svg>
                         <span className="font-semibold">Refresh Routes</span>
                     </button> */}
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                    >
-                        <Plus className="h-5 w-5" />
-                        <span className="font-semibold">Create Venue Group</span>
-                    </button>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        >
+                            <Plus className="h-5 w-5" />
+                            <span className="font-semibold">Create Venue Group</span>
+                        </button>
+                    </div>
                 </div>
-                </div>
-               
+
             </div>
         </div><div className="grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-[600px]">
                 {/* Left Section - Venue Lists */}
@@ -1057,10 +1057,11 @@ export default function RoutesNewPage() {
                                 )))}
 
 
-                            {/* Scroll Indicator */}
-                            <div className="text-center text-sm text-slate-500 mt-2">
-                                <span>← Scroll horizontally to see all drivers →</span>
-                            </div>
+
+                        </div>
+                        {/* Scroll Indicator */}
+                        <div className="text-center text-sm text-slate-500 mt-2">
+                            <span>← Scroll horizontally to see all drivers →</span>
                         </div>
                     </div>
                 </div>
