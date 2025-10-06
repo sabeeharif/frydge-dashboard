@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 export async function GET(request) {
   try {
     const response = await fetch(
-      "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes/vacant_locations",
+      "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes/vacant_locations",
       {
         method: "GET",
         headers: {

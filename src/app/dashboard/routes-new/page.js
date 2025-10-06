@@ -1,205 +1,21 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon } from "lucide-react"
+import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 
 export default function RoutesNewPage() {
-    // Static data for demonstration
-    const [allVenues] = useState([
-        { id: 1, name: "GPO St. Martins Bonn Coffee (008)" },
-        { id: 2, name: "GPO St. Martins Bonn Coffee (009)" },
-        { id: 3, name: "GPO St. Martins Bonn Coffee (010)" },
-        { id: 4, name: "GPO St. Martins Bonn Coffee (011)" },
-        { id: 5, name: "GPO St. Martins Bonn Coffee (012)" },
-        { id: 6, name: "GPO St. Martins Bonn Coffee (013)" },
-        { id: 7, name: "GPO St. Martins Bonn Coffee (014)" },
-        { id: 8, name: "GPO St. Martins Bonn Coffee (015)" },
-        { id: 9, name: "GPO St. Martins Bonn Coffee (016)" },
-        { id: 10, name: "GPO St. Martins Bonn Coffee (017)" },
-        { id: 11, name: "Central Station Cafe (001)" },
-        { id: 12, name: "Central Station Cafe (002)" },
-        { id: 13, name: "University Library (003)" },
-        { id: 14, name: "University Library (004)" },
-        { id: 15, name: "Shopping Mall East (005)" }
-    ])
+    // State for API data
+    const [allVenues, setAllVenues] = useState([])
+    const [allVenueGroups, setAllVenueGroups] = useState([])
+    const [drivers, setDrivers] = useState([])
+    const [venueGroups, setVenueGroups] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
-    const [allVenueGroups] = useState([
-        {
-            id: 1,
-            name: "Group 1",
-            isExpanded: false,
-            venues: [
-                { id: 101, name: "Venue 1" },
-                { id: 102, name: "Venue 2" },
-                { id: 103, name: "Venue 3" }
-            ]
-        },
-        {
-            id: 2,
-            name: "Coffee Shops North",
-            isExpanded: false,
-            venues: [
-                { id: 201, name: "North Coffee A" },
-                { id: 202, name: "North Coffee B" },
-                { id: 203, name: "North Coffee C" },
-                { id: 204, name: "North Coffee D" }
-            ]
-        },
-        {
-            id: 3,
-            name: "University Campus",
-            isExpanded: false,
-            venues: [
-                { id: 301, name: "Library Main" },
-                { id: 302, name: "Library East" },
-                { id: 303, name: "Student Center" },
-                { id: 304, name: "Science Building" },
-                { id: 305, name: "Arts Building" }
-            ]
-        },
-        {
-            id: 4,
-            name: "Shopping Centers",
-            isExpanded: false,
-            venues: [
-                { id: 401, name: "Mall Central" },
-                { id: 402, name: "Mall East" },
-                { id: 403, name: "Mall West" }
-            ]
-        },
-        {
-            id: 5,
-            name: "Business District",
-            isExpanded: false,
-            venues: [
-                { id: 501, name: "Office Tower A" },
-                { id: 502, name: "Office Tower B" },
-                { id: 503, name: "Corporate Center" },
-                { id: 504, name: "Business Plaza" }
-            ]
-        },
-        {
-            id: 6,
-            name: "Transportation Hubs",
-            isExpanded: false,
-            venues: [
-                { id: 601, name: "Central Station" },
-                { id: 602, name: "Airport Terminal" },
-                { id: 603, name: "Bus Station" }
-            ]
-        }
-    ])
-
-    const [venueGroups, setVenueGroups] = useState([
-        {
-            id: 1,
-            name: "Group 1",
-            isExpanded: false,
-            venues: [
-                { id: 101, name: "Venue 1" },
-                { id: 102, name: "Venue 2" },
-                { id: 103, name: "Venue 3" }
-            ]
-        },
-        {
-            id: 2,
-            name: "Coffee Shops North",
-            isExpanded: false,
-            venues: [
-                { id: 201, name: "North Coffee A" },
-                { id: 202, name: "North Coffee B" },
-                { id: 203, name: "North Coffee C" },
-                { id: 204, name: "North Coffee D" }
-            ]
-        },
-        {
-            id: 3,
-            name: "University Campus",
-            isExpanded: false,
-            venues: [
-                { id: 301, name: "Library Main" },
-                { id: 302, name: "Library East" },
-                { id: 303, name: "Student Center" },
-                { id: 304, name: "Science Building" },
-                { id: 305, name: "Arts Building" }
-            ]
-        },
-        {
-            id: 4,
-            name: "Shopping Centers",
-            isExpanded: false,
-            venues: [
-                { id: 401, name: "Mall Central" },
-                { id: 402, name: "Mall East" },
-                { id: 403, name: "Mall West" }
-            ]
-        },
-        {
-            id: 5,
-            name: "Business District",
-            isExpanded: false,
-            venues: [
-                { id: 501, name: "Office Tower A" },
-                { id: 502, name: "Office Tower B" },
-                { id: 503, name: "Corporate Center" },
-                { id: 504, name: "Business Plaza" }
-            ]
-        },
-        {
-            id: 6,
-            name: "Transportation Hubs",
-            isExpanded: false,
-            venues: [
-                { id: 601, name: "Central Station" },
-                { id: 602, name: "Airport Terminal" },
-                { id: 603, name: "Bus Station" }
-            ]
-        }
-    ])
-
-    const [drivers, setDrivers] = useState([
-        {
-            id: 1,
-            name: "Driver 1",
-            assignedVenues: []
-        },
-        {
-            id: 2,
-            name: "Driver 2",
-            assignedVenues: [
-            
-            ]
-        },
-        {
-            id: 3,
-            name: "Driver 3",
-            assignedVenues: []
-        },
-        {
-            id: 4,
-            name: "Driver 4",
-            assignedVenues: []
-        },
-        {
-            id: 5,
-            name: "Driver 5",
-            assignedVenues: []
-        },
-        {
-            id: 6,
-            name: "Driver 6",
-            assignedVenues: []
-        },
-        {
-            id: 7,
-            name: "Driver 7",
-            assignedVenues: []
-        },
-        {
-            id: 8,
-            name: "Driver 8",
-            assignedVenues: []
-        }
-    ])
+    // Modal state
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [selectedVenues, setSelectedVenues] = useState([])
+    const [groupName, setGroupName] = useState("")
+    const [isCreating, setIsCreating] = useState(false)
 
     // Drag and drop state
     const [draggedItem, setDraggedItem] = useState(null)
@@ -209,6 +25,75 @@ export default function RoutesNewPage() {
     // Scroll state and refs
     const driversScrollRef = useRef(null)
     const autoScrollInterval = useRef(null)
+
+    // Fetch all data on component mount
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+
+                // Fetch all data in parallel
+                const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
+                    fetch('/api/vacant-locations'),
+                    fetch('/api/venue-group?limit=100'), // Fetch all venue groups
+                    fetch('/api/drivers')
+                ])
+
+                // Check if all requests were successful
+                if (!venuesResponse.ok || !venueGroupsResponse.ok || !driversResponse.ok) {
+                    throw new Error('Failed to fetch data from one or more APIs')
+                }
+
+                // Parse responses
+                const venuesData = await venuesResponse.json()
+                const venueGroupsData = await venueGroupsResponse.json()
+                const driversData = await driversResponse.json()
+
+                console.log('Fetched data:', { venuesData, venueGroupsData, driversData })
+
+                // Transform and set venues data
+                const transformedVenues = venuesData.vacantLocations || venuesData.data || []
+                setAllVenues(transformedVenues.map((venue, index) => ({
+                    id: venue.id || venue.venueId || index + 1,
+                    name: venue.name || venue.venueName || venue.locationName || `Venue ${index + 1}`,
+                    ...venue
+                })))
+
+                // Transform and set venue groups data
+                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+                const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
+                    id: group.id || group.groupId || index + 1,
+                    name: group.name || group.groupName || `Group ${index + 1}`,
+                    isExpanded: false,
+                    venues: group.venues || group.venueList || [],
+                    ...group
+                }))
+                
+                setAllVenueGroups(groupsWithExpansion)
+                setVenueGroups(groupsWithExpansion)
+
+                // Transform and set drivers data
+                const transformedDrivers = driversData.drivers || driversData.data || []
+                setDrivers(transformedDrivers.map((driver, index) => ({
+                    id: driver.id || driver.driverId || index + 1,
+                    name: `${driver.firstName || driver.first_name || 'Driver'} ${driver.lastName || driver.last_name || (index + 1)}`,
+                    firstName: driver.firstName || driver.first_name || 'Driver',
+                    lastName: driver.lastName || driver.last_name || (index + 1),
+                    assignedVenues: [],
+                    ...driver
+                })))
+
+            } catch (err) {
+                console.error('Error fetching data:', err)
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchAllData()
+    }, [])
 
     // Get available venues (not assigned to any driver)
     const getAvailableVenues = () => {
@@ -409,6 +294,123 @@ export default function RoutesNewPage() {
         return "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200 hover:border-slate-400"
     }
 
+    // Modal drag and drop handlers
+    const handleModalDragStart = (e, venue) => {
+        setDraggedItem(venue)
+        e.dataTransfer.effectAllowed = "move"
+    }
+
+    const handleModalDragEnd = () => {
+        setDraggedItem(null)
+    }
+
+    const handleModalDragOver = (e) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = "move"
+    }
+
+    const handleModalDrop = (e) => {
+        e.preventDefault()
+        if (!draggedItem) return
+
+        // Add venue to selected venues if not already selected
+        setSelectedVenues(prev => {
+            const exists = prev.find(v => v.id === draggedItem.id)
+            if (exists) return prev
+            return [...prev, draggedItem]
+        })
+        setDraggedItem(null)
+    }
+
+    const removeVenueFromGroup = (venueId) => {
+        setSelectedVenues(prev => prev.filter(v => v.id !== venueId))
+    }
+
+    const clearSelectedVenues = () => {
+        setSelectedVenues([])
+    }
+
+    // Create venue group
+    const handleCreateVenueGroup = async () => {
+        if (!groupName.trim()) {
+            alert("Please enter a group name")
+            return
+        }
+
+        if (selectedVenues.length === 0) {
+            alert("Please select at least one venue")
+            return
+        }
+
+        try {
+            setIsCreating(true)
+
+            // Transform venues to match API format
+            const venuesData = selectedVenues.map(venue => ({
+                id: venue.id,
+                priority: 1,
+                name: venue.name,
+                locationName: venue.locationName || venue.name,
+                address: venue.address || "N/A",
+                latitude: venue.latitude || 0,
+                longitude: venue.longitude || 0,
+                machine: venue.machine || {
+                    id: 0,
+                    name: "N/A",
+                    freeVend: false,
+                    isFridge: false
+                }
+            }))
+
+            const response = await fetch('/api/venue-group', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    venues: venuesData
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to create venue group')
+            }
+
+            const result = await response.json()
+            console.log('Venue group created:', result)
+
+            // Close modal and reset state
+            setShowCreateModal(false)
+            setGroupName("")
+            setSelectedVenues([])
+
+            // Refresh venue groups data
+            const venueGroupsResponse = await fetch('/api/venue-group?limit=100')
+            if (venueGroupsResponse.ok) {
+                const venueGroupsData = await venueGroupsResponse.json()
+                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+                const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
+                    id: group.id || group.groupId || index + 1,
+                    name: group.name || group.groupName || `Group ${index + 1}`,
+                    isExpanded: false,
+                    venues: group.venues || group.venueList || [],
+                    ...group
+                }))
+                setAllVenueGroups(groupsWithExpansion)
+                setVenueGroups(groupsWithExpansion)
+            }
+
+            alert("Venue group created successfully!")
+
+        } catch (error) {
+            console.error('Error creating venue group:', error)
+            alert(`Error creating venue group: ${error.message}`)
+        } finally {
+            setIsCreating(false)
+        }
+    }
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -420,14 +422,82 @@ export default function RoutesNewPage() {
     const availableVenues = getAvailableVenues()
     const availableGroups = getAvailableGroups()
 
+    // Loading state
+    if (loading) {
+        return (
+            <div className="p-8 space-y-8">
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+                        <Navigation className="h-10 w-10 text-blue-600" />
+                        <span className="text-gray-800">Route Assignment Manager</span>
+                    </h1>
+                    <p className="text-gray-600">Loading data...</p>
+                </div>
+                <div className="flex items-center justify-center min-h-[600px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Fetching venues, groups, and drivers...</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="p-8 space-y-8">
+                <div className="mb-8">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+                        <Navigation className="h-10 w-10 text-blue-600" />
+                        <span className="text-gray-800">Route Assignment Manager</span>
+                    </h1>
+                </div>
+                <div className="flex items-center justify-center min-h-[600px]">
+                    <div className="text-center">
+                        <div className="text-red-600 mb-4">
+                            <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                        </div>
+                        <p className="text-red-600 font-semibold">Error loading data</p>
+                        <p className="text-gray-600 mt-2">{error}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="p-8 space-y-8">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                    <Navigation className="h-10 w-10 text-blue-600" />
-                    <span className="text-gray-800">Route Assignment Manager</span>
-                </h1>
-                <p className="text-gray-600">Assign venues and groups to drivers using drag and drop</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+                            <Navigation className="h-10 w-10 text-blue-600" />
+                            <span className="text-gray-800">Route Assignment Manager</span>
+                        </h1>
+                        <p className="text-gray-600">Assign venues and groups to drivers using drag and drop</p>
+                        <div className="mt-2 text-sm text-gray-500">
+                            <span className="mr-4">Venues: {allVenues.length}</span>
+                            <span className="mr-4">Groups: {allVenueGroups.length}</span>
+                            <span>Drivers: {drivers.length}</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                        <Plus className="h-5 w-5" />
+                        <span className="font-semibold">Create Venue Group</span>
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-[600px]">
@@ -435,12 +505,12 @@ export default function RoutesNewPage() {
                 <div className="xl:col-span-1 space-y-6">
                     {/* Venue List */}
                     <div className="bg-white rounded-xl shadow-lg border border-slate-200/50 p-6">
-
                         <div className="flex items-center gap-2 py-4">
                             <div><MapPin className="h-8 w-8 text-blue-600" /></div>
-                            <div><h3 className="text-lg font-semibold text-slate-800  flex items-center gap-2">
+                            <div><h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                                 VENUES LIST
-                            </h3></div> </div>
+                            </h3></div>
+                        </div>
                         <div
                             className="space-y-3 max-h-80 overflow-y-auto"
                             onDragOver={handleDragOver}
@@ -475,9 +545,10 @@ export default function RoutesNewPage() {
                     <div className="bg-white rounded-xl shadow-lg border border-slate-200/50 p-6">
                         <div className="flex items-center gap-2 py-4">
                             <div><MapPinCheckIcon className="h-8 w-8 text-blue-600" /></div>
-                            <div><h3 className="text-lg font-semibold text-slate-800  flex items-center gap-2">
+                            <div><h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                                 VENUES GROUP
-                            </h3></div> </div>
+                            </h3></div>
+                        </div>
                         <div
                             className="space-y-3 max-h-80 overflow-y-auto"
                             onDragOver={handleDragOver}
@@ -520,12 +591,12 @@ export default function RoutesNewPage() {
 
                                             {isExpanded && (
                                                 <div className="p-3 space-y-2 bg-white border-t border-slate-200">
-                                                    {group.venues.map((venue) => (
+                                                    {group.venues && group.venues.map((venue) => (
                                                         <div
-                                                            key={venue.id}
+                                                            key={venue.id || venue.venueId}
                                                             className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
                                                         >
-                                                            {venue.name}
+                                                            {venue.name || venue.venueName}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -540,12 +611,13 @@ export default function RoutesNewPage() {
 
                 {/* Right Section - Drivers */}
                 <div className="xl:col-span-3">
-                    <div className="bg-white rounded-xl shadow-lg border border-slate-200/50 p-6 ">
+                    <div className="bg-white rounded-xl shadow-lg border border-slate-200/50 p-6">
                         <div className="flex items-center gap-2 py-4">
                             <div><Truck className="h-8 w-8 text-blue-600" /></div>
-                            <div><h3 className="text-lg font-semibold text-slate-800  flex items-center gap-2">
+                            <div><h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                                 DRIVERS ASSIGNMENT
-                            </h3></div> </div>
+                            </h3></div>
+                        </div>
 
                         <div
                             ref={driversScrollRef}
@@ -613,7 +685,154 @@ export default function RoutesNewPage() {
                 </div>
             </div>
 
-            
+            {/* Create Venue Group Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+                        <div className="p-6 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-2xl font-bold text-gray-800">Create New Venue Group</h3>
+                                <button 
+                                    onClick={() => {
+                                        setShowCreateModal(false)
+                                        setGroupName("")
+                                        setSelectedVenues([])
+                                    }} 
+                                    className="p-2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex h-[70vh]">
+                            {/* Left Side - Available Venues */}
+                            <div className="w-1/2 p-6 border-r border-gray-200 overflow-y-auto">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Available Venues</h3>
+                                    <p className="text-sm text-gray-600">Drag venues from here to the right to create your group</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {allVenues.map((venue) => (
+                                        <div
+                                            key={venue.id}
+                                            draggable
+                                            onDragStart={(e) => handleModalDragStart(e, venue)}
+                                            onDragEnd={handleModalDragEnd}
+                                            className="p-3 rounded-lg border-2 border-slate-200 cursor-move hover:border-slate-400 hover:shadow-md transition-all duration-200 bg-slate-50"
+                                        >
+                                            <div className="text-sm font-medium text-slate-800">
+                                                {venue.name}
+                                            </div>
+                                            {venue.locationName && venue.locationName !== venue.name && (
+                                                <div className="text-xs text-slate-600 mt-1">
+                                                    {venue.locationName}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right Side - Group Creation */}
+                            <div className="w-1/2 p-6 overflow-y-auto">
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Group Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={groupName}
+                                        onChange={(e) => setGroupName(e.target.value)}
+                                        placeholder="Enter group name..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-lg font-semibold text-gray-800">Selected Venues ({selectedVenues.length})</h3>
+                                        {selectedVenues.length > 0 && (
+                                            <button
+                                                onClick={clearSelectedVenues}
+                                                className="text-sm text-red-600 hover:text-red-800"
+                                            >
+                                                Clear All
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3">Drop venues here or drag them back to remove</p>
+                                </div>
+
+                                <div
+                                    className="min-h-[300px] border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-3"
+                                    onDragOver={handleModalDragOver}
+                                    onDrop={handleModalDrop}
+                                >
+                                    {selectedVenues.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-12">
+                                            <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                            <p className="text-sm">Drop venues here to add them to the group</p>
+                                        </div>
+                                    ) : (
+                                        selectedVenues.map((venue) => (
+                                            <div
+                                                key={venue.id}
+                                                draggable
+                                                onDragStart={(e) => handleModalDragStart(e, venue)}
+                                                onDragEnd={handleModalDragEnd}
+                                                className="p-3 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-move hover:border-blue-400 transition-all duration-200 flex items-center justify-between"
+                                            >
+                                                <div>
+                                                    <div className="text-sm font-medium text-blue-800">
+                                                        {venue.name}
+                                                    </div>
+                                                    {venue.locationName && venue.locationName !== venue.name && (
+                                                        <div className="text-xs text-blue-600 mt-1">
+                                                            {venue.locationName}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => removeVenueFromGroup(venue.id)}
+                                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="mt-6 flex gap-3">
+                                    <button
+                                        onClick={handleCreateVenueGroup}
+                                        disabled={!groupName.trim() || selectedVenues.length === 0 || isCreating}
+                                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                                            !groupName.trim() || selectedVenues.length === 0 || isCreating
+                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                                        }`}
+                                    >
+                                        {isCreating ? 'Creating...' : 'Create Venue Group'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowCreateModal(false)
+                                            setGroupName("")
+                                            setSelectedVenues([])
+                                        }}
+                                        className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

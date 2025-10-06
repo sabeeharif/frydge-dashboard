@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-const API_BASE_URL = "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes"
+const API_BASE_URL = "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes"
 const AUTH_TOKEN = "ZnJ5ZGdlQDEyMzQhQCM="
 
 // GET - Fetch routes (all or specific by routeId)

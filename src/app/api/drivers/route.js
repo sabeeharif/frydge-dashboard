@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-const API_BASE_URL = "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users/drivers"
+const API_BASE_URL = "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users/drivers"
 const AUTH_TOKEN = "ZnJ5ZGdlQDEyMzQhQCM="
 
 export async function GET(request) {

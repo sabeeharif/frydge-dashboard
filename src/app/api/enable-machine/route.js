@@ -10,7 +10,7 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const apiResponse = await fetch('https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/machine_internal/enable', {
+    const apiResponse = await fetch('https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/machine_internal/enable', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

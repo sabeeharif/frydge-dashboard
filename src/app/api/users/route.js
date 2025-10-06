@@ -8,7 +8,7 @@ export async function GET(request) {
     const userId = searchParams.get("userId")
 
     // Build the API URL for the new dashboard users endpoint
-    let apiUrl = `https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users?limit=${limit}`
+    let apiUrl = `https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users?limit=${limit}`
 
     if (lastKey && lastKey !== "null") {
       apiUrl += `&lastKey=${encodeURIComponent(lastKey)}`
@@ -77,7 +77,7 @@ export async function POST(request) {
     }
 
     const response = await fetch(
-      "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
+      "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
       {
         method: "POST",
         headers: {
@@ -127,7 +127,7 @@ export async function PUT(request) {
     }
 
     const response = await fetch(
-      "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
+      "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
       {
         method: "PUT",
         headers: {
@@ -165,7 +165,7 @@ export async function DELETE(request) {
     }
 
     const response = await fetch(
-      "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
+      "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users",
       {
         method: "DELETE",
         headers: {
