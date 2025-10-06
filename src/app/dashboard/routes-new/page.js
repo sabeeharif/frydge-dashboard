@@ -19,10 +19,10 @@ export default function RoutesNewPage() {
     const [isCreating, setIsCreating] = useState(false)
 
     // Route creation state
-    const [isCreatingRoute, setIsCreatingRoute] = useState(false)
+    const [creatingRouteForDriver, setCreatingRouteForDriver] = useState(null)
     const [routeCreationQueue, setRouteCreationQueue] = useState([])
     const [isLoadingRoutes, setIsLoadingRoutes] = useState(false)
-    
+
     // Ref to track if routes have been loaded to prevent infinite loops
     const routesLoadedRef = useRef(false)
 
@@ -48,7 +48,7 @@ export default function RoutesNewPage() {
                 // Fetch all data in parallel
                 const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
                     fetch('/api/vacant-locations'),
-                    fetch('/api/venue-group?limit=100'), // Fetch all venue groups
+                    fetch('/api/venue-group?limit=10'), // Fetch all venue groups
                     fetch('/api/drivers')
                 ])
 
@@ -81,7 +81,7 @@ export default function RoutesNewPage() {
                     venues: group.venues || group.venueList || [],
                     ...group
                 }))
-                
+
                 setAllVenueGroups(groupsWithExpansion)
                 setVenueGroups(groupsWithExpansion)
 
@@ -126,7 +126,7 @@ export default function RoutesNewPage() {
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
-        
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange)
         }
@@ -157,12 +157,12 @@ export default function RoutesNewPage() {
                     // Use the actual userId from the driver data
                     const userId = driver.userId || driver.id
                     console.log(`Loading routes for driver: ${driver.name}, userId: ${userId}`)
-                    
+
                     const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
                     if (response.ok) {
                         const data = await response.json()
                         console.log(`Routes data for driver ${driver.name}:`, data)
-                        
+
                         // Handle the correct response structure: { routes: [...], totalCount: ... }
                         let routes = []
                         if (data.routes && Array.isArray(data.routes)) {
@@ -172,9 +172,9 @@ export default function RoutesNewPage() {
                         } else if (data.data && Array.isArray(data.data)) {
                             routes = data.data
                         }
-                        
+
                         console.log(`Processed routes for driver ${driver.name}:`, routes)
-                        
+
                         // Extract venues from routes and add to driver's assigned venues
                         const assignedVenues = []
                         routes.forEach(route => {
@@ -201,7 +201,7 @@ export default function RoutesNewPage() {
                                 })
                             }
                         })
-                        
+
                         console.log(`Assigned venues for driver ${driver.name}:`, assignedVenues)
                         return { driverId: driver.id, assignedVenues }
                     }
@@ -212,16 +212,16 @@ export default function RoutesNewPage() {
             })
 
             const results = await Promise.all(routesPromises)
-            
+
             // Return updated drivers with their assigned venues
             const updatedDrivers = driversList.map(driver => {
                 const result = results.find(r => r.driverId === driver.id)
                 return result ? { ...driver, assignedVenues: result.assignedVenues } : driver
             })
-            
+
             console.log('loadExistingRoutesForDrivers returning:', updatedDrivers.length, 'drivers with routes')
             return updatedDrivers
-            
+
         } catch (err) {
             console.error('Error loading existing routes:', err)
             return driversList // Return original drivers list if there's an error
@@ -233,7 +233,7 @@ export default function RoutesNewPage() {
     // Get available venues (not assigned to any driver)
     const getAvailableVenues = () => {
         if (!drivers || drivers.length === 0) return allVenues
-        
+
         const assignedVenueIds = drivers.flatMap(driver =>
             driver.assignedVenues
                 .filter(item => item.type === 'venue')
@@ -245,7 +245,7 @@ export default function RoutesNewPage() {
     // Get available groups (not assigned to any driver)
     const getAvailableGroups = () => {
         if (!drivers || drivers.length === 0) return allVenueGroups
-        
+
         const assignedGroupIds = drivers.flatMap(driver =>
             driver.assignedVenues
                 .filter(item => item.type === 'group')
@@ -440,7 +440,7 @@ export default function RoutesNewPage() {
             setSelectedVenues([])
 
             // Refresh venue groups data
-            const venueGroupsResponse = await fetch('/api/venue-group?limit=100')
+            const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
             if (venueGroupsResponse.ok) {
                 const venueGroupsData = await venueGroupsResponse.json()
                 const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
@@ -473,7 +473,7 @@ export default function RoutesNewPage() {
         }
 
         try {
-            setIsCreatingRoute(true)
+            setCreatingRouteForDriver(driver.id)
 
             // Generate route name automatically
             const routeName = `frydge-route-${driver.firstName || driver.lastName || driver.id}`.toLowerCase()
@@ -518,11 +518,11 @@ export default function RoutesNewPage() {
             console.log("Route created successfully:", result)
 
             success(`Route created successfully for ${driver.name}!`)
-            
+
             // Refresh routes after creation
             const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
             setDrivers(updatedDriversWithRoutes)
-            
+
             return true
 
         } catch (err) {
@@ -530,7 +530,7 @@ export default function RoutesNewPage() {
             error(`Failed to create route for ${driver.name}: ${err.message}`)
             return false
         } finally {
-            setIsCreatingRoute(false)
+            setCreatingRouteForDriver(null)
         }
     }
 
@@ -547,6 +547,7 @@ export default function RoutesNewPage() {
 
         // Remove from previous driver if dragged from another driver
         if (draggedFromDriver && draggedFromDriver !== driverId) {
+            // First, remove from local state
             setDrivers(prev =>
                 prev.map(d =>
                     d.id === draggedFromDriver
@@ -557,6 +558,34 @@ export default function RoutesNewPage() {
                         : d
                 )
             )
+
+            // Then, delete the route from the database for the previous driver
+            try {
+                const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
+                if (previousDriver) {
+                    const userId = previousDriver.userId || previousDriver.id
+                    const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                    if (response.ok) {
+                        const data = await response.json()
+                        const routes = data.routes || data.data || []
+
+                        // Delete routes that contain this venue
+                        for (const route of routes) {
+                            if (route.venues && route.venues.some(v => v.id === draggedItem.id)) {
+                                await fetch("/api/driver-routes", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ routeId: route.routeId }),
+                                })
+                                console.log(`Deleted route ${route.routeId} from driver ${previousDriver.name}`)
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error deleting route from previous driver:", err)
+                error(`Failed to remove route from previous driver: ${err.message}`)
+            }
         }
 
         // Add to new driver (avoid duplicates)
@@ -605,6 +634,14 @@ export default function RoutesNewPage() {
             }
         }
 
+        // Show success message
+        if (draggedFromDriver && draggedFromDriver !== driverId) {
+            const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
+            success(`Venue '${draggedItem.name}' reassigned from ${previousDriver?.name} to ${driver.name}`)
+        } else {
+            success(`Venue '${draggedItem.name}' assigned to ${driver.name}`)
+        }
+
         setDraggedItem(null)
         setDraggedFromDriver(null)
     }
@@ -625,7 +662,7 @@ export default function RoutesNewPage() {
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
-                        
+
                         // Delete routes that contain this venue
                         for (const route of routes) {
                             if (route.venues && route.venues.some(v => v.id === draggedItem.id)) {
@@ -637,7 +674,7 @@ export default function RoutesNewPage() {
                                 success(`Venue '${draggedItem.name}' unassigned from ${driver.name}`)
                             }
                         }
-                        
+
                         // Refresh routes after deletion
                         const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
                         setDrivers(updatedDriversWithRoutes)
@@ -680,7 +717,7 @@ export default function RoutesNewPage() {
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
-                        
+
                         // Delete routes that contain venues from this group
                         const groupVenueIds = (draggedItem.venues || []).map(v => v.id)
                         for (const route of routes) {
@@ -693,7 +730,7 @@ export default function RoutesNewPage() {
                                 success(`Venue group '${draggedItem.name}' unassigned from ${driver.name}`)
                             }
                         }
-                        
+
                         // Refresh routes after deletion
                         const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
                         setDrivers(updatedDriversWithRoutes)
@@ -733,9 +770,9 @@ export default function RoutesNewPage() {
 
     // Loading state
     if (loading) {
-    return (
-        <div className="p-8 space-y-8">
-            <div className="mb-8">
+        return (
+            <div className="p-8 space-y-8">
+                <div className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
                         <Navigation className="h-10 w-10 text-blue-600" />
                         <span className="text-gray-800">Route Assignment Manager</span>
@@ -771,8 +808,8 @@ export default function RoutesNewPage() {
                         </div>
                         <p className="text-red-600 font-semibold">Error loading data</p>
                         <p className="text-gray-600 mt-2">{errorState}</p>
-                        <button 
-                            onClick={() => window.location.reload()} 
+                        <button
+                            onClick={() => window.location.reload()}
                             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             Retry
@@ -793,15 +830,9 @@ export default function RoutesNewPage() {
                             <span className="text-gray-800">Route Assignment Manager</span>
                         </h1>
                         <p className="text-gray-600">Assign venues and groups to drivers using drag and drop</p>
-                        <div className="mt-2 text-sm text-gray-500">
-                            <span className="mr-4">Venues: {allVenues?.length || 0}</span>
-                            <span className="mr-4">Groups: {allVenueGroups?.length || 0}</span>
-                            <span>Drivers: {drivers?.length}</span>
-                        </div>
                     </div>
-                </div>
-                <div className="flex gap-3">
-                    <button
+                    <div className="">
+                    {/* <button
                         onClick={async () => {
                             console.log('Manual refresh triggered')
                             if (drivers?.length > 0 && !isLoadingRoutes) {
@@ -816,7 +847,7 @@ export default function RoutesNewPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         <span className="font-semibold">Refresh Routes</span>
-                    </button>
+                    </button> */}
                     <button
                         onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -825,6 +856,8 @@ export default function RoutesNewPage() {
                         <span className="font-semibold">Create Venue Group</span>
                     </button>
                 </div>
+                </div>
+               
             </div>
         </div><div className="grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-[600px]">
                 {/* Left Section - Venue Lists */}
@@ -903,7 +936,7 @@ export default function RoutesNewPage() {
                                                 onClick={(e) => {
                                                     e.stopPropagation()
                                                     toggleGroup(group.id)
-                                                } }
+                                                }}
                                             >
                                                 <span className="text-sm font-medium text-slate-800">
                                                     {group.name}
@@ -971,7 +1004,7 @@ export default function RoutesNewPage() {
                                         {/* Driver Header */}
                                         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-lg mb-4 text-center font-semibold shadow-md">
                                             {driver.name}
-                                            {isCreatingRoute && (
+                                            {creatingRouteForDriver === driver.id && (
                                                 <div className="mt-2 text-xs opacity-75">
                                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>
                                                     Creating route...
@@ -1022,7 +1055,7 @@ export default function RoutesNewPage() {
                                         </div>
                                     </div>
                                 )))}
-                            
+
 
                             {/* Scroll Indicator */}
                             <div className="text-center text-sm text-slate-500 mt-2">
@@ -1044,7 +1077,7 @@ export default function RoutesNewPage() {
                                             setShowCreateModal(false)
                                             setGroupName("")
                                             setSelectedVenues([])
-                                        } }
+                                        }}
                                         className="p-2 text-gray-400 hover:text-gray-600"
                                     >
                                         <X className="h-6 w-6" />
@@ -1156,8 +1189,8 @@ export default function RoutesNewPage() {
                                             onClick={handleCreateVenueGroup}
                                             disabled={!groupName.trim() || selectedVenues.length === 0 || isCreating}
                                             className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${!groupName.trim() || selectedVenues.length === 0 || isCreating
-                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
+                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
                                         >
                                             {isCreating ? 'Creating...' : 'Create Venue Group'}
                                         </button>
@@ -1166,7 +1199,7 @@ export default function RoutesNewPage() {
                                                 setShowCreateModal(false)
                                                 setGroupName("")
                                                 setSelectedVenues([])
-                                            } }
+                                            }}
                                             className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                         >
                                             Cancel
