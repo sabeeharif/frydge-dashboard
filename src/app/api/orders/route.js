@@ -15,7 +15,7 @@ export async function GET(request) {
     const search = searchParams.get("search")
 
     // Build the API URL
-    let apiUrl = `https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/orders?limit=${limit}`
+    let apiUrl = `https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/orders?limit=${limit}`
 
     if (lastKey) {
       apiUrl += `&lastKey=${encodeURIComponent(lastKey)}`

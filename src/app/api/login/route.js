@@ -8,7 +8,7 @@ export async function POST(request) {
 
   
   try {
-    const vendLiveRes = await fetch("https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users/login", {
+    const vendLiveRes = await fetch("https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/dashboard_users/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

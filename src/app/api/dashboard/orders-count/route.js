@@ -11,7 +11,7 @@ export async function GET(request) {
 
     console.log("Fetching orders count from dashboard API...")
 
-    const response = await fetch("https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/orders/count", {
+    const response = await fetch("https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/orders/count", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

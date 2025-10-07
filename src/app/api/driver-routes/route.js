@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-const API_BASE_URL = "https://1ckizfb3b3.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes"
+const API_BASE_URL = "https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes"
 const AUTH_TOKEN = "ZnJ5ZGdlQDEyMzQhQCM="
 
 // GET - Fetch routes (all or specific by routeId)
@@ -26,6 +26,8 @@ export async function GET(request) {
         if (search) params.append("search", search)
         params.append("limit", "50") // Use larger limit for bulk fetching
         if (currentLastKey) params.append("lastKey", currentLastKey)
+        // Add timestamp to force fresh data
+        params.append("_t", Date.now().toString())
 
         const url = `${API_BASE_URL}?${params.toString()}`
         console.log("Fetching from URL:", url)
@@ -35,6 +37,10 @@ export async function GET(request) {
           headers: {
             "Content-Type": "application/json",
             Authorization: AUTH_TOKEN,
+            // Add cache busting headers
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
           },
         })
 
@@ -81,6 +87,8 @@ export async function GET(request) {
     if (search) params.append("search", search)
     params.append("limit", limit)
     if (lastKey && lastKey !== "null") params.append("lastKey", lastKey)
+    // Add timestamp to force fresh data
+    params.append("_t", Date.now().toString())
 
     const url = `${API_BASE_URL}?${params.toString()}`
     console.log("Fetching from URL:", url)
@@ -90,6 +98,10 @@ export async function GET(request) {
       headers: {
         "Content-Type": "application/json",
         Authorization: AUTH_TOKEN,
+        // Add cache busting headers
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
       },
     })
 
