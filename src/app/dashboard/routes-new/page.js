@@ -386,11 +386,6 @@ export default function RoutesNewPage() {
 
     // Create venue group
     const handleCreateVenueGroup = async () => {
-        if (!groupName.trim()) {
-            alert("Please enter a group name")
-            return
-        }
-
         if (selectedVenues.length === 0) {
             alert("Please select at least one venue")
             return
@@ -757,6 +752,22 @@ export default function RoutesNewPage() {
         setDraggedFromDriver(null)
     }
 
+    // Handle body scroll when modal is open
+    useEffect(() => {
+        if (showCreateModal) {
+            // Disable body scroll when modal is open
+            document.body.style.overflow = 'hidden'
+        } else {
+            // Re-enable body scroll when modal is closed
+            document.body.style.overflow = 'unset'
+        }
+
+        // Cleanup function to ensure scroll is re-enabled
+        return () => {
+            document.body.style.overflow = 'unset'
+        }
+    }, [showCreateModal])
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -850,10 +861,10 @@ export default function RoutesNewPage() {
                     </button> */}
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600  text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
                         >
                             <Plus className="h-5 w-5" />
-                            <span className="font-semibold">Create Venue Group</span>
+                            <span className="font-semibold">Manage Venue Group</span>
                         </button>
                     </div>
                 </div>
@@ -1066,13 +1077,13 @@ export default function RoutesNewPage() {
                     </div>
                 </div>
 
-                {/* Create Venue Group Modal */}
+                {/* Manage Venue Group Modal */}
                 {showCreateModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[95vh] overflow-hidden flex flex-col">
                             <div className="p-6 border-b border-gray-200">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-2xl font-bold text-gray-800">Create New Venue Group</h3>
+                                    <h3 className="text-2xl font-bold text-gray-800">Manage Venue Group</h3>
                                     <button
                                         onClick={() => {
                                             setShowCreateModal(false)
@@ -1086,125 +1097,191 @@ export default function RoutesNewPage() {
                                 </div>
                             </div>
 
-                            <div className="flex h-[70vh]">
-                                {/* Left Side - Available Venues */}
-                                <div className="w-1/2 p-6 border-r border-gray-200 overflow-y-auto">
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Available Venues</h3>
-                                        <p className="text-sm text-gray-600">Drag venues from here to the right to create your group</p>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {allVenues.map((venue) => (
-                                            <div
-                                                key={venue.id}
-                                                draggable
-                                                onDragStart={(e) => handleModalDragStart(e, venue)}
-                                                onDragEnd={handleModalDragEnd}
-                                                className="p-3 rounded-lg border-2 border-slate-200 cursor-move hover:border-slate-400 hover:shadow-md transition-all duration-200 bg-slate-50"
-                                            >
-                                                <div className="text-sm font-medium text-slate-800">
-                                                    {venue.name}
-                                                </div>
-                                                {venue.locationName && venue.locationName !== venue.name && (
-                                                    <div className="text-xs text-slate-600 mt-1">
-                                                        {venue.locationName}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Right Side - Group Creation */}
-                                <div className="w-1/2 p-6 overflow-y-auto">
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Group Name *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={groupName}
-                                            onChange={(e) => setGroupName(e.target.value)}
-                                            placeholder="Enter group name..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="text-lg font-semibold text-gray-800">Selected Venues ({selectedVenues.length})</h3>
-                                            {selectedVenues.length > 0 && (
-                                                <button
-                                                    onClick={clearSelectedVenues}
-                                                    className="text-sm text-red-600 hover:text-red-800"
-                                                >
-                                                    Clear All
-                                                </button>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-gray-600 mb-3">Drop venues here or drag them back to remove</p>
-                                    </div>
-
-                                    <div
-                                        className="min-h-[300px] border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-3"
+                            <div className="flex flex-col flex-1 overflow-hidden">
+                                {/* Top Section - Create New Group */}
+                                <div className="flex border-b border-gray-200" style={{height: '40%'}}>
+                                    {/* Left Side - Available Venues */}
+                                    <div className="w-1/2 p-4 border-r border-gray-200 overflow-y-auto"
                                         onDragOver={handleModalDragOver}
-                                        onDrop={handleModalDrop}
+                                        onDrop={(e) => {
+                                            e.preventDefault()
+                                            if (!draggedItem) return
+                                            // Remove from selected venues when dragged back to available list
+                                            setSelectedVenues(prev => prev.filter(v => v.id !== draggedItem.id))
+                                            setDraggedItem(null)
+                                        }}
                                     >
-                                        {selectedVenues.length === 0 ? (
-                                            <div className="text-center text-gray-500 py-12">
-                                                <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                                <p className="text-sm">Drop venues here to add them to the group</p>
-                                            </div>
-                                        ) : (
-                                            selectedVenues.map((venue) => (
+                                        <div className="mb-3">
+                                            <h3 className="text-base font-semibold text-gray-800 mb-1">Available Venues</h3>
+                                            <p className="text-xs text-gray-600">Drag venues to the right to create your group</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {allVenues.filter(venue => !selectedVenues.find(sv => sv.id === venue.id)).map((venue) => (
                                                 <div
                                                     key={venue.id}
                                                     draggable
                                                     onDragStart={(e) => handleModalDragStart(e, venue)}
                                                     onDragEnd={handleModalDragEnd}
-                                                    className="p-3 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-move hover:border-blue-400 transition-all duration-200 flex items-center justify-between"
+                                                    className="p-2 rounded-lg border-2 border-slate-200 cursor-move hover:border-slate-400 hover:shadow-md transition-all duration-200 bg-slate-50"
                                                 >
-                                                    <div>
-                                                        <div className="text-sm font-medium text-blue-800">
-                                                            {venue.name}
-                                                        </div>
-                                                        {venue.locationName && venue.locationName !== venue.name && (
-                                                            <div className="text-xs text-blue-600 mt-1">
-                                                                {venue.locationName}
-                                                            </div>
-                                                        )}
+                                                    <div className="text-sm font-medium text-slate-800">
+                                                        {venue.name}
                                                     </div>
+                                                    {venue.locationName && venue.locationName !== venue.name && (
+                                                        <div className="text-xs text-slate-600 mt-1">
+                                                            {venue.locationName}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side - Group Creation */}
+                                    <div className="w-1/2 p-4 overflow-y-auto">
+                                        <div className="mb-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h3 className="text-base font-semibold text-gray-800">Selected Venues ({selectedVenues.length})</h3>
+                                                {selectedVenues.length > 0 && (
                                                     <button
-                                                        onClick={() => removeVenueFromGroup(venue.id)}
-                                                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                                                        onClick={clearSelectedVenues}
+                                                        className="text-xs text-red-600 hover:text-red-800"
                                                     >
-                                                        <X className="h-4 w-4" />
+                                                        Clear All
                                                     </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-600 mb-2">Drop venues here or drag them back to remove</p>
+                                        </div>
+
+                                        <div
+                                            className="min-h-[150px] border-2 border-dashed border-gray-300 rounded-lg p-3 space-y-2"
+                                            onDragOver={handleModalDragOver}
+                                            onDrop={handleModalDrop}
+                                        >
+                                            {selectedVenues.length === 0 ? (
+                                                <div className="text-center text-gray-500 py-8">
+                                                    <MapPin className="h-6 w-6 mx-auto mb-2 text-gray-300" />
+                                                    <p className="text-xs">Drop venues here to add them to the group</p>
+                                                </div>
+                                            ) : (
+                                                selectedVenues.map((venue) => (
+                                                    <div
+                                                        key={venue.id}
+                                                        draggable
+                                                        onDragStart={(e) => handleModalDragStart(e, venue)}
+                                                        onDragEnd={handleModalDragEnd}
+                                                        className="p-2 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-move hover:border-blue-400 transition-all duration-200 flex items-center justify-between"
+                                                    >
+                                                        <div>
+                                                            <div className="text-sm font-medium text-blue-800">
+                                                                {venue.name}
+                                                            </div>
+                                                            {venue.locationName && venue.locationName !== venue.name && (
+                                                                <div className="text-xs text-blue-600 mt-1">
+                                                                    {venue.locationName}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => removeVenueFromGroup(venue.id)}
+                                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 flex gap-3">
+                                            <button
+                                                onClick={handleCreateVenueGroup}
+                                                disabled={selectedVenues.length === 0 || isCreating}
+                                                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedVenues.length === 0 || isCreating
+                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
+                                            >
+                                                {isCreating ? 'Creating...' : 'Create Group'}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowCreateModal(false)
+                                                    setGroupName("")
+                                                    setSelectedVenues([])
+                                                }}
+                                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Section - Existing Groups Table */}
+                                <div className="flex-1 p-6 overflow-y-auto">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Existing Venue Groups</h3>
+                                    <div className="space-y-4">
+                                        {allVenueGroups.length === 0 ? (
+                                            <div className="text-center py-12 text-gray-500">
+                                                <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                                                <p className="text-sm">No venue groups created yet</p>
+                                            </div>
+                                        ) : (
+                                            allVenueGroups.map((group) => (
+                                                <div key={group.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <Users className="h-5 w-5 text-blue-600" />
+                                                                <h4 className="text-base font-semibold text-gray-800">{group.name}</h4>
+                                                                <span className="text-xs text-gray-600">({group.venues?.length || 0} venues)</span>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // Edit functionality - will be implemented later with API
+                                                                        console.log('Edit group:', group.id)
+                                                                    }}
+                                                                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // Delete functionality - will be implemented later with API
+                                                                        console.log('Delete group:', group.id)
+                                                                    }}
+                                                                    className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-4 bg-white">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                            {group.venues && group.venues.length > 0 ? (
+                                                                group.venues.map((venue, idx) => (
+                                                                    <div
+                                                                        key={venue.id || idx}
+                                                                        className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                                                                    >
+                                                                        <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                                        <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
+                                                                    </div>
+                                                                ))
+                                                            ) : (
+                                                                <div className="col-span-full text-center py-2 text-gray-500 text-sm">
+                                                                    No venues in this group
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))
                                         )}
-                                    </div>
-
-                                    <div className="mt-6 flex gap-3">
-                                        <button
-                                            onClick={handleCreateVenueGroup}
-                                            disabled={!groupName.trim() || selectedVenues.length === 0 || isCreating}
-                                            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${!groupName.trim() || selectedVenues.length === 0 || isCreating
-                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
-                                        >
-                                            {isCreating ? 'Creating...' : 'Create Venue Group'}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowCreateModal(false)
-                                                setGroupName("")
-                                                setSelectedVenues([])
-                                            }}
-                                            className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
                                     </div>
                                 </div>
                             </div>
