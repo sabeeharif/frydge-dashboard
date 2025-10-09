@@ -119,3 +119,145 @@ export async function POST(request) {
     )
   }
 }
+
+// PUT - Update venue group
+export async function PUT(request) {
+  try {
+    const body = await request.json()
+    console.log("Updating venue group with data:", body)
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    const response = await fetch(API_BASE_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": AUTH_TOKEN,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    // Handle authentication errors
+    if (response.status === 401 || response.status === 403 || response.status === 400) {
+      console.error("Venue Group Update Authentication Error:", response.status)
+      return NextResponse.json(
+        { error: "Authentication failed", requiresLogin: true },
+        { status: 401 }
+      )
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Venue Group Update API Error:", errorText)
+      return NextResponse.json(
+        { error: `API error: ${response.status} - ${errorText}` },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    console.log("Venue Group Update Response:", data)
+
+    return NextResponse.json(data, { status: 200 })
+  } catch (error) {
+    console.error("Venue Group Update Route Error:", error)
+    
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "Request timeout - the server took too long to respond" },
+        { status: 504 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: `Server error: ${error.message}` },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Delete venue group
+export async function DELETE(request) {
+  try {
+    const body = await request.json()
+    console.log("Deleting venue group with data:", body)
+    console.log("DELETE Request URL:", API_BASE_URL)
+    console.log("DELETE Request Body:", JSON.stringify(body))
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    const response = await fetch(API_BASE_URL, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": AUTH_TOKEN,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+    console.log("DELETE Response Status:", response.status, response.statusText)
+
+    // Handle authentication errors
+    if (response.status === 401 || response.status === 403 || response.status === 400) {
+      console.error("Venue Group Delete Authentication Error:", response.status)
+      return NextResponse.json(
+        { error: "Authentication failed", requiresLogin: true },
+        { status: 401 }
+      )
+    }
+
+    if (!response.ok) {
+      let errorText
+      try {
+        errorText = await response.text()
+        console.error("Venue Group Delete API Error:", errorText)
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorText)
+          return NextResponse.json(
+            { error: errorJson.message || `API error: ${response.status}` },
+            { status: response.status }
+          )
+        } catch (e) {
+          // Not JSON, return as is
+          return NextResponse.json(
+            { error: `API error: ${response.status} - ${errorText}` },
+            { status: response.status }
+          )
+        }
+      } catch (e) {
+        return NextResponse.json(
+          { error: `API error: ${response.status}` },
+          { status: response.status }
+        )
+      }
+    }
+
+    const data = await response.json()
+    console.log("Venue Group Delete Response:", data)
+
+    return NextResponse.json(data, { status: 200 })
+  } catch (error) {
+    console.error("Venue Group Delete Route Error:", error)
+    
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "Request timeout - the server took too long to respond" },
+        { status: 504 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: `Server error: ${error.message}` },
+      { status: 500 }
+    )
+  }
+}
