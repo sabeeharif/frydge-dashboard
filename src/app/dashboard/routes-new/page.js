@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import Loader from "@/app/components/Loader"
 
 export default function RoutesNewPage() {
     // State for API data
@@ -17,6 +18,8 @@ export default function RoutesNewPage() {
     const [selectedVenues, setSelectedVenues] = useState([])
     const [groupName, setGroupName] = useState("")
     const [isCreating, setIsCreating] = useState(false)
+    const [editingGroup, setEditingGroup] = useState(null) // Track which group is being edited
+    const [isDeleting, setIsDeleting] = useState(null) // Track which group is being deleted
 
     // Route creation state
     const [creatingRouteForDriver, setCreatingRouteForDriver] = useState(null)
@@ -30,6 +33,7 @@ export default function RoutesNewPage() {
     const [draggedItem, setDraggedItem] = useState(null)
     const [draggedFromDriver, setDraggedFromDriver] = useState(null)
     const dragCounter = useRef(0)
+    const [dragOverIndex, setDragOverIndex] = useState(null) // Track which position we're hovering over for reordering
 
     // Scroll state and refs
     const driversScrollRef = useRef(null)
@@ -191,7 +195,7 @@ export default function RoutesNewPage() {
                                             latitude: venue.latitude,
                                             longitude: venue.longitude,
                                             machine: venue.machine,
-                                            priority: venue.priority,
+                                            priority: venue.priority || 1,
                                             type: 'venue',
                                             routeId: route.routeId,
                                             routeName: route.routeName,
@@ -202,7 +206,10 @@ export default function RoutesNewPage() {
                             }
                         })
 
-                        console.log(`Assigned venues for driver ${driver.name}:`, assignedVenues)
+                        // Sort venues by priority (ascending: 1, 2, 3, 4...)
+                        assignedVenues.sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+                        console.log(`Assigned venues for driver ${driver.name} (sorted by priority):`, assignedVenues)
                         return { driverId: driver.id, assignedVenues }
                     }
                 } catch (err) {
@@ -322,6 +329,7 @@ export default function RoutesNewPage() {
     const handleDragEnd = () => {
         setDraggedItem(null)
         setDraggedFromDriver(null)
+        setDragOverIndex(null)
         dragCounter.current = 0
 
         // Remove mouse move listener and stop auto-scroll
@@ -384,7 +392,25 @@ export default function RoutesNewPage() {
         setSelectedVenues([])
     }
 
-    // Create venue group
+    // Refresh venue groups data
+    const refreshVenueGroups = async () => {
+        const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
+        if (venueGroupsResponse.ok) {
+            const venueGroupsData = await venueGroupsResponse.json()
+            const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+            const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
+                id: group.id || group.groupId || index + 1,
+                name: group.name || group.groupName || `Group ${index + 1}`,
+                isExpanded: false,
+                venues: group.venues || group.venueList || [],
+                ...group
+            }))
+            setAllVenueGroups(groupsWithExpansion)
+            setVenueGroups(groupsWithExpansion)
+        }
+    }
+
+    // Create or Update venue group
     const handleCreateVenueGroup = async () => {
         if (selectedVenues.length === 0) {
             alert("Please select at least one venue")
@@ -395,9 +421,9 @@ export default function RoutesNewPage() {
             setIsCreating(true)
 
             // Transform venues to match API format
-            const venuesData = selectedVenues.map(venue => ({
+            const venuesData = selectedVenues.map((venue, index) => ({
                 id: venue.id,
-                priority: 1,
+                priority: venue.priority || index + 1,
                 name: venue.name,
                 locationName: venue.locationName || venue.name,
                 address: venue.address || "N/A",
@@ -411,52 +437,122 @@ export default function RoutesNewPage() {
                 }
             }))
 
-            const response = await fetch('/api/venue-group', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    venues: venuesData
+            let response
+            if (editingGroup) {
+                // Update existing group
+                response = await fetch('/api/venue-group', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        groupId: editingGroup.id,
+                        venues: venuesData
+                    })
                 })
-            })
+            } else {
+                // Create new group
+                response = await fetch('/api/venue-group', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        venues: venuesData
+                    })
+                })
+            }
 
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.error || 'Failed to create venue group')
+                let errorData
+                try {
+                    errorData = await response.json()
+                } catch (e) {
+                    throw new Error(`Failed to ${editingGroup ? 'update' : 'create'} venue group: ${response.status} ${response.statusText}`)
+                }
+                throw new Error(errorData.error || `Failed to ${editingGroup ? 'update' : 'create'} venue group`)
             }
 
             const result = await response.json()
-            console.log('Venue group created:', result)
+            console.log(`Venue group ${editingGroup ? 'updated' : 'created'}:`, result)
 
             // Close modal and reset state
             setShowCreateModal(false)
             setGroupName("")
             setSelectedVenues([])
+            setEditingGroup(null)
 
             // Refresh venue groups data
-            const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
-            if (venueGroupsResponse.ok) {
-                const venueGroupsData = await venueGroupsResponse.json()
-                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
-                const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
-                    id: group.id || group.groupId || index + 1,
-                    name: group.name || group.groupName || `Group ${index + 1}`,
-                    isExpanded: false,
-                    venues: group.venues || group.venueList || [],
-                    ...group
-                }))
-                setAllVenueGroups(groupsWithExpansion)
-                setVenueGroups(groupsWithExpansion)
-            }
+            await refreshVenueGroups()
 
-            alert("Venue group created successfully!")
+            success(`Venue group ${editingGroup ? 'updated' : 'created'} successfully!`)
 
-        } catch (error) {
-            console.error('Error creating venue group:', error)
-            alert(`Error creating venue group: ${error.message}`)
+        } catch (err) {
+            console.error(`Error ${editingGroup ? 'updating' : 'creating'} venue group:`, err)
+            error(`Error ${editingGroup ? 'updating' : 'creating'} venue group: ${err.message}`)
         } finally {
             setIsCreating(false)
+        }
+    }
+
+    // Delete venue group
+    const handleDeleteVenueGroup = async (group) => {
+        if (!confirm(`Are you sure you want to delete the venue group "${group.name}"?`)) {
+            return
+        }
+
+        try {
+            setIsDeleting(group.id)
+
+            const response = await fetch('/api/venue-group', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    groupId: group.id
+                })
+            })
+
+            if (!response.ok) {
+                let errorData
+                try {
+                    errorData = await response.json()
+                } catch (e) {
+                    throw new Error(`Failed to delete venue group: ${response.status} ${response.statusText}`)
+                }
+
+                // Provide more helpful error messages
+                let errorMessage = errorData.error || 'Failed to delete venue group'
+                if (response.status === 500 || response.status === 502) {
+                    errorMessage += '. The group might be in use or assigned to a driver. Please unassign it first.'
+                }
+                throw new Error(errorMessage)
+            }
+
+            const result = await response.json()
+            console.log('Venue group deleted:', result)
+
+            // Refresh venue groups data
+            await refreshVenueGroups()
+
+            success(`Venue group "${group.name}" deleted successfully!`)
+
+        } catch (err) {
+            console.error('Error deleting venue group:', err)
+            error(`Error deleting venue group: ${err.message}`)
+        } finally {
+            setIsDeleting(null)
+        }
+    }
+
+    // Handle edit button click
+    const handleEditVenueGroup = (group) => {
+        setEditingGroup(group)
+        setSelectedVenues(group.venues || [])
+        // Modal should already be open, if not open it
+        if (!showCreateModal) {
+            setShowCreateModal(true)
         }
     }
 
@@ -542,48 +638,106 @@ export default function RoutesNewPage() {
 
         // Remove from previous driver if dragged from another driver
         if (draggedFromDriver && draggedFromDriver !== driverId) {
-            // First, remove from local state
-            setDrivers(prev =>
-                prev.map(d =>
-                    d.id === draggedFromDriver
-                        ? {
-                            ...d,
-                            assignedVenues: d.assignedVenues.filter(v => v.id !== draggedItem.id)
-                        }
-                        : d
-                )
-            )
+            const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
 
-            // Then, delete the route from the database for the previous driver
-            try {
-                const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
-                if (previousDriver) {
+            if (previousDriver) {
+                // Calculate remaining venues after removing the dragged one
+                const remainingVenues = previousDriver.assignedVenues
+                    .filter(v => v.id !== draggedItem.id && v.type === 'venue')
+                    .map((v, index) => ({ ...v, priority: index + 1 })) // Reindex priorities
+                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+                // Update local state
+                setDrivers(prev =>
+                    prev.map(d =>
+                        d.id === draggedFromDriver
+                            ? {
+                                ...d,
+                                assignedVenues: previousDriver.assignedVenues
+                                    .filter(v => v.id !== draggedItem.id)
+                                    .map((v, index) => ({ ...v, priority: v.type === 'venue' ? index + 1 : v.priority }))
+                                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+                            }
+                            : d
+                    )
+                )
+
+                // Update or delete the route in the backend
+                try {
                     const userId = previousDriver.userId || previousDriver.id
                     const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
 
-                        // Delete routes that contain this venue
-                        for (const route of routes) {
-                            if (route.venues && route.venues.some(v => v.id === draggedItem.id)) {
+                        if (routes.length > 0) {
+                            const route = routes[0] // Get the main route
+
+                            // If there are remaining venues, update the route
+                            if (remainingVenues.length > 0) {
+                                const venuesData = remainingVenues.map((venue, index) => ({
+                                    id: parseInt(venue.id),
+                                    priority: index + 1,
+                                    name: venue.name || "Unknown Location",
+                                    locationName: venue.locationName || venue.name || "Lobby",
+                                    address: venue.address || "No address provided",
+                                    latitude: parseFloat(venue.latitude) || 0,
+                                    longitude: parseFloat(venue.longitude) || 0,
+                                    machine: {
+                                        id: parseInt(venue.machine?.id) || 0,
+                                        name: venue.machine?.name || "Unknown Machine",
+                                        freeVend: Boolean(venue.machine?.freeVend),
+                                        isFridge: Boolean(venue.machine?.isFridge),
+                                    },
+                                }))
+
+                                const updateResponse = await fetch('/api/driver-routes', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        routeId: route.routeId,
+                                        venues: venuesData
+                                    })
+                                })
+
+                                if (!updateResponse.ok) {
+                                    throw new Error('Failed to update route for previous driver')
+                                }
+                                console.log(`Updated route ${route.routeId} for driver ${previousDriver.name}`)
+                            } else {
+                                // No venues left, delete the entire route
                                 await fetch("/api/driver-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: route.routeId }),
                                 })
-                                console.log(`Deleted route ${route.routeId} from driver ${previousDriver.name}`)
+                                console.log(`Deleted route ${route.routeId} from driver ${previousDriver.name} (no venues left)`)
                             }
+
+                            // Refresh routes for previous driver after update/deletion
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
                         }
                     }
+                } catch (err) {
+                    console.error("Error updating route from previous driver:", err)
+                    error(`Failed to remove venue from previous driver: ${err.message}`)
                 }
-            } catch (err) {
-                console.error("Error deleting route from previous driver:", err)
-                error(`Failed to remove route from previous driver: ${err.message}`)
             }
         }
 
+        // Calculate the next priority based on existing venues
+        const nextPriority = driver.assignedVenues.length + 1
+
         // Add to new driver (avoid duplicates)
+        const newVenue = {
+            id: draggedItem.id,
+            name: draggedItem.name,
+            type: draggedItem.sourceType === 'group' ? 'group' : 'venue',
+            priority: nextPriority,
+            ...draggedItem // Include all original data
+        }
+
         setDrivers(prev =>
             prev.map(d =>
                 d.id === driverId
@@ -591,27 +745,26 @@ export default function RoutesNewPage() {
                         ...d,
                         assignedVenues: [
                             ...d.assignedVenues.filter(v => v.id !== draggedItem.id),
-                            {
-                                id: draggedItem.id,
-                                name: draggedItem.name,
-                                type: draggedItem.sourceType === 'group' ? 'group' : 'venue',
-                                ...draggedItem // Include all original data
-                            }
-                        ]
+                            newVenue
+                        ].sort((a, b) => (a.priority || 0) - (b.priority || 0)) // Sort by priority
                     }
                     : d
             )
         )
 
-        // Create route if this is a venue (not a group)
+        // Combine all venues (existing + new) for route creation/update
+        const existingVenues = driver.assignedVenues.filter(v => v.type === 'venue' && v.id !== draggedItem.id)
+
+        // Create route with all venues if this is a venue (not a group)
         if (draggedItem.sourceType === 'venue') {
-            const venueData = {
+            const newVenueData = {
                 id: draggedItem.id,
                 name: draggedItem.name,
                 locationName: draggedItem.locationName || draggedItem.name,
                 address: draggedItem.address || "N/A",
                 latitude: draggedItem.latitude || 0,
                 longitude: draggedItem.longitude || 0,
+                priority: nextPriority,
                 machine: draggedItem.machine || {
                     id: 0,
                     name: "N/A",
@@ -620,7 +773,68 @@ export default function RoutesNewPage() {
                 }
             }
 
-            await createRouteForDriver(driver, [venueData])
+            // Combine existing venues with new one
+            const allVenues = [...existingVenues, newVenueData]
+
+            // Check if driver already has routes
+            try {
+                const userId = driver.userId || driver.id
+                const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+
+                if (response.ok) {
+                    const data = await response.json()
+                    const routes = data.routes || data.data || []
+
+                    if (routes.length > 0) {
+                        // Update existing route with all venues (existing + new)
+                        const routeId = routes[0].routeId
+
+                        const venuesData = allVenues.map((venue, index) => ({
+                            id: parseInt(venue.id),
+                            priority: index + 1, // Stack priority: 1, 2, 3, 4...
+                            name: venue.name || "Unknown Location",
+                            locationName: venue.locationName || venue.name || "Lobby",
+                            address: venue.address || "No address provided",
+                            latitude: parseFloat(venue.latitude) || 0,
+                            longitude: parseFloat(venue.longitude) || 0,
+                            machine: {
+                                id: parseInt(venue.machine?.id) || 0,
+                                name: venue.machine?.name || "Unknown Machine",
+                                freeVend: Boolean(venue.machine?.freeVend),
+                                isFridge: Boolean(venue.machine?.isFridge),
+                            },
+                        }))
+
+                        const updateResponse = await fetch('/api/driver-routes', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                routeId: routeId,
+                                venues: venuesData
+                            })
+                        })
+
+                        if (updateResponse.ok) {
+                            success(`Venue added to ${driver.name}'s route!`)
+                            // Refresh routes
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
+                        } else {
+                            throw new Error('Failed to update route')
+                        }
+                    } else {
+                        // No existing route, create new one
+                        await createRouteForDriver(driver, allVenues)
+                    }
+                } else {
+                    // No existing routes, create new one
+                    await createRouteForDriver(driver, allVenues)
+                }
+            } catch (err) {
+                console.error('Error managing route:', err)
+                // Fallback: create new route
+                await createRouteForDriver(driver, allVenues)
+            }
         } else if (draggedItem.sourceType === 'group') {
             // For groups, create route with all venues in the group
             const groupVenues = draggedItem.venues || []
@@ -629,12 +843,14 @@ export default function RoutesNewPage() {
             }
         }
 
-        // Show success message
-        if (draggedFromDriver && draggedFromDriver !== driverId) {
-            const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
-            success(`Venue '${draggedItem.name}' reassigned from ${previousDriver?.name} to ${driver.name}`)
-        } else {
-            success(`Venue '${draggedItem.name}' assigned to ${driver.name}`)
+        // Show success message (only if not already shown by route update)
+        if (draggedItem.sourceType !== 'venue') {
+            if (draggedFromDriver && draggedFromDriver !== driverId) {
+                const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
+                success(`'${draggedItem.name}' reassigned from ${previousDriver?.name} to ${driver.name}`)
+            } else {
+                success(`'${draggedItem.name}' assigned to ${driver.name}`)
+            }
         }
 
         setDraggedItem(null)
@@ -649,47 +865,86 @@ export default function RoutesNewPage() {
         if (draggedFromDriver) {
             const driver = drivers?.find(d => d.id === draggedFromDriver)
             if (driver) {
-                // Delete the route for this driver if it exists
+                // Remove venue from local state first
+                const remainingVenues = driver.assignedVenues
+                    .filter(v => v.id !== draggedItem.id && v.type === 'venue')
+                    .map((v, index) => ({ ...v, priority: index + 1 })) // Reindex priorities
+                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+                setDrivers(prev =>
+                    prev.map(d =>
+                        d.id === draggedFromDriver
+                            ? {
+                                ...d,
+                                assignedVenues: remainingVenues
+                            }
+                            : d
+                    )
+                )
+
+                // Update or delete the route in the backend
                 try {
-                    // Find existing routes for this driver using the correct userId
                     const userId = driver.userId || driver.id
                     const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
 
-                        // Delete routes that contain this venue
-                        for (const route of routes) {
-                            if (route.venues && route.venues.some(v => v.id === draggedItem.id)) {
+                        if (routes.length > 0) {
+                            const route = routes[0] // Get the main route
+
+                            // If there are remaining venues, update the route
+                            if (remainingVenues.length > 0) {
+                                const venuesData = remainingVenues.map((venue, index) => ({
+                                    id: parseInt(venue.id),
+                                    priority: index + 1,
+                                    name: venue.name || "Unknown Location",
+                                    locationName: venue.locationName || venue.name || "Lobby",
+                                    address: venue.address || "No address provided",
+                                    latitude: parseFloat(venue.latitude) || 0,
+                                    longitude: parseFloat(venue.longitude) || 0,
+                                    machine: {
+                                        id: parseInt(venue.machine?.id) || 0,
+                                        name: venue.machine?.name || "Unknown Machine",
+                                        freeVend: Boolean(venue.machine?.freeVend),
+                                        isFridge: Boolean(venue.machine?.isFridge),
+                                    },
+                                }))
+
+                                const updateResponse = await fetch('/api/driver-routes', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        routeId: route.routeId,
+                                        venues: venuesData
+                                    })
+                                })
+
+                                if (updateResponse.ok) {
+                                    success(`Venue '${draggedItem.name}' removed from ${driver.name}'s route`)
+                                } else {
+                                    throw new Error('Failed to update route')
+                                }
+                            } else {
+                                // No venues left, delete the entire route
                                 await fetch("/api/driver-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: route.routeId }),
                                 })
-                                success(`Venue '${draggedItem.name}' unassigned from ${driver.name}`)
+                                success(`Last venue removed. Route deleted for ${driver.name}`)
                             }
-                        }
 
-                        // Refresh routes after deletion
-                        const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
-                        setDrivers(updatedDriversWithRoutes)
+                            // Refresh routes after update/deletion
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
+                        }
                     }
                 } catch (err) {
-                    console.error("Error deleting route:", err)
-                    error(`Failed to delete route: ${err.message}`)
+                    console.error("Error updating route:", err)
+                    error(`Failed to remove venue: ${err.message}`)
                 }
             }
-
-            setDrivers(prev =>
-                prev.map(d =>
-                    d.id === draggedFromDriver
-                        ? {
-                            ...d,
-                            assignedVenues: d.assignedVenues.filter(v => v.id !== draggedItem.id)
-                        }
-                        : d
-                )
-            )
         }
 
         setDraggedItem(null)
@@ -704,52 +959,229 @@ export default function RoutesNewPage() {
         if (draggedFromDriver) {
             const driver = drivers?.find(d => d.id === draggedFromDriver)
             if (driver) {
-                // Delete the route for this driver if it exists
+                // Get venue IDs from the group
+                const groupVenueIds = (draggedItem.venues || []).map(v => v.id)
+
+                // Remove the group and its venues from local state
+                const remainingVenues = driver.assignedVenues
+                    .filter(v => {
+                        // Remove the group itself
+                        if (v.id === draggedItem.id && v.type === 'group') return false
+                        // Remove individual venues that are part of this group
+                        if (v.type === 'venue' && groupVenueIds.includes(v.id)) return false
+                        return true
+                    })
+                    .filter(v => v.type === 'venue') // Keep only venues for route update
+                    .map((v, index) => ({ ...v, priority: index + 1 })) // Reindex priorities
+                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+                setDrivers(prev =>
+                    prev.map(d =>
+                        d.id === draggedFromDriver
+                            ? {
+                                ...d,
+                                assignedVenues: driver.assignedVenues.filter(v => {
+                                    if (v.id === draggedItem.id && v.type === 'group') return false
+                                    if (v.type === 'venue' && groupVenueIds.includes(v.id)) return false
+                                    return true
+                                }).map((v, index) => ({ ...v, priority: v.type === 'venue' ? index + 1 : v.priority }))
+                            }
+                            : d
+                    )
+                )
+
+                // Update or delete the route in the backend
                 try {
-                    // Find existing routes for this driver using the correct userId
                     const userId = driver.userId || driver.id
                     const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
 
-                        // Delete routes that contain venues from this group
-                        const groupVenueIds = (draggedItem.venues || []).map(v => v.id)
-                        for (const route of routes) {
-                            if (route.venues && route.venues.some(v => groupVenueIds.includes(v.id))) {
+                        if (routes.length > 0) {
+                            const route = routes[0] // Get the main route
+
+                            // If there are remaining venues, update the route
+                            if (remainingVenues.length > 0) {
+                                const venuesData = remainingVenues.map((venue, index) => ({
+                                    id: parseInt(venue.id),
+                                    priority: index + 1,
+                                    name: venue.name || "Unknown Location",
+                                    locationName: venue.locationName || venue.name || "Lobby",
+                                    address: venue.address || "No address provided",
+                                    latitude: parseFloat(venue.latitude) || 0,
+                                    longitude: parseFloat(venue.longitude) || 0,
+                                    machine: {
+                                        id: parseInt(venue.machine?.id) || 0,
+                                        name: venue.machine?.name || "Unknown Machine",
+                                        freeVend: Boolean(venue.machine?.freeVend),
+                                        isFridge: Boolean(venue.machine?.isFridge),
+                                    },
+                                }))
+
+                                const updateResponse = await fetch('/api/driver-routes', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        routeId: route.routeId,
+                                        venues: venuesData
+                                    })
+                                })
+
+                                if (updateResponse.ok) {
+                                    success(`Group '${draggedItem.name}' removed from ${driver.name}'s route`)
+                                } else {
+                                    throw new Error('Failed to update route')
+                                }
+                            } else {
+                                // No venues left, delete the entire route
                                 await fetch("/api/driver-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: route.routeId }),
                                 })
-                                success(`Venue group '${draggedItem.name}' unassigned from ${driver.name}`)
+                                success(`Last group removed. Route deleted for ${driver.name}`)
                             }
-                        }
 
-                        // Refresh routes after deletion
-                        const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
-                        setDrivers(updatedDriversWithRoutes)
+                            // Refresh routes after update/deletion
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
+                        }
                     }
                 } catch (err) {
-                    console.error("Error deleting route:", err)
-                    error(`Failed to delete route: ${err.message}`)
+                    console.error("Error updating route:", err)
+                    error(`Failed to remove group: ${err.message}`)
                 }
             }
-
-            setDrivers(prev =>
-                prev.map(d =>
-                    d.id === draggedFromDriver
-                        ? {
-                            ...d,
-                            assignedVenues: d.assignedVenues.filter(v => v.id !== draggedItem.id)
-                        }
-                        : d
-                )
-            )
         }
 
         setDraggedItem(null)
         setDraggedFromDriver(null)
+    }
+
+    // Handle reordering venues within the same driver
+    const handleReorderVenues = async (driverId, fromIndex, toIndex) => {
+        if (fromIndex === toIndex) return
+
+        const driver = drivers.find(d => d.id === driverId)
+        if (!driver) return
+
+        // Create a new array with reordered venues
+        const reorderedVenues = [...driver.assignedVenues]
+        const [movedItem] = reorderedVenues.splice(fromIndex, 1)
+        reorderedVenues.splice(toIndex, 0, movedItem)
+
+        // Update priorities based on new order (1, 2, 3, 4...)
+        const venuesWithNewPriorities = reorderedVenues.map((venue, index) => ({
+            ...venue,
+            priority: index + 1
+        }))
+
+        // Sort venues by priority before updating state
+        const sortedVenues = venuesWithNewPriorities.sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+        // Update local state immediately for better UX
+        setDrivers(prev =>
+            prev.map(d =>
+                d.id === driverId
+                    ? { ...d, assignedVenues: sortedVenues }
+                    : d
+            )
+        )
+
+        // Update the route via API
+        try {
+            const userId = driver.userId || driver.id
+
+            // Transform venues to API format
+            const venuesData = venuesWithNewPriorities
+                .filter(item => item.type === 'venue') // Only send venues, not groups
+                .map((venue) => ({
+                    id: parseInt(venue.id),
+                    priority: venue.priority,
+                    name: venue.name || "Unknown Location",
+                    locationName: venue.locationName || venue.name || "Lobby",
+                    address: venue.address || "No address provided",
+                    latitude: parseFloat(venue.latitude) || 0,
+                    longitude: parseFloat(venue.longitude) || 0,
+                    machine: {
+                        id: parseInt(venue.machine?.id) || 0,
+                        name: venue.machine?.name || "Unknown Machine",
+                        freeVend: Boolean(venue.machine?.freeVend),
+                        isFridge: Boolean(venue.machine?.isFridge),
+                    },
+                }))
+
+            // Get the first route ID (we'll update the main route)
+            const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+            if (response.ok) {
+                const data = await response.json()
+                const routes = data.routes || data.data || []
+
+                if (routes.length > 0) {
+                    // Update the first route with new priorities
+                    const routeId = routes[0].routeId
+
+                    const updateResponse = await fetch('/api/driver-routes', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            routeId: routeId,
+                            venues: venuesData
+                        })
+                    })
+
+                    if (updateResponse.ok) {
+                        success(`Venue priorities updated for ${driver.name}!`)
+                    } else {
+                        throw new Error('Failed to update route priorities')
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error updating venue priorities:', err)
+            error(`Failed to update priorities: ${err.message}`)
+
+            // Revert the local state on error
+            await loadExistingRoutesForDrivers(drivers)
+        }
+    }
+
+    // Handle drag over specific venue for reordering
+    const handleVenueDragOver = (e, index, driverId) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        // Only show reorder indicator if dragging within the same driver
+        if (draggedFromDriver === driverId && draggedItem) {
+            setDragOverIndex({ driverId, index })
+        }
+    }
+
+    // Handle drop on specific venue for reordering
+    const handleVenueDrop = async (e, targetIndex, driverId) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        // If dragging from the same driver (reordering)
+        if (draggedItem && draggedFromDriver === driverId) {
+            const driver = drivers.find(d => d.id === driverId)
+            if (!driver) return
+
+            const fromIndex = driver.assignedVenues.findIndex(v => v.id === draggedItem.id)
+            if (fromIndex === -1) return
+
+            await handleReorderVenues(driverId, fromIndex, targetIndex)
+
+            setDraggedItem(null)
+            setDraggedFromDriver(null)
+            setDragOverIndex(null)
+        }
+        // If dragging from outside (new venue or from another driver)
+        else if (draggedItem && !draggedFromDriver) {
+            // This will be handled by handleDropOnDriver with position awareness
+            await handleDropOnDriver(e, driverId, targetIndex)
+        }
     }
 
     // Handle body scroll when modal is open
@@ -782,20 +1214,8 @@ export default function RoutesNewPage() {
     // Loading state
     if (loading) {
         return (
-            <div className="p-8 space-y-8">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                        <Navigation className="h-10 w-10 text-blue-600" />
-                        <span className="text-gray-800">Route Assignment Manager</span>
-                    </h1>
-                    <p className="text-gray-600">Loading data...</p>
-                </div>
-                <div className="flex items-center justify-center min-h-[600px]">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">Fetching venues, groups, and drivers...</p>
-                    </div>
-                </div>
+            <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+                <Loader />
             </div>
         )
     }
@@ -861,7 +1281,7 @@ export default function RoutesNewPage() {
                     </button> */}
                         <button
                             onClick={() => setShowCreateModal(true)}
-                             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600  text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600  text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
                         >
                             <Plus className="h-5 w-5" />
                             <span className="font-semibold">Manage Venue Group</span>
@@ -1037,31 +1457,54 @@ export default function RoutesNewPage() {
                                                     <p className="text-sm">Drop venues or groups here</p>
                                                 </div>
                                             ) : (
-                                                driver.assignedVenues.map((item) => (
-                                                    <div
-                                                        key={`${item.type}-${item.id}`}
-                                                        draggable
-                                                        onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
-                                                        onDragEnd={handleDragEnd}
-                                                        className={`p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md ${item.type === 'group'
-                                                            ? 'bg-purple-50 border-purple-200 hover:border-purple-300'
-                                                            : 'bg-blue-50 border-blue-200 hover:border-blue-300'}`}
-                                                    >
-                                                        <div className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                                                            {item.type === 'group' ? (
-                                                                <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                                                            ) : (
-                                                                <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                                driver.assignedVenues
+                                                    .slice() // Create a copy to avoid mutating state
+                                                    .sort((a, b) => (a.priority || 0) - (b.priority || 0)) // Sort by priority
+                                                    .map((item, index) => (
+                                                        <div key={`${item.type}-${item.id}`}>
+                                                            {/* Drop indicator above */}
+                                                            {dragOverIndex?.driverId === driver.id && dragOverIndex?.index === index && (
+                                                                <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
                                                             )}
-                                                            <span className="truncate">{item.name}</span>
-                                                        </div>
-                                                        {item.type === 'group' && (
-                                                            <div className="text-xs text-purple-600 mt-1 ml-6">
-                                                                Group Assignment
+
+                                                            <div
+                                                                draggable
+                                                                onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                onDragEnd={handleDragEnd}
+                                                                onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                className={`p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md ${item.type === 'group'
+                                                                    ? 'bg-purple-50 border-purple-200 hover:border-purple-300'
+                                                                    : 'bg-blue-50 border-blue-200 hover:border-blue-300'}`}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    {/* Priority Number */}
+                                                                    <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
+                                                                        {index + 1}
+                                                                    </div>
+
+                                                                    <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
+                                                                        {item.type === 'group' ? (
+                                                                            <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                                        ) : (
+                                                                            <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                                                        )}
+                                                                        <span className="truncate">{item.name}</span>
+                                                                    </div>
+                                                                </div>
+                                                                {item.type === 'group' && (
+                                                                    <div className="text-xs text-purple-600 mt-1 ml-8">
+                                                                        Group Assignment
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ))
+
+                                                            {/* Drop indicator below (for last item) */}
+                                                            {dragOverIndex?.driverId === driver.id && dragOverIndex?.index === index + 1 && index === driver.assignedVenues.length - 1 && (
+                                                                <div className="h-1 bg-blue-500 rounded-full mt-2 animate-pulse"></div>
+                                                            )}
+                                                        </div>
+                                                    ))
                                             )}
                                         </div>
                                     </div>
@@ -1081,14 +1524,17 @@ export default function RoutesNewPage() {
                 {showCreateModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
                         <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[95vh] overflow-hidden flex flex-col">
-                            <div className="p-6 border-b border-gray-200">
+                            <div className="p-6 border-b ">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-2xl font-bold text-gray-800">Manage Venue Group</h3>
+                                    <h3 className="text-2xl font-bold text-gray-800">
+                                        {editingGroup ? `Edit Venue Group: ${editingGroup.name}` : 'Manage Venue Group'}
+                                    </h3>
                                     <button
                                         onClick={() => {
                                             setShowCreateModal(false)
                                             setGroupName("")
                                             setSelectedVenues([])
+                                            setEditingGroup(null)
                                         }}
                                         className="p-2 text-gray-400 hover:text-gray-600"
                                     >
@@ -1098,10 +1544,35 @@ export default function RoutesNewPage() {
                             </div>
 
                             <div className="flex flex-col flex-1 overflow-hidden">
+                                {/* Editing Mode Banner */}
+                                {editingGroup && (
+                                    <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                <span className="text-blue-800 font-medium">
+                                                    You are editing: <strong>{editingGroup.name}</strong> - Add or remove venues below
+                                                </span>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingGroup(null)
+                                                    setSelectedVenues([])
+                                                }}
+                                                className="px-3 py-1 text-xs bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-50 transition-colors font-medium"
+                                            >
+                                                Exit Edit Mode
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Top Section - Create New Group */}
-                                <div className="flex border-b border-gray-200" style={{height: '40%'}}>
+                                <div className="flex border-b  " style={{ height: editingGroup ? '37%' : '40%' }}>
                                     {/* Left Side - Available Venues */}
-                                    <div className="w-1/2 p-4 border-r border-gray-200 overflow-y-auto"
+                                    <div className="w-1/2 p-4 border-r  overflow-y-auto "
                                         onDragOver={handleModalDragOver}
                                         onDrop={(e) => {
                                             e.preventDefault()
@@ -1111,9 +1582,10 @@ export default function RoutesNewPage() {
                                             setDraggedItem(null)
                                         }}
                                     >
+                                        {/* <div className="border border-1 p-2 rounded-md"> */}
                                         <div className="mb-3">
                                             <h3 className="text-base font-semibold text-gray-800 mb-1">Available Venues</h3>
-                                            <p className="text-xs text-gray-600">Drag venues to the right to create your group</p>
+                                            <p className="text-xs text-gray-600">Drag venues to the right to {editingGroup ? 'update' : 'create'} your group</p>
                                         </div>
 
                                         <div className="space-y-2">
@@ -1136,21 +1608,44 @@ export default function RoutesNewPage() {
                                                 </div>
                                             ))}
                                         </div>
+                                        {/* </div> */}
                                     </div>
 
                                     {/* Right Side - Group Creation */}
                                     <div className="w-1/2 p-4 overflow-y-auto">
+                                        {/* <div className="border border-1 p-2 rounded-md"> */}
+
                                         <div className="mb-3">
                                             <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-base font-semibold text-gray-800">Selected Venues ({selectedVenues.length})</h3>
-                                                {selectedVenues.length > 0 && (
-                                                    <button
-                                                        onClick={clearSelectedVenues}
-                                                        className="text-xs text-red-600 hover:text-red-800"
-                                                    >
-                                                        Clear All
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-base font-semibold text-gray-800">Selected Venues ({selectedVenues.length})</h3>
+                                                    {editingGroup && (
+                                                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                                            Editing Mode
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {/* {editingGroup && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingGroup(null)
+                                                                setSelectedVenues([])
+                                                            }}
+                                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                        >
+                                                            Exit Edit Mode
+                                                        </button>
+                                                    )} */}
+                                                    {selectedVenues.length > 0 && (
+                                                        <button
+                                                            onClick={clearSelectedVenues}
+                                                            className="text-xs text-red-600 hover:text-red-800"
+                                                        >
+                                                            Clear All
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className="text-xs text-gray-600 mb-2">Drop venues here or drag them back to remove</p>
                                         </div>
@@ -1203,85 +1698,88 @@ export default function RoutesNewPage() {
                                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
                                             >
-                                                {isCreating ? 'Creating...' : 'Create Group'}
+                                                {isCreating ? (editingGroup ? 'Updating...' : 'Creating...') : (editingGroup ? 'Update Group' : 'Create Group')}
                                             </button>
                                             <button
                                                 onClick={() => {
                                                     setShowCreateModal(false)
                                                     setGroupName("")
                                                     setSelectedVenues([])
+                                                    setEditingGroup(null)
                                                 }}
                                                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                                             >
                                                 Cancel
                                             </button>
                                         </div>
+                                        {/* </div> */}
                                     </div>
                                 </div>
 
                                 {/* Bottom Section - Existing Groups Table */}
-                                <div className="flex-1 p-6 overflow-y-auto">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Existing Venue Groups</h3>
-                                    <div className="space-y-4">
-                                        {allVenueGroups.length === 0 ? (
-                                            <div className="text-center py-12 text-gray-500">
-                                                <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                                                <p className="text-sm">No venue groups created yet</p>
-                                            </div>
-                                        ) : (
-                                            allVenueGroups.map((group) => (
-                                                <div key={group.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <Users className="h-5 w-5 text-blue-600" />
-                                                                <h4 className="text-base font-semibold text-gray-800">{group.name}</h4>
-                                                                <span className="text-xs text-gray-600">({group.venues?.length || 0} venues)</span>
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // Edit functionality - will be implemented later with API
-                                                                        console.log('Edit group:', group.id)
-                                                                    }}
-                                                                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                                                >
-                                                                    Edit
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // Delete functionality - will be implemented later with API
-                                                                        console.log('Delete group:', group.id)
-                                                                    }}
-                                                                    className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="p-4 bg-white">
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                            {group.venues && group.venues.length > 0 ? (
-                                                                group.venues.map((venue, idx) => (
-                                                                    <div
-                                                                        key={venue.id || idx}
-                                                                        className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
-                                                                    >
-                                                                        <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                                        <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
-                                                                    </div>
-                                                                ))
-                                                            ) : (
-                                                                <div className="col-span-full text-center py-2 text-gray-500 text-sm">
-                                                                    No venues in this group
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
+
+                                <div className="flex-1 p-6 overflow-y-auto ">
+                                    <div className="border border-1 p-2 rounded-md">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Existing Venue Groups</h3>
+                                        <div className="space-y-4">
+                                            {allVenueGroups.length === 0 ? (
+                                                <div className="text-center py-12 text-gray-500">
+                                                    <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                                                    <p className="text-sm">No venue groups created yet</p>
                                                 </div>
-                                            ))
-                                        )}
+                                            ) : (
+                                                allVenueGroups.map((group) => (
+                                                    <div key={group.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Users className="h-5 w-5 text-blue-600" />
+                                                                    <h4 className="text-base font-semibold text-gray-800">{group.name}</h4>
+                                                                    <span className="text-xs text-gray-600">({group.venues?.length || 0} venues)</span>
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => handleEditVenueGroup(group)}
+                                                                        className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                                    >
+                                                                        Edit
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteVenueGroup(group)}
+                                                                        disabled={isDeleting === group.id}
+                                                                        className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${isDeleting === group.id
+                                                                            ? 'bg-gray-400 text-white cursor-not-allowed'
+                                                                            : 'bg-red-600 text-white hover:bg-red-700'
+                                                                            }`}
+                                                                    >
+                                                                        {isDeleting === group.id ? 'Deleting...' : 'Delete'}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-4 bg-white">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                                {group.venues && group.venues.length > 0 ? (
+                                                                    group.venues.map((venue, idx) => (
+                                                                        <div
+                                                                            key={venue.id || idx}
+                                                                            className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                                                                        >
+                                                                            <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                                            <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="col-span-full text-center py-2 text-gray-500 text-sm">
+                                                                        No venues in this group
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1291,3 +1789,5 @@ export default function RoutesNewPage() {
             </div></>
     )
 }
+
+
