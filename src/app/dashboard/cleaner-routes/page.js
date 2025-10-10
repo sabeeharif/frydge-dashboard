@@ -52,7 +52,7 @@ export default function CleanerRoutesPage() {
 
                 // Fetch all data in parallel
                 const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
-                    fetch('/api/vacant-locations'),
+                    fetch('/api/cleaner-vacant-locations'), // Using cleaner-specific vacant locations
                     fetch('/api/venue-group?limit=10'), // Fetch all venue groups
                     fetch('/api/drivers') // Using drivers API - they're cleaners in this context
                 ])

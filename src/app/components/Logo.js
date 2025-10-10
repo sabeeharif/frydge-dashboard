@@ -2,7 +2,7 @@
 export default function Logo({ isCollapsed }) {
   return (
     <div className={`flex items-center space-x-3 transition-opacity duration-300 ${
-      isCollapsed ? 'opacity-0' : 'opacity-100'
+      isCollapsed ? 'opacity-100' : 'opacity-100'
     }`}>
       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
         <span className="text-white font-bold text-lg">F</span>
