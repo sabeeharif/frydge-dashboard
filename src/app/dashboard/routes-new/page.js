@@ -34,6 +34,7 @@ export default function RoutesNewPage() {
     const [draggedFromDriver, setDraggedFromDriver] = useState(null)
     const dragCounter = useRef(0)
     const [dragOverIndex, setDragOverIndex] = useState(null) // Track which position we're hovering over for reordering
+    const [modalDragOverIndex, setModalDragOverIndex] = useState(null) // Track drag over position in modal selected venues
 
     // Scroll state and refs
     const driversScrollRef = useRef(null)
@@ -364,6 +365,7 @@ export default function RoutesNewPage() {
 
     const handleModalDragEnd = () => {
         setDraggedItem(null)
+        setModalDragOverIndex(null)
     }
 
     const handleModalDragOver = (e) => {
@@ -386,6 +388,44 @@ export default function RoutesNewPage() {
 
     const removeVenueFromGroup = (venueId) => {
         setSelectedVenues(prev => prev.filter(v => v.id !== venueId))
+    }
+
+    // Handle reordering venues within selected venues
+    const handleModalVenueReorder = (fromIndex, toIndex) => {
+        if (fromIndex === toIndex) return
+
+        setSelectedVenues(prev => {
+            const reorderedVenues = [...prev]
+            const [movedItem] = reorderedVenues.splice(fromIndex, 1)
+            reorderedVenues.splice(toIndex, 0, movedItem)
+            
+            // Update priorities based on new order
+            return reorderedVenues.map((venue, index) => ({
+                ...venue,
+                priority: index + 1
+            }))
+        })
+    }
+
+    // Handle drag over specific venue in modal for reordering
+    const handleModalVenueDragOver = (e, index) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setModalDragOverIndex(index)
+    }
+
+    // Handle drop on specific venue in modal for reordering
+    const handleModalVenueDrop = (e, targetIndex) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (draggedItem) {
+            const fromIndex = selectedVenues.findIndex(v => v.id === draggedItem.id)
+            if (fromIndex !== -1) {
+                handleModalVenueReorder(fromIndex, targetIndex)
+            }
+        }
+        setModalDragOverIndex(null)
     }
 
     const clearSelectedVenues = () => {
@@ -1661,30 +1701,49 @@ export default function RoutesNewPage() {
                                                     <p className="text-xs">Drop venues here to add them to the group</p>
                                                 </div>
                                             ) : (
-                                                selectedVenues.map((venue) => (
-                                                    <div
-                                                        key={venue.id}
-                                                        draggable
-                                                        onDragStart={(e) => handleModalDragStart(e, venue)}
-                                                        onDragEnd={handleModalDragEnd}
-                                                        className="p-2 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-move hover:border-blue-400 transition-all duration-200 flex items-center justify-between"
-                                                    >
-                                                        <div>
-                                                            <div className="text-sm font-medium text-blue-800">
-                                                                {venue.name}
-                                                            </div>
-                                                            {venue.locationName && venue.locationName !== venue.name && (
-                                                                <div className="text-xs text-blue-600 mt-1">
-                                                                    {venue.locationName}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => removeVenueFromGroup(venue.id)}
-                                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                                                selectedVenues.map((venue, index) => (
+                                                    <div key={venue.id}>
+                                                        {/* Drop indicator above */}
+                                                        {modalDragOverIndex === index && (
+                                                            <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
+                                                        )}
+                                                        
+                                                        <div
+                                                            draggable
+                                                            onDragStart={(e) => handleModalDragStart(e, venue)}
+                                                            onDragEnd={handleModalDragEnd}
+                                                            onDragOver={(e) => handleModalVenueDragOver(e, index)}
+                                                            onDrop={(e) => handleModalVenueDrop(e, index)}
+                                                            className="p-2 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-move hover:border-blue-400 transition-all duration-200 flex items-center justify-between"
                                                         >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
+                                                            <div className="flex items-center gap-2">
+                                                                {/* Priority Number */}
+                                                                <div className="flex-shrink-0 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
+                                                                    {index + 1}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-sm font-medium text-blue-800">
+                                                                        {venue.name}
+                                                                    </div>
+                                                                    {venue.locationName && venue.locationName !== venue.name && (
+                                                                        <div className="text-xs text-blue-600 mt-1">
+                                                                            {venue.locationName}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => removeVenueFromGroup(venue.id)}
+                                                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded"
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Drop indicator below (for last item) */}
+                                                        {modalDragOverIndex === index + 1 && index === selectedVenues.length - 1 && (
+                                                            <div className="h-1 bg-blue-500 rounded-full mt-2 animate-pulse"></div>
+                                                        )}
                                                     </div>
                                                 ))
                                             )}
@@ -1760,15 +1819,22 @@ export default function RoutesNewPage() {
                                                         <div className="p-4 bg-white">
                                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                                                 {group.venues && group.venues.length > 0 ? (
-                                                                    group.venues.map((venue, idx) => (
-                                                                        <div
-                                                                            key={venue.id || idx}
-                                                                            className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
-                                                                        >
-                                                                            <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                                            <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
-                                                                        </div>
-                                                                    ))
+                                                                    group.venues
+                                                                        .slice() // Create a copy to avoid mutating state
+                                                                        .sort((a, b) => (a.priority || 0) - (b.priority || 0)) // Sort by priority
+                                                                        .map((venue, idx) => (
+                                                                            <div
+                                                                                key={venue.id || idx}
+                                                                                className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                                                                            >
+                                                                                {/* Priority Number */}
+                                                                                <div className="flex-shrink-0 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-300">
+                                                                                    {venue.priority || idx + 1}
+                                                                                </div>
+                                                                                <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                                                <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
+                                                                            </div>
+                                                                        ))
                                                                 ) : (
                                                                     <div className="col-span-full text-center py-2 text-gray-500 text-sm">
                                                                         No venues in this group
