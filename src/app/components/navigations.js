@@ -8,6 +8,8 @@ import {
   Users,
   Navigation,
   Trello,
+  Truck,
+  Sparkles,
 } from "lucide-react";
 
 // Safe parse user role from localStorage
@@ -32,8 +34,8 @@ export const navItems = [
   { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
   { name: "Machines", path: "/dashboard/machines", icon: Package },
   { name: "Routes", path: "/dashboard/routes", icon: Navigation },
-  { name: "Driver Routes", path: "/dashboard/routes-new", icon: MapPin },
-  { name: "Cleaner Routes", path: "/dashboard/routes-new", icon: MapPin },
+  { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
+  { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
   // { name: "Location", path: "/dashboard/locations", icon: MapPin },
   // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
   // { name: "Settings", path: "/dashboard/settings", icon: Settings },
