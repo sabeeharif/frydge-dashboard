@@ -398,7 +398,7 @@ export default function RoutesNewPage() {
             const reorderedVenues = [...prev]
             const [movedItem] = reorderedVenues.splice(fromIndex, 1)
             reorderedVenues.splice(toIndex, 0, movedItem)
-            
+
             // Update priorities based on new order
             return reorderedVenues.map((venue, index) => ({
                 ...venue,
@@ -1363,7 +1363,7 @@ export default function RoutesNewPage() {
                                         className={`p-3 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor()}`}
                                     >
                                         <div className="text-sm font-medium">
-                                            {venue.name}
+                                            {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})`}
                                         </div>
                                     </div>
                                 ))
@@ -1426,7 +1426,7 @@ export default function RoutesNewPage() {
                                                             key={venue.id || venue.venueId}
                                                             className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
                                                         >
-                                                            {venue.name || venue.venueName}
+                                                            {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})` || venue.venueName}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1529,7 +1529,7 @@ export default function RoutesNewPage() {
                                                                         ) : (
                                                                             <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
                                                                         )}
-                                                                        <span className="truncate">{item.name}</span>
+                                                                        <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
                                                                     </div>
                                                                 </div>
                                                                 {item.type === 'group' && (
@@ -1707,7 +1707,7 @@ export default function RoutesNewPage() {
                                                         {modalDragOverIndex === index && (
                                                             <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
                                                         )}
-                                                        
+
                                                         <div
                                                             draggable
                                                             onDragStart={(e) => handleModalDragStart(e, venue)}

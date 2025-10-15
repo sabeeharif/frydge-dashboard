@@ -1368,7 +1368,8 @@ export default function CleanerRoutesPage() {
                                         className={`p-3 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor()}`}
                                     >
                                         <div className="text-sm font-medium">
-                                            {venue.name}
+                                        {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})`}
+
                                         </div>
                                     </div>
                                 ))
@@ -1431,7 +1432,8 @@ export default function CleanerRoutesPage() {
                                                             key={venue.id || venue.venueId}
                                                             className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
                                                         >
-                                                            {venue.name || venue.venueName}
+                                                            {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})` || venue.venueName}
+
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1534,7 +1536,7 @@ export default function CleanerRoutesPage() {
                                                                         ) : (
                                                                             <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
                                                                         )}
-                                                                        <span className="truncate">{item.name}</span>
+                                                                        <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
                                                                     </div>
                                                                 </div>
                                                                 {item.type === 'group' && (
