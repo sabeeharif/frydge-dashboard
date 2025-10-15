@@ -459,6 +459,11 @@ export default function CleanerRoutesPage() {
             return
         }
 
+        if (!groupName.trim()) {
+            alert("Please enter a group name")
+            return
+        }
+
         try {
             setIsCreating(true)
 
@@ -489,6 +494,7 @@ export default function CleanerRoutesPage() {
                     },
                     body: JSON.stringify({
                         groupId: editingGroup.id,
+                        groupName: groupName.trim(),
                         venues: venuesData
                     })
                 })
@@ -500,6 +506,7 @@ export default function CleanerRoutesPage() {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                        groupName: groupName.trim(),
                         venues: venuesData
                     })
                 })
@@ -591,6 +598,7 @@ export default function CleanerRoutesPage() {
     // Handle edit button click
     const handleEditVenueGroup = (group) => {
         setEditingGroup(group)
+        setGroupName(group.name || group.groupName || "")
         setSelectedVenues(group.venues || [])
         // Modal should already be open, if not open it
         if (!showCreateModal) {
@@ -1697,6 +1705,24 @@ export default function CleanerRoutesPage() {
                                             <p className="text-xs text-gray-600 mb-2">Drop venues here or drag them back to remove</p>
                                         </div>
 
+                                        {/* Group Name Input */}
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Group Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={groupName}
+                                                onChange={(e) => setGroupName(e.target.value)}
+                                                placeholder="Enter group name (e.g., Downtown Venues, Campus Locations)"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                required
+                                            />
+                                            {!groupName.trim() && (
+                                                <p className="text-xs text-red-600 mt-1">Group name is required</p>
+                                            )}
+                                        </div>
+
                                         <div
                                             className="min-h-[150px] border-2 border-dashed border-gray-300 rounded-lg p-3 space-y-2"
                                             onDragOver={handleModalDragOver}
@@ -1759,8 +1785,8 @@ export default function CleanerRoutesPage() {
                                         <div className="mt-4 flex gap-3">
                                             <button
                                                 onClick={handleCreateVenueGroup}
-                                                disabled={selectedVenues.length === 0 || isCreating}
-                                                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedVenues.length === 0 || isCreating
+                                                disabled={selectedVenues.length === 0 || !groupName.trim() || isCreating}
+                                                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-sm ${selectedVenues.length === 0 || !groupName.trim() || isCreating
                                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'}`}
                                             >
