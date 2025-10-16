@@ -70,10 +70,19 @@ export default function CleanerRoutesPage() {
                 console.log('Fetched data (drivers as cleaners):', { venuesData, venueGroupsData, driversData })
 
                 // Transform and set venues data
-                const transformedVenues = venuesData.vacantLocations || venuesData.data || []
+                const transformedVenues = venuesData.locations || venuesData.vacantLocations || venuesData.data || []
                 setAllVenues(transformedVenues.map((venue, index) => ({
                     id: venue.id || venue.venueId || index + 1,
                     name: venue.name || venue.venueName || venue.locationName || `Venue ${index + 1}`,
+                    locationName: venue.locationName,
+                    address: venue.address,
+                    latitude: venue.latitude,
+                    longitude: venue.longitude,
+                    photo: venue.photo,
+                    machine: venue.machine,
+                    account: venue.account,
+                    venue: venue.venue,
+                    userId: venue.userId,
                     ...venue
                 })))
 
@@ -240,16 +249,37 @@ export default function CleanerRoutesPage() {
         }
     }
 
-    // Get available venues (not assigned to any driver)
-    const getAvailableVenues = () => {
-        if (!drivers || drivers.length === 0) return allVenues
+    // Refetch vacant locations to update userId arrays after route changes
+    const refetchVacantLocations = async () => {
+        try {
+            const venuesResponse = await fetch('/api/cleaner-vacant-locations')
+            if (venuesResponse.ok) {
+                const venuesData = await venuesResponse.json()
+                const transformedVenues = venuesData.locations || venuesData.vacantLocations || venuesData.data || []
+                setAllVenues(transformedVenues.map((venue, index) => ({
+                    id: venue.id || venue.venueId || index + 1,
+                    name: venue.name || venue.venueName || venue.locationName || `Venue ${index + 1}`,
+                    locationName: venue.locationName,
+                    address: venue.address,
+                    latitude: venue.latitude,
+                    longitude: venue.longitude,
+                    photo: venue.photo,
+                    machine: venue.machine,
+                    account: venue.account,
+                    venue: venue.venue,
+                    userId: venue.userId,
+                    ...venue
+                })))
+                console.log('Vacant locations refetched successfully')
+            }
+        } catch (err) {
+            console.error('Error refetching vacant locations:', err)
+        }
+    }
 
-        const assignedVenueIds = drivers.flatMap(driver =>
-            driver.assignedVenues
-                .filter(item => item.type === 'venue')
-                .map(item => item.id)
-        )
-        return allVenues.filter(venue => !assignedVenueIds.includes(venue.id))
+    // Get all venues - DO NOT filter assigned venues, show ALL
+    const getAvailableVenues = () => {
+        return allVenues
     }
 
     // Get available groups (not assigned to any driver)
@@ -355,8 +385,22 @@ export default function CleanerRoutesPage() {
     }
 
 
-    const getVenueTypeColor = () => {
-        return "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200 hover:border-slate-400"
+    const getVenueTypeColor = (venue) => {
+        // Color coding based on UNIQUE userId count (not array length)
+        // Get unique user IDs from the array
+        const uniqueUserIds = [...new Set(venue?.userId || [])]
+        const uniqueCount = uniqueUserIds.length
+        
+        if (uniqueCount === 0) {
+            // Not assigned to any cleaner - default white/slate
+            return "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200 hover:border-slate-400"
+        } else if (uniqueCount === 1) {
+            // Assigned to exactly 1 unique cleaner (green even if userId appears multiple times) - green
+            return "bg-green-100 border-green-400 text-green-800 hover:bg-green-200 hover:border-green-500"
+        } else {
+            // Assigned to 2 or more different cleaners - red (conflict)
+            return "bg-red-100 border-red-400 text-red-800 hover:bg-red-200 hover:border-red-500"
+        }
     }
 
     // Modal drag and drop handlers
@@ -660,6 +704,9 @@ export default function CleanerRoutesPage() {
 
             success(`Route created successfully for ${driver.name} (Cleaner)!`)
 
+            // Refresh vacant locations to update userId arrays
+            await refetchVacantLocations()
+            
             // Refresh routes after creation
             const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
             setDrivers(updatedDriversWithRoutes)
@@ -746,7 +793,8 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                        routeId: routeId,
+                                        cleanerRouteId: routeId,
+                                        routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
                                         venues: venuesData
                                     })
                                 })
@@ -755,14 +803,20 @@ export default function CleanerRoutesPage() {
                                     throw new Error('Failed to update route for previous driver')
                                 }
                                 console.log(`Updated route ${routeId} for driver ${previousDriver.name}`)
+                                // Refresh vacant locations to update userId arrays
+                                await refetchVacantLocations()
                             } else {
                                 // No venues left, delete the entire route
-                                await fetch("/api/cleaner-routes", {
+                                const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: routeId }),
                                 })
-                                console.log(`Deleted route ${routeId} from driver ${previousDriver.name} (no venues left)`)
+                                if (deleteResponse.ok) {
+                                    console.log(`Deleted route ${routeId} from driver ${previousDriver.name} (no venues left)`)
+                                    // Refresh vacant locations to update userId arrays
+                                    await refetchVacantLocations()
+                                }
                             }
 
                             // Refresh routes for previous driver after update/deletion
@@ -860,13 +914,16 @@ export default function CleanerRoutesPage() {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                routeId: routeId,
+                                cleanerRouteId: routeId,
+                                routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
                                 venues: venuesData
                             })
                         })
 
                         if (updateResponse.ok) {
                             success(`Venue added to ${driver.name}'s (Cleaner) route!`)
+                            // Refresh vacant locations to update userId arrays
+                            await refetchVacantLocations()
                             // Refresh routes
                             const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
                             setDrivers(updatedDriversWithRoutes)
@@ -967,24 +1024,32 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                        routeId: routeId,
+                                        cleanerRouteId: routeId,
+                                        routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
                                 })
 
                                 if (updateResponse.ok) {
                                     success(`Venue '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
+                                    // Refresh vacant locations to update userId arrays
+                                    await refetchVacantLocations()
                                 } else {
                                     throw new Error('Failed to update route')
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                await fetch("/api/cleaner-routes", {
+                                const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: routeId }),
                                 })
-                                success(`Last venue removed. Route deleted for ${driver.name} (Cleaner)`)
+                                
+                                if (deleteResponse.ok) {
+                                    success(`Last venue removed. Route deleted for ${driver.name} (Cleaner)`)
+                                    // Refresh vacant locations to update userId arrays
+                                    await refetchVacantLocations()
+                                }
                             }
 
                             // Refresh routes after update/deletion
@@ -1076,24 +1141,31 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                        routeId: routeId,
+                                        cleanerRouteId: routeId,
+                                        routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
                                 })
 
                                 if (updateResponse.ok) {
                                     success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
+                                    // Refresh vacant locations to update userId arrays
+                                    await refetchVacantLocations()
                                 } else {
                                     throw new Error('Failed to update route')
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                await fetch("/api/cleaner-routes", {
+                                const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: routeId }),
                                 })
-                                success(`Last group removed. Route deleted for ${driver.name} (Cleaner)`)
+                                if (deleteResponse.ok) {
+                                    success(`Last group removed. Route deleted for ${driver.name} (Cleaner)`)
+                                    // Refresh vacant locations to update userId arrays
+                                    await refetchVacantLocations()
+                                }
                             }
 
                             // Refresh routes after update/deletion
@@ -1364,7 +1436,7 @@ export default function CleanerRoutesPage() {
                             {availableVenues.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500">
                                     <MapPin className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                                    <p className="text-sm">All venues assigned</p>
+                                    <p className="text-sm">No venues available</p>
                                 </div>
                             ) : (
                                 availableVenues.map((venue) => (
@@ -1373,7 +1445,7 @@ export default function CleanerRoutesPage() {
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, venue, 'venue')}
                                         onDragEnd={handleDragEnd}
-                                        className={`p-3 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor()}`}
+                                        className={`p-3 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor(venue)}`}
                                     >
                                         <div className="text-sm font-medium">
                                         {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})`}
@@ -1650,13 +1722,13 @@ export default function CleanerRoutesPage() {
                                                     draggable
                                                     onDragStart={(e) => handleModalDragStart(e, venue)}
                                                     onDragEnd={handleModalDragEnd}
-                                                    className="p-2 rounded-lg border-2 border-slate-200 cursor-move hover:border-slate-400 hover:shadow-md transition-all duration-200 bg-slate-50"
+                                                    className={`p-2 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor(venue)}`}
                                                 >
-                                                    <div className="text-sm font-medium text-slate-800">
+                                                    <div className="text-sm font-medium">
                                                         {venue.name}
                                                     </div>
                                                     {venue.locationName && venue.locationName !== venue.name && (
-                                                        <div className="text-xs text-slate-600 mt-1">
+                                                        <div className="text-xs mt-1">
                                                             {venue.locationName}
                                                         </div>
                                                     )}
