@@ -665,6 +665,7 @@ export default function CleanerRoutesPage() {
 
             // Transform venues to match API format
             const venuesData = venues.map((venue, index) => ({
+                userId: [driver.userId || driver.id], // Each venue needs userId as array
                 id: parseInt(venue.id),
                 priority: index + 1,
                 name: venue.name || "Unknown Location",
@@ -681,7 +682,7 @@ export default function CleanerRoutesPage() {
             }))
 
             const routeData = {
-                userId: driver.userId || driver.id, // Use the actual userId from driver data
+                userId: driver.userId || driver.id, // Top-level userId as string
                 routeName: routeName,
                 venues: venuesData,
             }
@@ -774,6 +775,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
+                                    userId: [previousDriver.userId || previousDriver.id], // Each venue needs userId as array
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -793,6 +795,7 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
+                                        userId: previousDriver.userId || previousDriver.id, // Top-level userId as string
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
                                         venues: venuesData
@@ -810,7 +813,7 @@ export default function CleanerRoutesPage() {
                                 const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: routeId }),
+                                    body: JSON.stringify({ cleanerRouteId: routeId }),
                                 })
                                 if (deleteResponse.ok) {
                                     console.log(`Deleted route ${routeId} from driver ${previousDriver.name} (no venues left)`)
@@ -895,6 +898,7 @@ export default function CleanerRoutesPage() {
                         const routeId = routes[0].cleanerRouteId || routes[0].routeId
 
                         const venuesData = allVenues.map((venue, index) => ({
+                            userId: [driver.userId || driver.id], // Each venue needs userId as array
                             id: parseInt(venue.id),
                             priority: index + 1, // Stack priority: 1, 2, 3, 4...
                             name: venue.name || "Unknown Location",
@@ -914,6 +918,7 @@ export default function CleanerRoutesPage() {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
+                                userId: driver.userId || driver.id, // Top-level userId as string
                                 cleanerRouteId: routeId,
                                 routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
                                 venues: venuesData
@@ -1005,6 +1010,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
+                                    userId: [driver.userId || driver.id], // Each venue needs userId as array
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -1024,6 +1030,7 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
+                                        userId: driver.userId || driver.id, // Top-level userId as string
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
@@ -1042,7 +1049,7 @@ export default function CleanerRoutesPage() {
                                 const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: routeId }),
+                                    body: JSON.stringify({ cleanerRouteId: routeId }),
                                 })
                                 
                                 if (deleteResponse.ok) {
@@ -1122,6 +1129,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
+                                    userId: [driver.userId || driver.id], // Each venue needs userId as array
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -1141,6 +1149,7 @@ export default function CleanerRoutesPage() {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
+                                        userId: driver.userId || driver.id, // Top-level userId as string
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
@@ -1159,7 +1168,7 @@ export default function CleanerRoutesPage() {
                                 const deleteResponse = await fetch("/api/cleaner-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: routeId }),
+                                    body: JSON.stringify({ cleanerRouteId: routeId }),
                                 })
                                 if (deleteResponse.ok) {
                                     success(`Last group removed. Route deleted for ${driver.name} (Cleaner)`)
