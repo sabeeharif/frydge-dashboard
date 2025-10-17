@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }) {
       
       {/* Main Content - with proper spacing for fixed sidebar and topbar on desktop */}
       <main className="lg:ml-72 lg:pt-20 p-4 lg:p-8 pb-20 lg:pb-8 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+        <div className=" mx-auto">
           {children}
         </div>
       </main>

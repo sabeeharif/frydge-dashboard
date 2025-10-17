@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -29,7 +29,7 @@ import QRCode from "qrcode";
 import Loader from "@/app/components/Loader";
 import { useToast } from "@/app/contexts/ToastContext";
 
-export default function MachineTable() {
+function MachineTableContent() {
   const [machines, setMachines] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -1571,4 +1571,16 @@ export default function MachineTable() {
       )}
     </div>
   );
+}
+
+export default function MachineTable() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
+      </div>
+    }>
+      <MachineTableContent />
+    </Suspense>
+  )
 }

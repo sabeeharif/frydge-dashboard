@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   ChevronLeft,
@@ -24,7 +24,7 @@ import {
 import Loader from "@/app/components/Loader"
 import { useToast } from "@/app/contexts/ToastContext"
 
-export default function UsersPage() {
+function UsersPageContent() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -1166,5 +1166,17 @@ export default function UsersPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
+      </div>
+    }>
+      <UsersPageContent />
+    </Suspense>
   )
 }

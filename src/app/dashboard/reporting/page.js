@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import VenueCard from "@/app/components/VenueCard";
 
-export default function MachineTable() {
+function MachineTableContent() {
   const [machines, setMachines] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -801,4 +801,16 @@ export default function MachineTable() {
       )}
     </div>
   );
+}
+
+export default function MachineTable() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <MachineTableContent />
+    </Suspense>
+  )
 }

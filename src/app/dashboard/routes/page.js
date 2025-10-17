@@ -623,7 +623,7 @@ export default function RoutesPage() {
   console.log("users", users)
   return (
     <div className="p-8 space-y-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto">
         {/* Header */}
 
         <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">

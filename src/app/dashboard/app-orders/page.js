@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   ChevronLeft,
@@ -19,7 +19,7 @@ import {
 import Loader from "@/app/components/Loader"
 import { useToast } from "@/app/contexts/ToastContext"
 
-export default function AppOrders() {
+function AppOrdersContent() {
   const [orders, setOrders] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -583,5 +583,17 @@ export default function AppOrders() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AppOrders() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
+      </div>
+    }>
+      <AppOrdersContent />
+    </Suspense>
   )
 }
