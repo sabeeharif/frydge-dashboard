@@ -1225,6 +1225,7 @@ export default function RoutesNewPage() {
             const venuesData = venuesWithNewPriorities
                 .filter(item => item.type === 'venue') // Only send venues, not groups
                 .map((venue) => ({
+                    userId: [userId], // Each venue needs userId as array
                     id: parseInt(venue.id),
                     priority: venue.priority,
                     name: venue.name || "Unknown Location",
@@ -1249,18 +1250,24 @@ export default function RoutesNewPage() {
                 if (routes.length > 0) {
                     // Update the first route with new priorities
                     const routeId = routes[0].routeId
+                    const routeName = routes[0].routeName || `Route-${driver.firstName || driver.name}`
 
                     const updateResponse = await fetch('/api/driver-routes', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            userId: userId, // Top-level userId as string
                             routeId: routeId,
+                            routeName: routeName,
                             venues: venuesData
                         })
                     })
 
                     if (updateResponse.ok) {
                         success(`Venue priorities updated for ${driver.name}!`)
+                        // Refetch routes to ensure UI is in sync with backend
+                        const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                        setDrivers(updatedDriversWithRoutes)
                     } else {
                         throw new Error('Failed to update route priorities')
                     }
