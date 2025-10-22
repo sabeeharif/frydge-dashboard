@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LoginPage from "./login/page";
+import { AuthService } from "./lib/auth";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -10,16 +11,13 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkSession = async () => {
+    const checkSession = () => {
       try {
-        const response = await fetch("/api/session");
-        const data = await response.json();
+        const isLoggedIn = AuthService.isLoggedIn();
+        setIsLoggedIn(isLoggedIn);
         
-        if (data.isLoggedIn) {
-          setIsLoggedIn(true);
+        if (isLoggedIn) {
           router.push("/dashboard/overview");
-        } else {
-          setIsLoggedIn(false);
         }
       } catch (error) {
         console.error("Session check failed:", error);

@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import Loader from "@/app/components/Loader"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 
 function UsersPageContent() {
   const [users, setUsers] = useState([])
@@ -129,9 +130,10 @@ function UsersPageContent() {
         pageCount++
         setFetchProgress({ current: pageCount, total: maxPages })
 
-        const response = await fetch(
-          `/api/users?limit=20${currentLastKey ? `&lastKey=${encodeURIComponent(currentLastKey)}` : ""}`,
-        )
+        const response = await api.getUsers({
+          limit: 20,
+          lastKey: currentLastKey
+        })
 
         if (response.ok) {
           const data = await response.json()
@@ -168,7 +170,10 @@ function UsersPageContent() {
         apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
       }
 
-      const response = await fetch(apiUrl)
+      const response = await api.getUsers({
+        limit: pageSize,
+        lastKey: useLastKey
+      })
       console.log("Client fetch response status:", response.status)
 
       if (!response.ok) {
@@ -314,13 +319,7 @@ function UsersPageContent() {
     setCreateError("")
 
     try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await api.createUser(formData)
 
       const data = await response.json()
 
@@ -355,13 +354,7 @@ function UsersPageContent() {
         ...editFormData,
       }
 
-      const response = await fetch("/api/users", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      })
+      const response = await api.updateUser(updateData)
 
       const data = await response.json()
 
@@ -390,14 +383,8 @@ function UsersPageContent() {
     setDeletingUser(true)
 
     try {
-      const response = await fetch("/api/users", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: selectedUser.userId,
-        }),
+      const response = await api.deleteUser({
+        userId: selectedUser.userId,
       })
 
       const data = await response.json()

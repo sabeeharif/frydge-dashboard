@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "../contexts/ToastContext";
-// import { useToast } from "@/contexts/ToastContext";
+import { AuthService } from "../lib/auth";
 
 export default function UserProfile({ isCollapsed }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -16,20 +16,10 @@ export default function UserProfile({ isCollapsed }) {
     setIsLoggingOut(true);
     
     try {
-      const response = await fetch("/api/logout", { 
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
-      if (response.ok) {
-        localStorage.removeItem("userData");
-        success("Logged out successfully!");
-        router.push("/");
-      } else {
-        error("Logout failed. Please try again.");
-      }
+      // Use the new AuthService for logout
+      AuthService.logout();
+      success("Logged out successfully!");
+      router.push("/");
     } catch (err) {
       console.error("Logout error:", err);
       error("Logout failed. Please try again.");

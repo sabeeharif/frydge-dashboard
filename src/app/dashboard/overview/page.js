@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircle, Loader2, BarChart3, TrendingUp } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 import StatsGrid from "@/app/components/StatsGrid"
 import RecentActivity from "@/app/components/RecentActivity"
 import Loader from "@/app/components/Loader"
@@ -22,21 +23,16 @@ export default function DashboardOverview() {
   const { error: toastError } = useToast()
 
   // Handle authentication errors
-  const handleAuthError = async () => {
-    try {
-      await fetch("/api/logout", { method: "POST" })
-      toastError("Session expired. Please login again.")
-      router.push("/login")
-    } catch (error) {
-      console.error("Logout error:", error)
-      router.push("/login")
-    }
+  const handleAuthError = () => {
+    AuthService.logout()
+    toastError("Session expired. Please login again.")
+    router.push("/")
   }
 
   // Check API response for authentication errors
   const checkAuthResponse = async (response, data) => {
     if (response.status === 401 || response.status === 403 || (response.status === 400 && data?.requiresLogin)) {
-      await handleAuthError()
+      handleAuthError()
       return true
     }
     return false
@@ -51,8 +47,14 @@ export default function DashboardOverview() {
       setLoading(true)
       setError("")
 
+      // Check if user is logged in
+      if (!AuthService.isLoggedIn()) {
+        handleAuthError()
+        return
+      }
+
       // Fetch total orders count
-      const ordersResponse = await fetch("/api/dashboard/orders-count")
+      const ordersResponse = await api.getOrdersCount()
       const ordersData = await ordersResponse.json()
 
       if (await checkAuthResponse(ordersResponse, ordersData)) return

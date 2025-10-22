@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
 
 export default function CleanerRoutesPage() {
@@ -12,6 +13,7 @@ export default function CleanerRoutesPage() {
     const [venueGroups, setVenueGroups] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorState, setErrorState] = useState(null)
+    const [expandedGroups, setExpandedGroups] = useState({}) // Track expanded groups in cleaner routes
 
     // Modal state
     const [showCreateModal, setShowCreateModal] = useState(false)
@@ -52,9 +54,9 @@ export default function CleanerRoutesPage() {
 
                 // Fetch all data in parallel
                 const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
-                    fetch('/api/cleaner-vacant-locations'), // Using cleaner-specific vacant locations
-                    fetch('/api/venue-group?limit=10'), // Fetch all venue groups
-                    fetch('/api/drivers') // Using drivers API - they're cleaners in this context
+                    api.getVacantLocations(), // Using cleaner-specific vacant locations
+                    api.getVenueGroups({ limit: 10 }), // Fetch all venue groups
+                    api.getDrivers() // Using drivers API - they're cleaners in this context
                 ])
 
                 // Check if all requests were successful
@@ -87,7 +89,7 @@ export default function CleanerRoutesPage() {
                 })))
 
                 // Transform and set venue groups data
-                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+                const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
                 const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                     id: group.id || group.groupId || index + 1,
                     name: group.name || group.groupName || `Group ${index + 1}`,
@@ -172,7 +174,7 @@ export default function CleanerRoutesPage() {
                     const userId = driver.userId || driver.id
                     console.log(`Loading routes for driver: ${driver.name}, userId: ${userId}`)
 
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         console.log(`Cleaner routes data for ${driver.name}:`, data)
@@ -191,9 +193,33 @@ export default function CleanerRoutesPage() {
 
                         console.log(`Processed cleaner routes for ${driver.name}:`, routes)
 
-                        // Extract venues from routes and add to driver's assigned venues
+                        // Process routes to fetch group details if needed
+                        const processedRoutes = await Promise.all(
+                            routes.map(async (route) => {
+                                if (route.venueGroupsInfo && route.venueGroupsInfo.length > 0) {
+                                    // Fetch group details for each group
+                                    const groupDetails = await Promise.all(
+                                        route.venueGroupsInfo.map(async (groupInfo) => {
+                                            const groupData = await fetchVenueGroupById(groupInfo.groupId)
+                                            return {
+                                                ...groupInfo,
+                                                groupDetails: groupData
+                                            }
+                                        })
+                                    )
+                                    return {
+                                        ...route,
+                                        venueGroupsInfo: groupDetails
+                                    }
+                                }
+                                return route
+                            })
+                        )
+
+                        // Extract venues and groups from routes and add to driver's assigned venues
                         const assignedVenues = []
-                        routes.forEach(route => {
+                        processedRoutes.forEach(route => {
+                            // Handle individual venues
                             if (route.venues && Array.isArray(route.venues)) {
                                 route.venues.forEach(venue => {
                                     // Check if venue already exists in assignedVenues
@@ -212,6 +238,27 @@ export default function CleanerRoutesPage() {
                                             routeId: route.cleanerRouteId || route.routeId, // Use cleanerRouteId
                                             routeName: route.routeName,
                                             ...venue
+                                        })
+                                    }
+                                })
+                            }
+                            
+                            // Handle venue groups
+                            if (route.venueGroupsInfo && Array.isArray(route.venueGroupsInfo)) {
+                                route.venueGroupsInfo.forEach(groupInfo => {
+                                    // Check if group already exists in assignedVenues
+                                    const exists = assignedVenues.find(v => v.id === groupInfo.groupId)
+                                    if (!exists) {
+                                        assignedVenues.push({
+                                            id: groupInfo.groupId,
+                                            name: groupInfo.groupDetails?.name || groupInfo.groupDetails?.groupName || `Group ${groupInfo.groupId}`,
+                                            type: 'group',
+                                            priority: groupInfo.priority || 1,
+                                            routeId: route.cleanerRouteId || route.routeId,
+                                            routeName: route.routeName,
+                                            venues: groupInfo.groupDetails?.venues || groupInfo.groupDetails?.venueList || [],
+                                            groupDetails: groupInfo.groupDetails,
+                                            ...groupInfo
                                         })
                                     }
                                 })
@@ -252,7 +299,7 @@ export default function CleanerRoutesPage() {
     // Refetch vacant locations to update userId arrays after route changes
     const refetchVacantLocations = async () => {
         try {
-            const venuesResponse = await fetch('/api/cleaner-vacant-locations')
+            const venuesResponse = await api.getVacantLocations()
             if (venuesResponse.ok) {
                 const venuesData = await venuesResponse.json()
                 const transformedVenues = venuesData.locations || venuesData.vacantLocations || venuesData.data || []
@@ -295,14 +342,84 @@ export default function CleanerRoutesPage() {
     }
 
     // Toggle group expansion
-    const toggleGroup = (groupId) => {
+    const toggleGroup = async (groupId) => {
+        const group = venueGroups.find(g => g.id === groupId)
+        const isCurrentlyExpanded = group?.isExpanded || false
+        
+        // If expanding and we don't have detailed venue data, fetch it
+        if (!isCurrentlyExpanded && (!group?.venues || group.venues.length === 0)) {
+            try {
+                const detailedGroup = await fetchVenueGroupById(groupId)
+                if (detailedGroup) {
+                    setVenueGroups(prev =>
+                        prev.map(g =>
+                            g.id === groupId
+                                ? { 
+                                    ...g, 
+                                    isExpanded: true,
+                                    venues: detailedGroup.venues || detailedGroup.venueList || [],
+                                    ...detailedGroup
+                                }
+                                : g
+                        )
+                    )
+                    return
+                }
+            } catch (error) {
+                console.error('Error fetching group details:', error)
+            }
+        }
+        
+        // Toggle expansion state
         setVenueGroups(prev =>
-            prev.map(group =>
-                group.id === groupId
-                    ? { ...group, isExpanded: !group.isExpanded }
-                    : group
+            prev.map(g =>
+                g.id === groupId
+                    ? { ...g, isExpanded: !g.isExpanded }
+                    : g
             )
         )
+    }
+
+    // Toggle group expansion in cleaner routes
+    const toggleCleanerGroup = async (groupId, driverId) => {
+        const groupKey = `${driverId}-${groupId}`
+        const isCurrentlyExpanded = expandedGroups[groupKey] || false
+        
+        if (!isCurrentlyExpanded) {
+            // Fetch group details if not already fetched
+            try {
+                const detailedGroup = await fetchVenueGroupById(groupId)
+                if (detailedGroup) {
+                    // Update the driver's assigned venues with the detailed group info
+                    setDrivers(prev =>
+                        prev.map(driver =>
+                            driver.id === driverId
+                                ? {
+                                    ...driver,
+                                    assignedVenues: driver.assignedVenues.map(item =>
+                                        item.id === groupId && item.type === 'group'
+                                            ? {
+                                                ...item,
+                                                groupDetails: detailedGroup,
+                                                venues: detailedGroup.venues || detailedGroup.venueList || []
+                                            }
+                                            : item
+                                    )
+                                }
+                                : driver
+                        )
+                    )
+                }
+            } catch (error) {
+                console.error('Error fetching group details for cleaner:', error)
+            }
+        }
+        
+        // Toggle expansion state
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupKey]: !isCurrentlyExpanded
+        }))
     }
 
     // Auto-scroll functionality
@@ -480,10 +597,10 @@ export default function CleanerRoutesPage() {
 
     // Refresh venue groups data
     const refreshVenueGroups = async () => {
-        const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
+        const venueGroupsResponse = await api.getVenueGroups({ limit: 10 })
         if (venueGroupsResponse.ok) {
             const venueGroupsData = await venueGroupsResponse.json()
-            const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+            const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
             const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                 id: group.id || group.groupId || index + 1,
                 name: group.name || group.groupName || `Group ${index + 1}`,
@@ -493,6 +610,38 @@ export default function CleanerRoutesPage() {
             }))
             setAllVenueGroups(groupsWithExpansion)
             setVenueGroups(groupsWithExpansion)
+        }
+    }
+
+    // Fetch venue group details by ID
+    const fetchVenueGroupById = async (groupId) => {
+        try {
+            const response = await api.getVenueGroupById(groupId)
+            if (response.ok) {
+                const data = await response.json()
+                // Handle the API response format: { message: "...", groups: { groupName: "...", venues: [...] } }
+                if (data.groups) {
+                    return {
+                        id: data.groups.groupId,
+                        groupId: data.groups.groupId,
+                        name: data.groups.groupName,
+                        groupName: data.groups.groupName,
+                        venues: data.groups.venues || [],
+                        venueList: data.groups.venues || [],
+                        createdAt: data.groups.createdAt,
+                        updatedAt: data.groups.updatedAt,
+                        used: data.groups.used,
+                        ...data.groups
+                    }
+                }
+                return data
+            } else {
+                console.error('Failed to fetch venue group details:', response.status)
+                return null
+            }
+        } catch (error) {
+            console.error('Error fetching venue group details:', error)
+            return null
         }
     }
 
@@ -531,28 +680,16 @@ export default function CleanerRoutesPage() {
             let response
             if (editingGroup) {
                 // Update existing group
-                response = await fetch('/api/venue-group', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupId: editingGroup.id,
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.updateVenueGroup({
+                    groupId: editingGroup.id,
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             } else {
                 // Create new group
-                response = await fetch('/api/venue-group', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.createVenueGroup({
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             }
 
@@ -597,14 +734,8 @@ export default function CleanerRoutesPage() {
         try {
             setIsDeleting(group.id)
 
-            const response = await fetch('/api/venue-group', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    groupId: group.id
-                })
+            const response = await api.deleteVenueGroup({
+                groupId: group.id
             })
 
             if (!response.ok) {
@@ -651,9 +782,11 @@ export default function CleanerRoutesPage() {
     }
 
     // Route creation functionality
-    const createRouteForDriver = async (driver, venues) => {
-        if (!driver || venues.length === 0) {
-            error("Cleaner and venues are required to create a route")
+    const createRouteForDriver = async (driver, venues, groupInfo = null) => {
+        console.log('createRouteForDriver called with:', { driver: driver?.name, venuesCount: venues?.length, groupInfo: groupInfo?.name || groupInfo?.groupId })
+        
+        if (!driver || (venues.length === 0 && !groupInfo)) {
+            error("Cleaner and venues (or group) are required to create a route")
             return false
         }
 
@@ -663,47 +796,63 @@ export default function CleanerRoutesPage() {
             // Generate route name automatically
             const routeName = `frydge-route-${driver.firstName || driver.lastName || driver.id}`.toLowerCase()
 
-            // Transform venues to match API format
-            const venuesData = venues.map((venue, index) => ({
-                userId: [driver.userId || driver.id], // Each venue needs userId as array
-                id: parseInt(venue.id),
-                priority: index + 1,
-                name: venue.name || "Unknown Location",
-                locationName: venue.locationName || venue.name || "Lobby",
-                address: venue.address || "No address provided",
-                latitude: parseFloat(venue.latitude) || 0,
-                longitude: parseFloat(venue.longitude) || 0,
-                machine: {
-                    id: parseInt(venue.machine?.id) || 0,
-                    name: venue.machine?.name || "Unknown Machine",
-                    freeVend: Boolean(venue.machine?.freeVend),
-                    isFridge: Boolean(venue.machine?.isFridge),
-                },
-            }))
-
             const routeData = {
-                userId: driver.userId || driver.id, // Top-level userId as string
+                userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                 routeName: routeName,
-                venues: venuesData,
+                venues: [],
             }
 
-            console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "with data:", routeData)
+            // Handle group assignment
+            if (groupInfo) {
+                console.log('Creating route with group info:', groupInfo)
+                // For groups, only send group info, no individual venues
+                routeData.venueGroupsInfo = [{
+                    groupId: groupInfo.id || groupInfo.groupId,
+                    priority: groupInfo.priority || 1
+                }]
+            } else {
+                // For individual venues, transform venues to match API format
+                const venuesData = venues.map((venue, index) => ({
+                    userId: [driver.userId || driver.id], // Each venue needs userId as array (using userId value)
+                    id: parseInt(venue.id),
+                    priority: index + 1,
+                    name: venue.name || "Unknown Location",
+                    locationName: venue.locationName || venue.name || "Lobby",
+                    address: venue.address || "No address provided",
+                    latitude: parseFloat(venue.latitude) || 0,
+                    longitude: parseFloat(venue.longitude) || 0,
+                    machine: {
+                        id: parseInt(venue.machine?.id) || 0,
+                        name: venue.machine?.name || "Unknown Machine",
+                        freeVend: Boolean(venue.machine?.freeVend),
+                        isFridge: Boolean(venue.machine?.isFridge),
+                    },
+                }))
+                routeData.venues = venuesData
+            }
 
-            const response = await fetch("/api/cleaner-routes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(routeData),
-            })
+            console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "vlUserId:", driver.vlUserId, "with data:", routeData)
+
+            const response = await api.createCleanerRoute(routeData)
+
+            console.log("POST response status:", response.status, "ok:", response.ok)
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                console.error("POST error:", errorData)
                 throw new Error(errorData.error || `HTTP ${response.status}`)
             }
 
             const result = await response.json()
             console.log("Route created successfully:", result)
 
-            success(`Route created successfully for ${driver.name} (Cleaner)!`)
+            // Show appropriate success message based on whether it's a group or venue
+            if (groupInfo) {
+                success(`Group '${groupInfo.name || groupInfo.groupName || 'Group'}' assigned to ${driver.name} (Cleaner)!`)
+            } else {
+                success(`Route created successfully for ${driver.name} (Cleaner)!`)
+            }
 
             // Refresh vacant locations to update userId arrays
             await refetchVacantLocations()
@@ -763,7 +912,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = previousDriver.userId || previousDriver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -775,7 +924,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
-                                    userId: [previousDriver.userId || previousDriver.id], // Each venue needs userId as array
+                                    vlUserId: [previousDriver.vlUserId || previousDriver.userId || previousDriver.id], // Each venue needs vlUserId as array
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -791,15 +940,11 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: previousDriver.userId || previousDriver.id, // Top-level userId as string
-                                        cleanerRouteId: routeId,
-                                        routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                        venues: venuesData
-                                    })
+                                const updateResponse = await api.updateCleanerRoute({
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
+                                    cleanerRouteId: routeId,
+                                    routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venues: venuesData
                                 })
 
                                 if (!updateResponse.ok) {
@@ -810,11 +955,7 @@ export default function CleanerRoutesPage() {
                                 await refetchVacantLocations()
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 if (deleteResponse.ok) {
                                     console.log(`Deleted route ${routeId} from driver ${previousDriver.name} (no venues left)`)
                                     // Refresh vacant locations to update userId arrays
@@ -887,7 +1028,7 @@ export default function CleanerRoutesPage() {
             // Check if driver already has routes
             try {
                 const userId = driver.userId || driver.id
-                const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                const response = await api.getCleanerRoutes({ userId, fetchAll: true })
 
                 if (response.ok) {
                     const data = await response.json()
@@ -898,7 +1039,7 @@ export default function CleanerRoutesPage() {
                         const routeId = routes[0].cleanerRouteId || routes[0].routeId
 
                         const venuesData = allVenues.map((venue, index) => ({
-                            userId: [driver.userId || driver.id], // Each venue needs userId as array
+                            userId: [driver.userId || driver.id], // Each venue needs userId as array (using userId value)
                             id: parseInt(venue.id),
                             priority: index + 1, // Stack priority: 1, 2, 3, 4...
                             name: venue.name || "Unknown Location",
@@ -914,15 +1055,12 @@ export default function CleanerRoutesPage() {
                             },
                         }))
 
-                        const updateResponse = await fetch('/api/cleaner-routes', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId: driver.userId || driver.id, // Top-level userId as string
-                                cleanerRouteId: routeId,
+                        const updateResponse = await api.updateCleanerRoute({
+                            userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                            vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
+                            cleanerRouteId: routeId,
                                 routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
-                                venues: venuesData
-                            })
+                            venues: venuesData
                         })
 
                         if (updateResponse.ok) {
@@ -949,10 +1087,102 @@ export default function CleanerRoutesPage() {
                 await createRouteForDriver(driver, allVenues)
             }
         } else if (draggedItem.sourceType === 'group') {
-            // For groups, create route with all venues in the group
-            const groupVenues = draggedItem.venues || []
-            if (groupVenues.length > 0) {
-                await createRouteForDriver(driver, groupVenues)
+            console.log('Group assignment detected:', draggedItem.name, 'to driver:', driver.name)
+            // Handle group assignment - check if dragged from another driver
+            if (draggedFromDriver && draggedFromDriver !== driverId) {
+                // Remove group from previous driver first
+                const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
+                if (previousDriver) {
+                    try {
+                        const prevUserId = previousDriver.userId || previousDriver.id
+                        const prevResponse = await api.getCleanerRoutes({ userId: prevUserId, fetchAll: true })
+                        
+                        if (prevResponse.ok) {
+                            const prevData = await prevResponse.json()
+                            const prevRoutes = prevData.routes || prevData.cleanerRoutes || []
+                            
+                            if (prevRoutes.length > 0) {
+                                const prevRouteId = prevRoutes[0].cleanerRouteId || prevRoutes[0].routeId
+                                const remainingGroups = (prevRoutes[0].venueGroupsInfo || [])
+                                    .filter(g => g.groupId !== draggedItem.id)
+                                    .map((g, index) => ({ ...g, priority: index + 1 }))
+                                
+                                // Update previous driver's route
+                                const prevUpdateResponse = await api.updateCleanerRoute({
+                                    userId: previousDriver.userId || previousDriver.id,
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
+                                    cleanerRouteId: prevRouteId,
+                                    routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venueGroupsInfo: remainingGroups,
+                                    venues: prevRoutes[0].venues || []
+                                })
+                                
+                                if (!prevUpdateResponse.ok) {
+                                    console.error('Failed to remove group from previous driver')
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error removing group from previous driver:', err)
+                    }
+                }
+            }
+            
+            // Now add group to new driver
+            try {
+                const userId = driver.userId || driver.id
+                const response = await api.getCleanerRoutes({ userId, fetchAll: true })
+                
+                if (response.ok) {
+                    const data = await response.json()
+                    const routes = data.routes || data.cleanerRoutes || []
+                    
+                    if (routes.length > 0) {
+                        // Update existing route with group info
+                        const routeId = routes[0].cleanerRouteId || routes[0].routeId
+                        const existingGroups = routes[0].venueGroupsInfo || []
+                        
+                        // Add new group to existing groups
+                        const updatedGroups = [
+                            ...existingGroups,
+                            {
+                                groupId: draggedItem.id || draggedItem.groupId,
+                                priority: existingGroups.length + 1
+                            }
+                        ]
+                        
+                        const updateResponse = await api.updateCleanerRoute({
+                                userId: driver.userId || driver.id,
+                                vlUserId: driver.vlUserId || driver.userId || driver.id,
+                                cleanerRouteId: routeId,
+                                routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
+                                venueGroupsInfo: updatedGroups,
+                                venues: routes[0].venues || []
+                            })
+                        
+                        if (updateResponse.ok) {
+                            success(`Group '${draggedItem.name}' added to ${driver.name}'s (Cleaner) route!`)
+                            // Refresh routes for both drivers
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
+                        } else {
+                            throw new Error('Failed to update route with group')
+                        }
+                    } else {
+                        // No existing routes, create new one with group
+                        console.log('No existing routes found, creating new route with group')
+                        await createRouteForDriver(driver, [], draggedItem)
+                    }
+                } else {
+                    // Fallback: create new route with group
+                    console.log('API response not ok, fallback: creating new route with group')
+                    await createRouteForDriver(driver, [], draggedItem)
+                }
+            } catch (err) {
+                console.error('Error managing group route:', err)
+                // Fallback: create new route with group
+                console.log('Error occurred, fallback: creating new route with group')
+                await createRouteForDriver(driver, [], draggedItem)
             }
         }
 
@@ -961,6 +1191,9 @@ export default function CleanerRoutesPage() {
             if (draggedFromDriver && draggedFromDriver !== driverId) {
                 const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
                 success(`'${draggedItem.name}' reassigned from ${previousDriver?.name} (Cleaner) to ${driver.name} (Cleaner)`)
+            } else if (draggedItem.sourceType === 'group') {
+                // Success message for group assignment is handled in the group logic above
+                console.log('Group assignment completed, success message should have been shown')
             } else {
                 success(`'${draggedItem.name}' assigned to ${driver.name} (Cleaner)`)
             }
@@ -998,7 +1231,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1010,7 +1243,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
-                                    userId: [driver.userId || driver.id], // Each venue needs userId as array
+                                    userId: [driver.userId || driver.id], // Each venue needs userId as array (using userId value)
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -1026,16 +1259,13 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: driver.userId || driver.id, // Top-level userId as string
+                                const updateResponse = await api.updateCleanerRoute({
+                                        userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Venue '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
@@ -1046,11 +1276,7 @@ export default function CleanerRoutesPage() {
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 
                                 if (deleteResponse.ok) {
                                     success(`Last venue removed. Route deleted for ${driver.name} (Cleaner)`)
@@ -1117,7 +1343,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1129,7 +1355,7 @@ export default function CleanerRoutesPage() {
                             // If there are remaining venues, update the route
                             if (remainingVenues.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
-                                    userId: [driver.userId || driver.id], // Each venue needs userId as array
+                                    userId: [driver.userId || driver.id], // Each venue needs userId as array (using userId value)
                                     id: parseInt(venue.id),
                                     priority: index + 1,
                                     name: venue.name || "Unknown Location",
@@ -1145,16 +1371,13 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: driver.userId || driver.id, // Top-level userId as string
+                                const updateResponse = await api.updateCleanerRoute({
+                                        userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
@@ -1165,11 +1388,7 @@ export default function CleanerRoutesPage() {
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 if (deleteResponse.ok) {
                                     success(`Last group removed. Route deleted for ${driver.name} (Cleaner)`)
                                     // Refresh vacant locations to update userId arrays
@@ -1248,7 +1467,7 @@ export default function CleanerRoutesPage() {
                 }))
 
             // Get the first route ID (we'll update the main route)
-            const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+            const response = await api.getCleanerRoutes({ userId, fetchAll: true })
             if (response.ok) {
                 const data = await response.json()
                 const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1258,16 +1477,12 @@ export default function CleanerRoutesPage() {
                     const cleanerRouteId = routes[0].cleanerRouteId || routes[0].routeId
                     const routeName = routes[0].routeName || `Route-${driver.firstName || driver.name}`
 
-                    const updateResponse = await fetch('/api/cleaner-routes', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: userId, // Top-level userId as string
+                    const updateResponse = await api.updateCleanerRoute({
+                            vlUserId: userId, // Top-level vlUserId as string
                             cleanerRouteId: cleanerRouteId,
                             routeName: routeName,
                             venues: venuesData
                         })
-                    })
 
                     if (updateResponse.ok) {
                         success(`Venue priorities updated for ${driver.name} (Cleaner)!`)
@@ -1610,37 +1825,92 @@ export default function CleanerRoutesPage() {
                                                                 <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
                                                             )}
 
-                                                            <div
-                                                                draggable
-                                                                onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
-                                                                onDragEnd={handleDragEnd}
-                                                                onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
-                                                                onDrop={(e) => handleVenueDrop(e, index, driver.id)}
-                                                                className={`p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md ${item.type === 'group'
-                                                                    ? 'bg-purple-50 border-purple-200 hover:border-purple-300'
-                                                                    : 'bg-blue-50 border-blue-200 hover:border-blue-300'}`}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Priority Number */}
-                                                                    <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
-                                                                        {index + 1}
+                                                            {item.type === 'group' ? (
+                                                                // Group display with chevron
+                                                                <div className="border-2 border-purple-200 rounded-lg overflow-hidden">
+                                                                    <div
+                                                                        draggable
+                                                                        onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                        onDragEnd={handleDragEnd}
+                                                                        onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                        onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                        className="p-3 bg-purple-50 cursor-move hover:bg-purple-100 transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            toggleCleanerGroup(item.id, driver.id)
+                                                                        }}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            {/* Priority Number */}
+                                                                            <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-purple-600 border border-purple-300">
+                                                                                {index + 1}
+                                                                            </div>
+
+                                                                            <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
+                                                                                <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                                                <span className="truncate">{item?.name || item?.groupName || `Group ${item.id}`}</span>
+                                                                            </div>
+
+                                                                            {/* Chevron */}
+                                                                            {expandedGroups[`${driver.id}-${item.id}`] ? (
+                                                                                <ChevronDown className="h-4 w-4 text-purple-600" />
+                                                                            ) : (
+                                                                                <ChevronRight className="h-4 w-4 text-purple-600" />
+                                                                            )}
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
-                                                                        {item.type === 'group' ? (
-                                                                            <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                                                                        ) : (
+                                                                    {/* Expanded group venues */}
+                                                                    {expandedGroups[`${driver.id}-${item.id}`] && (
+                                                                        <div className="p-3 space-y-2 bg-white border-t border-purple-200">
+                                                                            {item.venues && item.venues.length > 0 ? (
+                                                                                item.venues
+                                                                                    .slice()
+                                                                                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+                                                                                    .map((venue, venueIndex) => (
+                                                                                        <div
+                                                                                            key={venue.id || venueIndex}
+                                                                                            className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                                                                                        >
+                                                                                            {/* Venue Priority Number */}
+                                                                                            <div className="flex-shrink-0 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-300">
+                                                                                                {venue.priority || venueIndex + 1}
+                                                                                            </div>
+                                                                                            <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                                                            <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
+                                                                                        </div>
+                                                                                    ))
+                                                                            ) : (
+                                                                                <div className="text-center py-2 text-gray-500 text-sm">
+                                                                                    No venues in this group
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                // Individual venue display
+                                                                <div
+                                                                    draggable
+                                                                    onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                    onDragEnd={handleDragEnd}
+                                                                    onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                    onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                    className="p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md bg-blue-50 border-blue-200 hover:border-blue-300"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        {/* Priority Number */}
+                                                                        <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
+                                                                            {index + 1}
+                                                                        </div>
+
+                                                                        <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
                                                                             <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                                                        )}
-                                                                        <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                            <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                {item.type === 'group' && (
-                                                                    <div className="text-xs text-purple-600 mt-1 ml-8">
-                                                                        Group Assignment
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            )}
 
                                                             {/* Drop indicator below (for last item) */}
                                                             {dragOverIndex?.driverId === driver.id && dragOverIndex?.index === index + 1 && index === driver.assignedVenues.length - 1 && (

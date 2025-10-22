@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useToast } from "../contexts/ToastContext";
-// import { useToast } from "@/contexts/ToastContext";
+import { AuthService } from "../lib/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,24 +18,17 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await AuthService.login(email, password);
+      console.log(result, "login result");
       
-      const data = await res.json();
-      console.log(data,"data")
-      
-      if (!res.ok) {
-        error(data.error || "Login failed");
+      if (!result.success) {
+        error(result.error || "Login failed");
       } else {
-        localStorage.setItem("userData", JSON.stringify(data));
         success("Login successful!");
         router.push("/dashboard/overview");
-
       }
     } catch (err) {
+      console.error("Login error:", err);
       error("An unexpected error occurred.");
     } finally {
       setIsLoading(false);
