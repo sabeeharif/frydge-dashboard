@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Loader from "@/app/components/Loader"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 
 function AppOrdersContent() {
   const [orders, setOrders] = useState([])
@@ -49,15 +50,10 @@ function AppOrdersContent() {
   const pageSize = 10
 
   // Handle authentication errors
-  const handleAuthError = async () => {
-    try {
-      await fetch("/api/logout", { method: "POST" })
-      toastError("Session expired. Please login again.")
-      router.push("/login")
-    } catch (error) {
-      console.error("Logout error:", error)
-      router.push("/login")
-    }
+  const handleAuthError = () => {
+    AuthService.logout()
+    toastError("Session expired. Please login again.")
+    router.push("/")
   }
 
   // Check API response for authentication errors
@@ -166,9 +162,11 @@ function AppOrdersContent() {
         pageCount++
         setFetchProgress({ current: pageCount, total: maxPages })
 
-        const response = await fetch(
-          `/api/orders?limit=20&search=${encodeURIComponent(searchTerm)}${currentLastKey ? `&lastKey=${encodeURIComponent(currentLastKey)}` : ""}`,
-        )
+        const response = await api.getOrders({
+          limit: 20,
+          search: searchTerm,
+          lastKey: currentLastKey
+        })
 
         const data = await response.json()
 
@@ -219,20 +217,17 @@ function AppOrdersContent() {
         console.log("Using lastKey for page", page, ":", useLastKey)
       }
 
-      let apiUrl = `/api/orders?limit=${pageSize}`
-
-      if (useLastKey) {
-        apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
+      const params = {
+        limit: pageSize
       }
 
-      console.log("API URL:", apiUrl)
+      if (useLastKey) {
+        params.lastKey = useLastKey
+      }
 
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+      console.log("API params:", params)
+
+      const response = await api.getOrders(params)
 
       const data = await response.json()
 

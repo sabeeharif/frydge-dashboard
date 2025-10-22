@@ -28,6 +28,7 @@ import VenueCard from "@/app/components/VenueCard";
 import QRCode from "qrcode";
 import Loader from "@/app/components/Loader";
 import { useToast } from "@/app/contexts/ToastContext";
+import { AuthService, api } from "@/app/lib/auth";
 
 function MachineTableContent() {
   const [machines, setMachines] = useState([]);
@@ -102,7 +103,7 @@ function MachineTableContent() {
       for (let page = 1; page <= totalPages; page++) {
         setLoadingProgress(`Loading page ${page} of ${totalPages}...`);
 
-        const response = await fetch(`/api/machines?page=${page}&pageSize=20`);
+        const response = await api.getMachines({ page, pageSize: 20 });
         if ([400, 401, 403].includes(response.status)) {
         console.warn("Session expired or invalid. Redirecting to login...");
         toastError("Session expired. Please log in again.");
@@ -219,9 +220,7 @@ function MachineTableContent() {
     setLoadingDeviceStatus((prev) => ({ ...prev, [machineId]: true }));
 
     try {
-      const res = await fetch(
-        `/api/device-status?deviceId=${deviceId}&machineId=${machineId}`
-      );
+      const res = await api.getDeviceStatus({ deviceId, machineId });
 
       if ([400, 401, 403].includes(res.status)) {
         console.warn("Session expired or invalid. Redirecting to login...");
@@ -252,9 +251,7 @@ function MachineTableContent() {
     setLoadingEncryptedIds((prev) => ({ ...prev, [machineId]: true }));
 
     try {
-      const res = await fetch(
-        `/api/get-encrypted-machine-id?machineId=${machineId}`
-      );
+      const res = await api.getEncryptedMachineId({ machineId });
       const data = await res.json();
       if (data.encryptedMachineId) {
         console.log("Encrypted ID:", data.encryptedMachineId);
@@ -278,9 +275,7 @@ function MachineTableContent() {
     setLoadingQrCodes((prev) => ({ ...prev, [machineId]: true }));
 
     try {
-      const res = await fetch(
-        `/api/get-encrypted-machine-id?machineId=${machineId}`
-      );
+      const res = await api.getEncryptedMachineId({ machineId });
       const data = await res.json();
       if (data.qrUrl) {
         console.log("QR URL:", data.qrUrl);
@@ -358,16 +353,10 @@ function MachineTableContent() {
 
     setLoadingToggle(true);
     try {
-      const res = await fetch("/api/enable-machine", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          machineId: selectedMachineForToggle.id,
-          enabled: enabledState,
-          removeOrders: removeOrdersState,
-        }),
+      const res = await api.enableMachine({
+        machineId: selectedMachineForToggle.id,
+        enabled: enabledState,
+        removeOrders: removeOrdersState,
       });
 
       const result = await res.json();
@@ -402,23 +391,17 @@ function MachineTableContent() {
 
     setLoadingVendliveToggle(true);
     try {
-      const res = await fetch("/api/device-toggle", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          deviceId: deviceId,
-          machineId: selectedMachineForToggle.id,
-          enabled: vendliveEnabledState,
-        }),
+      const res = await api.toggleDevice({
+        deviceId: deviceId,
+        machineId: selectedMachineForToggle.id,
+        enabled: vendliveEnabledState,
       });
 
       const result = await res.json();
       if ([400, 401, 403].includes(res.status)) {
         console.warn("Session expired or invalid. Redirecting to login...");
         toastError("Session expired. Please log in again.");
-        window.location.href = "/"; // force redirect to login
+        // window.location.href = "/"; // force redirect to login
         return;
       }
       if (res.ok) {
@@ -449,19 +432,13 @@ function MachineTableContent() {
     try {
       setIsSync((prev) => ({ ...prev, [machineId]: true }));
 
-      const res = await fetch("/api/sync-machine", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ machineId }),
-      });
+      const res = await api.syncMachine({ machineId });
 
       const result = await res.json();
       if ([400, 401, 403].includes(res.status)) {
         console.warn("Session expired or invalid. Redirecting to login...");
         toastError("Session expired. Please log in again.");
-        window.location.href = "/"; // force redirect to login
+        // window.location.href = "/"; // force redirect to login
         return;
       }
       if (res.ok) {
@@ -560,15 +537,7 @@ function MachineTableContent() {
       setLoading(true);
       setError("");
       console.log("Fetching machines for page:", page);
-      const response = await fetch(
-        `/api/machines?page=${page}&pageSize=${pageSize}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.getMachines({ page, pageSize });
       console.log("Client fetch response status:", response.status);
       if (!response.ok) {
         const errorData = await response
@@ -609,9 +578,7 @@ function MachineTableContent() {
     setReportError("");
     // Fetch venue data immediately when modal opens
     try {
-      const venueResponse = await fetch(
-        `/api/machine-venue?machineId=${machine.id}`
-      );
+      const venueResponse = await api.getMachineVenue({ machineId: machine.id });
       if (venueResponse.ok) {
         const venue = await venueResponse.json();
         setVenueData(venue);
@@ -645,9 +612,11 @@ function MachineTableContent() {
       const startDateTime = `${fromDate}T00:00:00`;
       const endDateTime = `${toDate}T23:59:59`;
       console.log("Fetching sales data for machine:", selectedMachine.id);
-      const response = await fetch(
-        `/api/machine-sales?machineId=${selectedMachine.id}&startDate=${startDateTime}&endDate=${endDateTime}`
-      );
+      const response = await api.getMachineSales({
+        machineId: selectedMachine.id,
+        startDate: startDateTime,
+        endDate: endDateTime
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch sales data");

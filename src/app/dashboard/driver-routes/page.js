@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
 
 export default function RoutesNewPage() {
@@ -53,9 +54,9 @@ export default function RoutesNewPage() {
 
                 // Fetch all data in parallel
                 const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
-                    fetch('/api/vacant-locations'),
-                    fetch('/api/venue-group?limit=10'), // Fetch all venue groups
-                    fetch('/api/drivers')
+                    api.getVacantLocations(),
+                    api.getVenueGroups({ limit: 10 }), // Fetch all venue groups
+                    api.getDrivers()
                 ])
 
                 // Check if all requests were successful
@@ -88,7 +89,7 @@ export default function RoutesNewPage() {
                 })))
 
                 // Transform and set venue groups data
-                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+                const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
                 const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                     id: group.id || group.groupId || index + 1,
                     name: group.name || group.groupName || `Group ${index + 1}`,
@@ -173,7 +174,7 @@ export default function RoutesNewPage() {
                     const userId = driver.userId || driver.id
                     console.log(`Loading routes for driver: ${driver.name}, userId: ${userId}`)
 
-                    const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getDriverRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         console.log(`Routes data for driver ${driver.name}:`, data)
@@ -297,7 +298,7 @@ export default function RoutesNewPage() {
     // Refetch vacant locations to update userId arrays after route changes
     const refetchVacantLocations = async () => {
         try {
-            const venuesResponse = await fetch('/api/vacant-locations')
+            const venuesResponse = await api.getVacantLocations()
             if (venuesResponse.ok) {
                 const venuesData = await venuesResponse.json()
                 const transformedVenues = venuesData.locations || venuesData.vacantLocations || venuesData.data || []
@@ -525,10 +526,10 @@ export default function RoutesNewPage() {
 
     // Refresh venue groups data
     const refreshVenueGroups = async () => {
-        const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
+        const venueGroupsResponse = await api.getVenueGroups({ limit: 10 })
         if (venueGroupsResponse.ok) {
             const venueGroupsData = await venueGroupsResponse.json()
-            const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+            const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
             const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                 id: group.id || group.groupId || index + 1,
                 name: group.name || group.groupName || `Group ${index + 1}`,
@@ -544,7 +545,7 @@ export default function RoutesNewPage() {
     // Fetch venue group details by ID
     const fetchVenueGroupById = async (groupId) => {
         try {
-            const response = await fetch(`/api/venue-group-by-id?groupId=${groupId}`)
+            const response = await api.getVenueGroupById(groupId)
             if (response.ok) {
                 const data = await response.json()
                 // Handle the API response format: { message: "...", groups: { groupName: "...", venues: [...] } }
@@ -643,28 +644,16 @@ export default function RoutesNewPage() {
             let response
             if (editingGroup) {
                 // Update existing group
-                response = await fetch('/api/venue-group', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupId: editingGroup.id,
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.updateVenueGroup({
+                    groupId: editingGroup.id,
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             } else {
                 // Create new group
-                response = await fetch('/api/venue-group', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.createVenueGroup({
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             }
 
@@ -709,14 +698,8 @@ export default function RoutesNewPage() {
         try {
             setIsDeleting(group.id)
 
-            const response = await fetch('/api/venue-group', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    groupId: group.id
-                })
+            const response = await api.deleteVenueGroup({
+                groupId: group.id
             })
 
             if (!response.ok) {
@@ -815,11 +798,7 @@ export default function RoutesNewPage() {
 
             console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "vlUserId:", driver.vlUserId, "with data:", routeData)
 
-            const response = await fetch("/api/driver-routes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(routeData),
-            })
+            const response = await api.createDriverRoute(routeData)
 
             console.log("POST response status:", response.status, "ok:", response.ok)
 
@@ -897,7 +876,7 @@ export default function RoutesNewPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = previousDriver.userId || previousDriver.id
-                    const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getDriverRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
@@ -924,16 +903,12 @@ export default function RoutesNewPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/driver-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: previousDriver.userId || previousDriver.id, // Top-level userId as string
-                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
-                                        routeId: route.routeId,
-                                        routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                        venues: venuesData
-                                    })
+                                const updateResponse = await api.updateDriverRoute({
+                                    userId: previousDriver.userId || previousDriver.id, // Top-level userId as string
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
+                                    routeId: route.routeId,
+                                    routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venues: venuesData
                                 })
 
                                 if (!updateResponse.ok) {
@@ -944,11 +919,7 @@ export default function RoutesNewPage() {
                                 await refetchVacantLocations()
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/driver-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: route.routeId }),
-                                })
+                                const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
                                     console.log(`Deleted route ${route.routeId} from driver ${previousDriver.name} (no venues left)`)
                                     // Refresh vacant locations to update userId arrays
@@ -1021,7 +992,7 @@ export default function RoutesNewPage() {
             // Check if driver already has routes
             try {
                 const userId = driver.userId || driver.id
-                const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                const response = await api.getDriverRoutes({ userId, fetchAll: true })
 
                 if (response.ok) {
                     const data = await response.json()
@@ -1048,16 +1019,12 @@ export default function RoutesNewPage() {
                             },
                         }))
 
-                        const updateResponse = await fetch('/api/driver-routes', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId: driver.userId || driver.id, // Top-level userId as string
-                                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
-                                routeId: routeId,
-                                routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
-                                venues: venuesData
-                            })
+                        const updateResponse = await api.updateDriverRoute({
+                            userId: driver.userId || driver.id, // Top-level userId as string
+                            vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
+                            routeId: routeId,
+                            routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
+                            venues: venuesData
                         })
 
                         if (updateResponse.ok) {
@@ -1092,7 +1059,7 @@ export default function RoutesNewPage() {
                 if (previousDriver) {
                     try {
                         const prevUserId = previousDriver.userId || previousDriver.id
-                        const prevResponse = await fetch(`/api/driver-routes?userId=${prevUserId}&fetchAll=true`)
+                        const prevResponse = await api.getDriverRoutes({ userId: prevUserId, fetchAll: true })
                         
                         if (prevResponse.ok) {
                             const prevData = await prevResponse.json()
@@ -1105,17 +1072,13 @@ export default function RoutesNewPage() {
                                     .map((g, index) => ({ ...g, priority: index + 1 }))
                                 
                                 // Update previous driver's route
-                                const prevUpdateResponse = await fetch('/api/driver-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: previousDriver.userId || previousDriver.id,
-                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
-                                        routeId: prevRouteId,
-                                        routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                        venueGroupsInfo: remainingGroups,
-                                        venues: prevRoutes[0].venues || []
-                                    })
+                                const prevUpdateResponse = await api.updateDriverRoute({
+                                    userId: previousDriver.userId || previousDriver.id,
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
+                                    routeId: prevRouteId,
+                                    routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venueGroupsInfo: remainingGroups,
+                                    venues: prevRoutes[0].venues || []
                                 })
                                 
                                 if (!prevUpdateResponse.ok) {
@@ -1132,7 +1095,7 @@ export default function RoutesNewPage() {
             // Now add group to new driver
             try {
                 const userId = driver.userId || driver.id
-                const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                const response = await api.getDriverRoutes({ userId, fetchAll: true })
                 
                 if (response.ok) {
                     const data = await response.json()
@@ -1152,10 +1115,7 @@ export default function RoutesNewPage() {
                             }
                         ]
                         
-                        const updateResponse = await fetch('/api/driver-routes', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
+                        const updateResponse = await api.updateDriverRoute({
                                 userId: driver.userId || driver.id,
                                 vlUserId: driver.vlUserId || driver.userId || driver.id,
                                 routeId: routeId,
@@ -1163,7 +1123,6 @@ export default function RoutesNewPage() {
                                 venueGroupsInfo: updatedGroups,
                                 venues: routes[0].venues || []
                             })
-                        })
                         
                         if (updateResponse.ok) {
                             success(`Group '${draggedItem.name}' added to ${driver.name}'s (Driver) route!`)
@@ -1236,7 +1195,7 @@ export default function RoutesNewPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getDriverRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
@@ -1263,17 +1222,13 @@ export default function RoutesNewPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/driver-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                                const updateResponse = await api.updateDriverRoute({
                                         userId: driver.userId || driver.id, // Top-level userId as string
                                         vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Venue '${draggedItem.name}' removed from ${driver.name}'s route`)
@@ -1284,11 +1239,7 @@ export default function RoutesNewPage() {
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/driver-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: route.routeId }),
-                                })
+                                const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
                                     success(`Last venue removed. Route deleted for ${driver.name}`)
                                     // Refresh vacant locations to update userId arrays
@@ -1347,7 +1298,7 @@ export default function RoutesNewPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getDriverRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.routes || data.data || []
@@ -1384,10 +1335,7 @@ export default function RoutesNewPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/driver-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                                const updateResponse = await api.updateDriverRoute({
                                         userId: driver.userId || driver.id, // Top-level userId as string
                                         vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
@@ -1395,7 +1343,6 @@ export default function RoutesNewPage() {
                                         venueGroupsInfo: remainingGroups,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Driver) route`)
@@ -1406,11 +1353,7 @@ export default function RoutesNewPage() {
                                 }
                             } else {
                                 // No venues or groups left, delete the entire route
-                                const deleteResponse = await fetch("/api/driver-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ routeId: route.routeId }),
-                                })
+                                const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
                                     success(`Last group removed. Route deleted for ${driver.name} (Driver)`)
                                     // Refresh vacant locations to update userId arrays
@@ -1489,7 +1432,7 @@ export default function RoutesNewPage() {
                 }))
 
             // Get the first route ID (we'll update the main route)
-            const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+            const response = await api.getDriverRoutes({ userId, fetchAll: true })
             if (response.ok) {
                 const data = await response.json()
                 const routes = data.routes || data.data || []
@@ -1499,16 +1442,12 @@ export default function RoutesNewPage() {
                     const routeId = routes[0].routeId
                     const routeName = routes[0].routeName || `Route-${driver.firstName || driver.name}`
 
-                    const updateResponse = await fetch('/api/driver-routes', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    const updateResponse = await api.updateDriverRoute({
                             userId: userId, // Top-level userId as string
                             routeId: routeId,
                             routeName: routeName,
                             venues: venuesData
                         })
-                    })
 
                     if (updateResponse.ok) {
                         success(`Venue priorities updated for ${driver.name}!`)

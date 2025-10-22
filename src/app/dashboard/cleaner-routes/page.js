@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
 
 export default function CleanerRoutesPage() {
@@ -53,9 +54,9 @@ export default function CleanerRoutesPage() {
 
                 // Fetch all data in parallel
                 const [venuesResponse, venueGroupsResponse, driversResponse] = await Promise.all([
-                    fetch('/api/cleaner-vacant-locations'), // Using cleaner-specific vacant locations
-                    fetch('/api/venue-group?limit=10'), // Fetch all venue groups
-                    fetch('/api/drivers') // Using drivers API - they're cleaners in this context
+                    api.getVacantLocations(), // Using cleaner-specific vacant locations
+                    api.getVenueGroups({ limit: 10 }), // Fetch all venue groups
+                    api.getDrivers() // Using drivers API - they're cleaners in this context
                 ])
 
                 // Check if all requests were successful
@@ -88,7 +89,7 @@ export default function CleanerRoutesPage() {
                 })))
 
                 // Transform and set venue groups data
-                const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+                const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
                 const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                     id: group.id || group.groupId || index + 1,
                     name: group.name || group.groupName || `Group ${index + 1}`,
@@ -173,7 +174,7 @@ export default function CleanerRoutesPage() {
                     const userId = driver.userId || driver.id
                     console.log(`Loading routes for driver: ${driver.name}, userId: ${userId}`)
 
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         console.log(`Cleaner routes data for ${driver.name}:`, data)
@@ -298,7 +299,7 @@ export default function CleanerRoutesPage() {
     // Refetch vacant locations to update userId arrays after route changes
     const refetchVacantLocations = async () => {
         try {
-            const venuesResponse = await fetch('/api/cleaner-vacant-locations')
+            const venuesResponse = await api.getVacantLocations()
             if (venuesResponse.ok) {
                 const venuesData = await venuesResponse.json()
                 const transformedVenues = venuesData.locations || venuesData.vacantLocations || venuesData.data || []
@@ -596,10 +597,10 @@ export default function CleanerRoutesPage() {
 
     // Refresh venue groups data
     const refreshVenueGroups = async () => {
-        const venueGroupsResponse = await fetch('/api/venue-group?limit=10')
+        const venueGroupsResponse = await api.getVenueGroups({ limit: 10 })
         if (venueGroupsResponse.ok) {
             const venueGroupsData = await venueGroupsResponse.json()
-            const transformedVenueGroups = venueGroupsData.venueGroups || venueGroupsData.data || []
+            const transformedVenueGroups = venueGroupsData.groups || venueGroupsData.venueGroups || venueGroupsData.data || []
             const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
                 id: group.id || group.groupId || index + 1,
                 name: group.name || group.groupName || `Group ${index + 1}`,
@@ -615,7 +616,7 @@ export default function CleanerRoutesPage() {
     // Fetch venue group details by ID
     const fetchVenueGroupById = async (groupId) => {
         try {
-            const response = await fetch(`/api/venue-group-by-id?groupId=${groupId}`)
+            const response = await api.getVenueGroupById(groupId)
             if (response.ok) {
                 const data = await response.json()
                 // Handle the API response format: { message: "...", groups: { groupName: "...", venues: [...] } }
@@ -679,28 +680,16 @@ export default function CleanerRoutesPage() {
             let response
             if (editingGroup) {
                 // Update existing group
-                response = await fetch('/api/venue-group', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupId: editingGroup.id,
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.updateVenueGroup({
+                    groupId: editingGroup.id,
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             } else {
                 // Create new group
-                response = await fetch('/api/venue-group', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        groupName: groupName.trim(),
-                        venues: venuesData
-                    })
+                response = await api.createVenueGroup({
+                    groupName: groupName.trim(),
+                    venues: venuesData
                 })
             }
 
@@ -745,14 +734,8 @@ export default function CleanerRoutesPage() {
         try {
             setIsDeleting(group.id)
 
-            const response = await fetch('/api/venue-group', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    groupId: group.id
-                })
+            const response = await api.deleteVenueGroup({
+                groupId: group.id
             })
 
             if (!response.ok) {
@@ -851,11 +834,7 @@ export default function CleanerRoutesPage() {
 
             console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "vlUserId:", driver.vlUserId, "with data:", routeData)
 
-            const response = await fetch("/api/cleaner-routes", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(routeData),
-            })
+            const response = await api.createCleanerRoute(routeData)
 
             console.log("POST response status:", response.status, "ok:", response.ok)
 
@@ -933,7 +912,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = previousDriver.userId || previousDriver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -961,15 +940,11 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
-                                        cleanerRouteId: routeId,
-                                        routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                        venues: venuesData
-                                    })
+                                const updateResponse = await api.updateCleanerRoute({
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
+                                    cleanerRouteId: routeId,
+                                    routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venues: venuesData
                                 })
 
                                 if (!updateResponse.ok) {
@@ -980,11 +955,7 @@ export default function CleanerRoutesPage() {
                                 await refetchVacantLocations()
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 if (deleteResponse.ok) {
                                     console.log(`Deleted route ${routeId} from driver ${previousDriver.name} (no venues left)`)
                                     // Refresh vacant locations to update userId arrays
@@ -1057,7 +1028,7 @@ export default function CleanerRoutesPage() {
             // Check if driver already has routes
             try {
                 const userId = driver.userId || driver.id
-                const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                const response = await api.getCleanerRoutes({ userId, fetchAll: true })
 
                 if (response.ok) {
                     const data = await response.json()
@@ -1084,16 +1055,12 @@ export default function CleanerRoutesPage() {
                             },
                         }))
 
-                        const updateResponse = await fetch('/api/cleaner-routes', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
-                                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
-                                cleanerRouteId: routeId,
+                        const updateResponse = await api.updateCleanerRoute({
+                            userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                            vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
+                            cleanerRouteId: routeId,
                                 routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
-                                venues: venuesData
-                            })
+                            venues: venuesData
                         })
 
                         if (updateResponse.ok) {
@@ -1128,7 +1095,7 @@ export default function CleanerRoutesPage() {
                 if (previousDriver) {
                     try {
                         const prevUserId = previousDriver.userId || previousDriver.id
-                        const prevResponse = await fetch(`/api/cleaner-routes?userId=${prevUserId}&fetchAll=true`)
+                        const prevResponse = await api.getCleanerRoutes({ userId: prevUserId, fetchAll: true })
                         
                         if (prevResponse.ok) {
                             const prevData = await prevResponse.json()
@@ -1141,17 +1108,13 @@ export default function CleanerRoutesPage() {
                                     .map((g, index) => ({ ...g, priority: index + 1 }))
                                 
                                 // Update previous driver's route
-                                const prevUpdateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        userId: previousDriver.userId || previousDriver.id,
-                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
-                                        cleanerRouteId: prevRouteId,
-                                        routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                        venueGroupsInfo: remainingGroups,
-                                        venues: prevRoutes[0].venues || []
-                                    })
+                                const prevUpdateResponse = await api.updateCleanerRoute({
+                                    userId: previousDriver.userId || previousDriver.id,
+                                    vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
+                                    cleanerRouteId: prevRouteId,
+                                    routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                    venueGroupsInfo: remainingGroups,
+                                    venues: prevRoutes[0].venues || []
                                 })
                                 
                                 if (!prevUpdateResponse.ok) {
@@ -1168,7 +1131,7 @@ export default function CleanerRoutesPage() {
             // Now add group to new driver
             try {
                 const userId = driver.userId || driver.id
-                const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                 
                 if (response.ok) {
                     const data = await response.json()
@@ -1188,10 +1151,7 @@ export default function CleanerRoutesPage() {
                             }
                         ]
                         
-                        const updateResponse = await fetch('/api/cleaner-routes', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
+                        const updateResponse = await api.updateCleanerRoute({
                                 userId: driver.userId || driver.id,
                                 vlUserId: driver.vlUserId || driver.userId || driver.id,
                                 cleanerRouteId: routeId,
@@ -1199,7 +1159,6 @@ export default function CleanerRoutesPage() {
                                 venueGroupsInfo: updatedGroups,
                                 venues: routes[0].venues || []
                             })
-                        })
                         
                         if (updateResponse.ok) {
                             success(`Group '${draggedItem.name}' added to ${driver.name}'s (Cleaner) route!`)
@@ -1272,7 +1231,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1300,17 +1259,13 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                                const updateResponse = await api.updateCleanerRoute({
                                         userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
                                 vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Venue '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
@@ -1321,11 +1276,7 @@ export default function CleanerRoutesPage() {
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 
                                 if (deleteResponse.ok) {
                                     success(`Last venue removed. Route deleted for ${driver.name} (Cleaner)`)
@@ -1392,7 +1343,7 @@ export default function CleanerRoutesPage() {
                 // Update or delete the route in the backend
                 try {
                     const userId = driver.userId || driver.id
-                    const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+                    const response = await api.getCleanerRoutes({ userId, fetchAll: true })
                     if (response.ok) {
                         const data = await response.json()
                         const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1420,17 +1371,13 @@ export default function CleanerRoutesPage() {
                                     },
                                 }))
 
-                                const updateResponse = await fetch('/api/cleaner-routes', {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                                const updateResponse = await api.updateCleanerRoute({
                                         userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
                                 vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                                         cleanerRouteId: routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
                                     })
-                                })
 
                                 if (updateResponse.ok) {
                                     success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Cleaner) route`)
@@ -1441,11 +1388,7 @@ export default function CleanerRoutesPage() {
                                 }
                             } else {
                                 // No venues left, delete the entire route
-                                const deleteResponse = await fetch("/api/cleaner-routes", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ cleanerRouteId: routeId }),
-                                })
+                                const deleteResponse = await api.deleteCleanerRoute({ cleanerRouteId: routeId })
                                 if (deleteResponse.ok) {
                                     success(`Last group removed. Route deleted for ${driver.name} (Cleaner)`)
                                     // Refresh vacant locations to update userId arrays
@@ -1524,7 +1467,7 @@ export default function CleanerRoutesPage() {
                 }))
 
             // Get the first route ID (we'll update the main route)
-            const response = await fetch(`/api/cleaner-routes?userId=${userId}&fetchAll=true`)
+            const response = await api.getCleanerRoutes({ userId, fetchAll: true })
             if (response.ok) {
                 const data = await response.json()
                 const routes = data.cleanerRoutes || data.routes || data.data || []
@@ -1534,16 +1477,12 @@ export default function CleanerRoutesPage() {
                     const cleanerRouteId = routes[0].cleanerRouteId || routes[0].routeId
                     const routeName = routes[0].routeName || `Route-${driver.firstName || driver.name}`
 
-                    const updateResponse = await fetch('/api/cleaner-routes', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    const updateResponse = await api.updateCleanerRoute({
                             vlUserId: userId, // Top-level vlUserId as string
                             cleanerRouteId: cleanerRouteId,
                             routeName: routeName,
                             venues: venuesData
                         })
-                    })
 
                     if (updateResponse.ok) {
                         success(`Venue priorities updated for ${driver.name} (Cleaner)!`)

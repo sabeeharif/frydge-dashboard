@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { Search, User, Navigation, Edit, Trash2, Save, Plus, X, RefreshCw, Eye, MapPin, Bot } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
+import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
 
 export default function RoutesPage() {
@@ -60,7 +61,7 @@ export default function RoutesPage() {
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true)
-      const response = await fetch("/api/users?pageSize=50")
+      const response = await api.getUsers({ pageSize: 50 })
       if ([400, 401, 403].includes(response.status)) {
         console.warn("Session expired or invalid. Redirecting to login...")
         error("Session expired. Please log in again.")
@@ -80,7 +81,7 @@ export default function RoutesPage() {
   const fetchMachineLocations = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/routes")
+      const response = await api.getMachineLocations()
       if ([400, 401, 403].includes(response.status)) {
         console.warn("Session expired or invalid. Redirecting to login...")
         error("Session expired. Please log in again.")
@@ -105,7 +106,7 @@ export default function RoutesPage() {
       console.log("Fetching existing routes...")
 
       const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""
-      const response = await fetch(`/api/driver-routes?fetchAll=true${searchParam}`)
+      const response = await api.getDriverRoutes({ fetchAll: true, search: searchTerm })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -155,7 +156,7 @@ export default function RoutesPage() {
       setLoadingVacantLocations(true)
       setErrorMsg("")
       console.log("Fetching vacant locations...")
-      const response = await fetch(`/api/vacant-locations`)
+      const response = await api.getVacantLocations()
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -194,7 +195,7 @@ export default function RoutesPage() {
   const fetchRouteDetails = async (routeId) => {
     try {
       console.log("Fetching route details for:", routeId)
-      const response = await fetch(`/api/driver-routes?routeId=${routeId}`)
+      const response = await api.getDriverRoutes({ routeId })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
         throw new Error(errorData.error || `HTTP ${response.status}`)
@@ -467,11 +468,7 @@ export default function RoutesPage() {
 
       console.log("Creating route with data:", routeData)
 
-      const response = await fetch("/api/driver-routes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(routeData),
-      })
+      const response = await api.createDriverRoute(routeData)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -545,11 +542,7 @@ export default function RoutesPage() {
       console.log("Original venues count:", editingRoute.venues?.length || 0)
       console.log("Updated venues count:", venues.length)
 
-      const response = await fetch("/api/driver-routes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(routeData),
-      })
+      const response = await api.updateDriverRoute(routeData)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -579,11 +572,7 @@ export default function RoutesPage() {
 
     try {
       console.log("Deleting route:", routeToDelete.routeId)
-      const response = await fetch("/api/driver-routes", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ routeId: routeToDelete.routeId }),
-      })
+      const response = await api.deleteDriverRoute({ routeId: routeToDelete.routeId })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
