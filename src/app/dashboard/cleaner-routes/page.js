@@ -12,6 +12,7 @@ export default function CleanerRoutesPage() {
     const [venueGroups, setVenueGroups] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorState, setErrorState] = useState(null)
+    const [expandedGroups, setExpandedGroups] = useState({}) // Track expanded groups in cleaner routes
 
     // Modal state
     const [showCreateModal, setShowCreateModal] = useState(false)
@@ -378,6 +379,48 @@ export default function CleanerRoutesPage() {
         )
     }
 
+    // Toggle group expansion in cleaner routes
+    const toggleCleanerGroup = async (groupId, driverId) => {
+        const groupKey = `${driverId}-${groupId}`
+        const isCurrentlyExpanded = expandedGroups[groupKey] || false
+        
+        if (!isCurrentlyExpanded) {
+            // Fetch group details if not already fetched
+            try {
+                const detailedGroup = await fetchVenueGroupById(groupId)
+                if (detailedGroup) {
+                    // Update the driver's assigned venues with the detailed group info
+                    setDrivers(prev =>
+                        prev.map(driver =>
+                            driver.id === driverId
+                                ? {
+                                    ...driver,
+                                    assignedVenues: driver.assignedVenues.map(item =>
+                                        item.id === groupId && item.type === 'group'
+                                            ? {
+                                                ...item,
+                                                groupDetails: detailedGroup,
+                                                venues: detailedGroup.venues || detailedGroup.venueList || []
+                                            }
+                                            : item
+                                    )
+                                }
+                                : driver
+                        )
+                    )
+                }
+            } catch (error) {
+                console.error('Error fetching group details for cleaner:', error)
+            }
+        }
+        
+        // Toggle expansion state
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupKey]: !isCurrentlyExpanded
+        }))
+    }
+
     // Auto-scroll functionality
     const startAutoScroll = (direction) => {
         if (autoScrollInterval.current) return
@@ -575,6 +618,21 @@ export default function CleanerRoutesPage() {
             const response = await fetch(`/api/venue-group-by-id?groupId=${groupId}`)
             if (response.ok) {
                 const data = await response.json()
+                // Handle the API response format: { message: "...", groups: { groupName: "...", venues: [...] } }
+                if (data.groups) {
+                    return {
+                        id: data.groups.groupId,
+                        groupId: data.groups.groupId,
+                        name: data.groups.groupName,
+                        groupName: data.groups.groupName,
+                        venues: data.groups.venues || [],
+                        venueList: data.groups.venues || [],
+                        createdAt: data.groups.createdAt,
+                        updatedAt: data.groups.updatedAt,
+                        used: data.groups.used,
+                        ...data.groups
+                    }
+                }
                 return data
             } else {
                 console.error('Failed to fetch venue group details:', response.status)
@@ -1828,37 +1886,92 @@ export default function CleanerRoutesPage() {
                                                                 <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
                                                             )}
 
-                                                            <div
-                                                                draggable
-                                                                onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
-                                                                onDragEnd={handleDragEnd}
-                                                                onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
-                                                                onDrop={(e) => handleVenueDrop(e, index, driver.id)}
-                                                                className={`p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md ${item.type === 'group'
-                                                                    ? 'bg-purple-50 border-purple-200 hover:border-purple-300'
-                                                                    : 'bg-blue-50 border-blue-200 hover:border-blue-300'}`}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Priority Number */}
-                                                                    <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
-                                                                        {index + 1}
+                                                            {item.type === 'group' ? (
+                                                                // Group display with chevron
+                                                                <div className="border-2 border-purple-200 rounded-lg overflow-hidden">
+                                                                    <div
+                                                                        draggable
+                                                                        onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                        onDragEnd={handleDragEnd}
+                                                                        onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                        onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                        className="p-3 bg-purple-50 cursor-move hover:bg-purple-100 transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            toggleCleanerGroup(item.id, driver.id)
+                                                                        }}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            {/* Priority Number */}
+                                                                            <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-purple-600 border border-purple-300">
+                                                                                {index + 1}
+                                                                            </div>
+
+                                                                            <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
+                                                                                <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                                                <span className="truncate">{item?.name || item?.groupName || `Group ${item.id}`}</span>
+                                                                            </div>
+
+                                                                            {/* Chevron */}
+                                                                            {expandedGroups[`${driver.id}-${item.id}`] ? (
+                                                                                <ChevronDown className="h-4 w-4 text-purple-600" />
+                                                                            ) : (
+                                                                                <ChevronRight className="h-4 w-4 text-purple-600" />
+                                                                            )}
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
-                                                                        {item.type === 'group' ? (
-                                                                            <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                                                                        ) : (
+                                                                    {/* Expanded group venues */}
+                                                                    {expandedGroups[`${driver.id}-${item.id}`] && (
+                                                                        <div className="p-3 space-y-2 bg-white border-t border-purple-200">
+                                                                            {item.venues && item.venues.length > 0 ? (
+                                                                                item.venues
+                                                                                    .slice()
+                                                                                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+                                                                                    .map((venue, venueIndex) => (
+                                                                                        <div
+                                                                                            key={venue.id || venueIndex}
+                                                                                            className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg"
+                                                                                        >
+                                                                                            {/* Venue Priority Number */}
+                                                                                            <div className="flex-shrink-0 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-300">
+                                                                                                {venue.priority || venueIndex + 1}
+                                                                                            </div>
+                                                                                            <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                                                            <span className="text-sm text-gray-700 truncate">{venue.name || venue.locationName}</span>
+                                                                                        </div>
+                                                                                    ))
+                                                                            ) : (
+                                                                                <div className="text-center py-2 text-gray-500 text-sm">
+                                                                                    No venues in this group
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                // Individual venue display
+                                                                <div
+                                                                    draggable
+                                                                    onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                    onDragEnd={handleDragEnd}
+                                                                    onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                    onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                    className="p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md bg-blue-50 border-blue-200 hover:border-blue-300"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        {/* Priority Number */}
+                                                                        <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
+                                                                            {index + 1}
+                                                                        </div>
+
+                                                                        <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
                                                                             <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                                                        )}
-                                                                        <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                            <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                {item.type === 'group' && (
-                                                                    <div className="text-xs text-purple-600 mt-1 ml-8">
-                                                                        Group Assignment
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            )}
 
                                                             {/* Drop indicator below (for last item) */}
                                                             {dragOverIndex?.driverId === driver.id && dragOverIndex?.index === index + 1 && index === driver.assignedVenues.length - 1 && (
