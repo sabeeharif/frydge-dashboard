@@ -12,6 +12,7 @@ export default function RoutesNewPage() {
     const [venueGroups, setVenueGroups] = useState([])
     const [loading, setLoading] = useState(true)
     const [errorState, setErrorState] = useState(null)
+    const [expandedGroups, setExpandedGroups] = useState({}) // Track expanded groups in driver routes
 
     // Modal state
     const [showCreateModal, setShowCreateModal] = useState(false)
@@ -189,9 +190,35 @@ export default function RoutesNewPage() {
 
                         console.log(`Processed routes for driver ${driver.name}:`, routes)
 
+                        // Process routes to fetch group details if needed
+                        const processedRoutes = await Promise.all(
+                            routes.map(async (route) => {
+                                if (route.venueGroupsInfo && route.venueGroupsInfo.length > 0) {
+                                    // Fetch group details for each group
+                                    const groupDetails = await Promise.all(
+                                        route.venueGroupsInfo.map(async (groupInfo) => {
+                                            const groupData = await fetchVenueGroupById(groupInfo.groupId)
+                                            return {
+                                                ...groupInfo,
+                                                groupDetails: groupData
+                                            }
+                                        })
+                                    )
+                                    return {
+                                        ...route,
+                                        venueGroupsInfo: groupDetails
+                                    }
+                                }
+                                return route
+                            })
+                        )
+
+                        console.log(`Processed driver routes for ${driver.name}:`, processedRoutes)
+
                         // Extract venues from routes and add to driver's assigned venues
                         const assignedVenues = []
-                        routes.forEach(route => {
+                        processedRoutes.forEach(route => {
+                            // Handle individual venues
                             if (route.venues && Array.isArray(route.venues)) {
                                 route.venues.forEach(venue => {
                                     // Check if venue already exists in assignedVenues
@@ -210,6 +237,26 @@ export default function RoutesNewPage() {
                                             routeId: route.routeId,
                                             routeName: route.routeName,
                                             ...venue
+                                        })
+                                    }
+                                })
+                            }
+                            
+                            // Handle venue groups
+                            if (route.venueGroupsInfo && Array.isArray(route.venueGroupsInfo)) {
+                                route.venueGroupsInfo.forEach(groupInfo => {
+                                    // Check if group already exists in assignedVenues
+                                    const exists = assignedVenues.find(v => v.id === groupInfo.groupId)
+                                    if (!exists) {
+                                        assignedVenues.push({
+                                            id: groupInfo.groupId,
+                                            name: groupInfo.groupDetails?.name || groupInfo.groupDetails?.groupName || `Group ${groupInfo.groupId}`,
+                                            type: 'group',
+                                            priority: groupInfo.priority || 1,
+                                            routeId: route.routeId,
+                                            routeName: route.routeName,
+                                            venues: groupInfo.groupDetails?.venues || groupInfo.groupDetails?.venueList || [],
+                                            groupDetails: groupInfo.groupDetails
                                         })
                                     }
                                 })
@@ -494,6 +541,73 @@ export default function RoutesNewPage() {
         }
     }
 
+    // Fetch venue group details by ID
+    const fetchVenueGroupById = async (groupId) => {
+        try {
+            const response = await fetch(`/api/venue-group-by-id?groupId=${groupId}`)
+            if (response.ok) {
+                const data = await response.json()
+                // Handle the API response format: { message: "...", groups: { groupName: "...", venues: [...] } }
+                if (data.groups) {
+                    return {
+                        id: data.groups.groupId,
+                        groupId: data.groups.groupId,
+                        name: data.groups.groupName,
+                        groupName: data.groups.groupName,
+                        venues: data.groups.venues || [],
+                        venueList: data.groups.venues || []
+                    }
+                }
+                return data
+            }
+        } catch (err) {
+            console.error('Error fetching venue group:', err)
+        }
+        return null
+    }
+
+    // Toggle group expansion in driver routes
+    const toggleDriverGroup = async (groupId, driverId) => {
+        const groupKey = `${driverId}-${groupId}`
+        const isCurrentlyExpanded = expandedGroups[groupKey] || false
+        
+        if (!isCurrentlyExpanded) {
+            // Fetch group details if not already fetched
+            try {
+                const detailedGroup = await fetchVenueGroupById(groupId)
+                if (detailedGroup) {
+                    // Update the driver's assigned venues with the detailed group info
+                    setDrivers(prev =>
+                        prev.map(driver =>
+                            driver.id === driverId
+                                ? {
+                                    ...driver,
+                                    assignedVenues: driver.assignedVenues.map(item =>
+                                        item.id === groupId && item.type === 'group'
+                                            ? {
+                                                ...item,
+                                                groupDetails: detailedGroup,
+                                                venues: detailedGroup.venues || detailedGroup.venueList || []
+                                            }
+                                            : item
+                                    )
+                                }
+                                : driver
+                        )
+                    )
+                }
+            } catch (err) {
+                console.error('Error fetching group details:', err)
+            }
+        }
+        
+        // Toggle expansion state
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupKey]: !isCurrentlyExpanded
+        }))
+    }
+
     // Create or Update venue group
     const handleCreateVenueGroup = async () => {
         if (selectedVenues.length === 0) {
@@ -649,9 +763,11 @@ export default function RoutesNewPage() {
     }
 
     // Route creation functionality
-    const createRouteForDriver = async (driver, venues) => {
-        if (!driver || venues.length === 0) {
-            error("Driver and venues are required to create a route")
+    const createRouteForDriver = async (driver, venues, groupInfo = null) => {
+        console.log('createRouteForDriver called with:', { driver: driver?.name, venuesCount: venues?.length, groupInfo: groupInfo?.name || groupInfo?.groupId })
+        
+        if (!driver || (venues.length === 0 && !groupInfo)) {
+            error("Driver and venues (or group) are required to create a route")
             return false
         }
 
@@ -661,31 +777,43 @@ export default function RoutesNewPage() {
             // Generate route name automatically
             const routeName = `frydge-route-${driver.firstName || driver.lastName || driver.id}`.toLowerCase()
 
-            // Transform venues to match API format
-            const venuesData = venues.map((venue, index) => ({
-                userId: [driver.userId || driver.id], // Each venue needs userId as array
-                id: parseInt(venue.id),
-                priority: index + 1,
-                name: venue.name || "Unknown Location",
-                locationName: venue.locationName || venue.name || "Lobby",
-                address: venue.address || "No address provided",
-                latitude: parseFloat(venue.latitude) || 0,
-                longitude: parseFloat(venue.longitude) || 0,
-                machine: {
-                    id: parseInt(venue.machine?.id) || 0,
-                    name: venue.machine?.name || "Unknown Machine",
-                    freeVend: Boolean(venue.machine?.freeVend),
-                    isFridge: Boolean(venue.machine?.isFridge),
-                },
-            }))
-
             const routeData = {
-                userId: driver.userId || driver.id, // Top-level userId as string
+                userId: driver.userId || driver.id, // Top-level userId as string (using userId value)
+                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string (using vlUserId value)
                 routeName: routeName,
-                venues: venuesData,
+                venues: [],
             }
 
-            console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "with data:", routeData)
+            // Handle group assignment
+            if (groupInfo) {
+                console.log('Creating route with group info:', groupInfo)
+                // For groups, only send group info, no individual venues
+                routeData.venueGroupsInfo = [{
+                    groupId: groupInfo.id || groupInfo.groupId,
+                    priority: groupInfo.priority || 1
+                }]
+            } else {
+                // For individual venues, transform venues to match API format
+                const venuesData = venues.map((venue, index) => ({
+                    userId: [driver.userId || driver.id], // Each venue needs userId as array (using userId value)
+                    id: parseInt(venue.id),
+                    priority: index + 1,
+                    name: venue.name || "Unknown Location",
+                    locationName: venue.locationName || venue.name || "Lobby",
+                    address: venue.address || "No address provided",
+                    latitude: parseFloat(venue.latitude) || 0,
+                    longitude: parseFloat(venue.longitude) || 0,
+                    machine: {
+                        id: parseInt(venue.machine?.id) || 0,
+                        name: venue.machine?.name || "Unknown Machine",
+                        freeVend: Boolean(venue.machine?.freeVend),
+                        isFridge: Boolean(venue.machine?.isFridge),
+                    },
+                }))
+                routeData.venues = venuesData
+            }
+
+            console.log("Creating route for driver:", driver.name, "userId:", driver.userId, "vlUserId:", driver.vlUserId, "with data:", routeData)
 
             const response = await fetch("/api/driver-routes", {
                 method: "POST",
@@ -693,15 +821,23 @@ export default function RoutesNewPage() {
                 body: JSON.stringify(routeData),
             })
 
+            console.log("POST response status:", response.status, "ok:", response.ok)
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                console.error("POST error:", errorData)
                 throw new Error(errorData.error || `HTTP ${response.status}`)
             }
 
             const result = await response.json()
             console.log("Route created successfully:", result)
 
-            success(`Route created successfully for ${driver.name}!`)
+            // Show appropriate success message based on whether it's a group or venue
+            if (groupInfo) {
+                success(`Group '${groupInfo.name || groupInfo.groupName || 'Group'}' assigned to ${driver.name} (Driver)!`)
+            } else {
+                success(`Route created successfully for ${driver.name} (Driver)!`)
+            }
 
             // Refresh vacant locations to update userId arrays
             await refetchVacantLocations()
@@ -714,7 +850,7 @@ export default function RoutesNewPage() {
 
         } catch (err) {
             console.error("Error creating route:", err)
-            error(`Failed to create route for ${driver.name}: ${err.message}`)
+            error(`Failed to create route for ${driver.name} (Driver): ${err.message}`)
             return false
         } finally {
             setCreatingRouteForDriver(null)
@@ -793,6 +929,7 @@ export default function RoutesNewPage() {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         userId: previousDriver.userId || previousDriver.id, // Top-level userId as string
+                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
                                         routeName: route.routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
                                         venues: venuesData
@@ -834,8 +971,8 @@ export default function RoutesNewPage() {
         // Calculate the next priority based on existing venues
         const nextPriority = driver.assignedVenues.length + 1
 
-        // Add to new driver (avoid duplicates)
-        const newVenue = {
+        // Add to new driver (avoid duplicates) - only for UI state
+        const newItem = {
             id: draggedItem.id,
             name: draggedItem.name,
             type: draggedItem.sourceType === 'group' ? 'group' : 'venue',
@@ -850,17 +987,14 @@ export default function RoutesNewPage() {
                         ...d,
                         assignedVenues: [
                             ...d.assignedVenues.filter(v => v.id !== draggedItem.id),
-                            newVenue
+                            newItem
                         ].sort((a, b) => (a.priority || 0) - (b.priority || 0)) // Sort by priority
                     }
                     : d
             )
         )
 
-        // Combine all venues (existing + new) for route creation/update
-        const existingVenues = driver.assignedVenues.filter(v => v.type === 'venue' && v.id !== draggedItem.id)
-
-        // Create route with all venues if this is a venue (not a group)
+        // Handle venue assignment
         if (draggedItem.sourceType === 'venue') {
             const newVenueData = {
                 id: draggedItem.id,
@@ -877,6 +1011,9 @@ export default function RoutesNewPage() {
                     isFridge: false
                 }
             }
+
+            // Get existing venues for this driver
+            const existingVenues = driver.assignedVenues.filter(v => v.type === 'venue' && v.id !== draggedItem.id)
 
             // Combine existing venues with new one
             const allVenues = [...existingVenues, newVenueData]
@@ -916,6 +1053,7 @@ export default function RoutesNewPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 userId: driver.userId || driver.id, // Top-level userId as string
+                                vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                 routeId: routeId,
                                 routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
                                 venues: venuesData
@@ -923,7 +1061,7 @@ export default function RoutesNewPage() {
                         })
 
                         if (updateResponse.ok) {
-                            success(`Venue added to ${driver.name}'s route!`)
+                            success(`Venue added to ${driver.name}'s (Driver) route!`)
                             // Refresh vacant locations to update userId arrays
                             await refetchVacantLocations()
                             // Refresh routes
@@ -946,10 +1084,110 @@ export default function RoutesNewPage() {
                 await createRouteForDriver(driver, allVenues)
             }
         } else if (draggedItem.sourceType === 'group') {
-            // For groups, create route with all venues in the group
-            const groupVenues = draggedItem.venues || []
-            if (groupVenues.length > 0) {
-                await createRouteForDriver(driver, groupVenues)
+            console.log('Group assignment detected:', draggedItem.name, 'to driver:', driver.name)
+            // Handle group assignment - check if dragged from another driver
+            if (draggedFromDriver && draggedFromDriver !== driverId) {
+                // Remove group from previous driver first
+                const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
+                if (previousDriver) {
+                    try {
+                        const prevUserId = previousDriver.userId || previousDriver.id
+                        const prevResponse = await fetch(`/api/driver-routes?userId=${prevUserId}&fetchAll=true`)
+                        
+                        if (prevResponse.ok) {
+                            const prevData = await prevResponse.json()
+                            const prevRoutes = prevData.routes || prevData.data || []
+                            
+                            if (prevRoutes.length > 0) {
+                                const prevRouteId = prevRoutes[0].routeId
+                                const remainingGroups = (prevRoutes[0].venueGroupsInfo || [])
+                                    .filter(g => g.groupId !== draggedItem.id)
+                                    .map((g, index) => ({ ...g, priority: index + 1 }))
+                                
+                                // Update previous driver's route
+                                const prevUpdateResponse = await fetch('/api/driver-routes', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        userId: previousDriver.userId || previousDriver.id,
+                                        vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
+                                        routeId: prevRouteId,
+                                        routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
+                                        venueGroupsInfo: remainingGroups,
+                                        venues: prevRoutes[0].venues || []
+                                    })
+                                })
+                                
+                                if (!prevUpdateResponse.ok) {
+                                    console.error('Failed to remove group from previous driver')
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error removing group from previous driver:', err)
+                    }
+                }
+            }
+            
+            // Now add group to new driver
+            try {
+                const userId = driver.userId || driver.id
+                const response = await fetch(`/api/driver-routes?userId=${userId}&fetchAll=true`)
+                
+                if (response.ok) {
+                    const data = await response.json()
+                    const routes = data.routes || data.data || []
+                    
+                    if (routes.length > 0) {
+                        // Update existing route with group info
+                        const routeId = routes[0].routeId
+                        const existingGroups = routes[0].venueGroupsInfo || []
+                        
+                        // Add new group to existing groups
+                        const updatedGroups = [
+                            ...existingGroups,
+                            {
+                                groupId: draggedItem.id || draggedItem.groupId,
+                                priority: existingGroups.length + 1
+                            }
+                        ]
+                        
+                        const updateResponse = await fetch('/api/driver-routes', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId: driver.userId || driver.id,
+                                vlUserId: driver.vlUserId || driver.userId || driver.id,
+                                routeId: routeId,
+                                routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
+                                venueGroupsInfo: updatedGroups,
+                                venues: routes[0].venues || []
+                            })
+                        })
+                        
+                        if (updateResponse.ok) {
+                            success(`Group '${draggedItem.name}' added to ${driver.name}'s (Driver) route!`)
+                            // Refresh routes for both drivers
+                            const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
+                            setDrivers(updatedDriversWithRoutes)
+                        } else {
+                            throw new Error('Failed to update route with group')
+                        }
+                    } else {
+                        // No existing routes, create new one with group
+                        console.log('No existing routes found, creating new route with group')
+                        await createRouteForDriver(driver, [], draggedItem)
+                    }
+                } else {
+                    // Fallback: create new route with group
+                    console.log('API response not ok, fallback: creating new route with group')
+                    await createRouteForDriver(driver, [], draggedItem)
+                }
+            } catch (err) {
+                console.error('Error managing group route:', err)
+                // Fallback: create new route with group
+                console.log('Error occurred, fallback: creating new route with group')
+                await createRouteForDriver(driver, [], draggedItem)
             }
         }
 
@@ -957,9 +1195,12 @@ export default function RoutesNewPage() {
         if (draggedItem.sourceType !== 'venue') {
             if (draggedFromDriver && draggedFromDriver !== driverId) {
                 const previousDriver = drivers?.find(d => d.id === draggedFromDriver)
-                success(`'${draggedItem.name}' reassigned from ${previousDriver?.name} to ${driver.name}`)
+                success(`'${draggedItem.name}' reassigned from ${previousDriver?.name} (Driver) to ${driver.name} (Driver)`)
+            } else if (draggedItem.sourceType === 'group') {
+                // Success message for group assignment is handled in the group logic above
+                console.log('Group assignment completed, success message should have been shown')
             } else {
-                success(`'${draggedItem.name}' assigned to ${driver.name}`)
+                success(`'${draggedItem.name}' assigned to ${driver.name} (Driver)`)
             }
         }
 
@@ -1027,6 +1268,7 @@ export default function RoutesNewPage() {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         userId: driver.userId || driver.id, // Top-level userId as string
+                                        vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
                                         venues: venuesData
@@ -1081,17 +1323,10 @@ export default function RoutesNewPage() {
                 // Get venue IDs from the group
                 const groupVenueIds = (draggedItem.venues || []).map(v => v.id)
 
-                // Remove the group and its venues from local state
+                // Remove the group from local state
                 const remainingVenues = driver.assignedVenues
-                    .filter(v => {
-                        // Remove the group itself
-                        if (v.id === draggedItem.id && v.type === 'group') return false
-                        // Remove individual venues that are part of this group
-                        if (v.type === 'venue' && groupVenueIds.includes(v.id)) return false
-                        return true
-                    })
-                    .filter(v => v.type === 'venue') // Keep only venues for route update
-                    .map((v, index) => ({ ...v, priority: index + 1 })) // Reindex priorities
+                    .filter(v => v.id !== draggedItem.id || v.type !== 'group')
+                    .map((v, index) => ({ ...v, priority: v.type === 'venue' ? index + 1 : v.priority }))
                     .sort((a, b) => (a.priority || 0) - (b.priority || 0))
 
                 setDrivers(prev =>
@@ -1120,8 +1355,18 @@ export default function RoutesNewPage() {
                         if (routes.length > 0) {
                             const route = routes[0] // Get the main route
 
-                            // If there are remaining venues, update the route
-                            if (remainingVenues.length > 0) {
+                            // Get remaining groups and venues
+                            const remainingGroups = (route.venueGroupsInfo || [])
+                                .filter(g => g.groupId !== draggedItem.id)
+                                .map((g, index) => ({ ...g, priority: index + 1 }))
+                            
+                            const remainingVenues = driver.assignedVenues
+                                .filter(v => v.type === 'venue')
+                                .map((v, index) => ({ ...v, priority: index + 1 }))
+                                .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+
+                            // If there are remaining venues or groups, update the route
+                            if (remainingVenues.length > 0 || remainingGroups.length > 0) {
                                 const venuesData = remainingVenues.map((venue, index) => ({
                                     userId: [driver.userId || driver.id], // Each venue needs userId as array
                                     id: parseInt(venue.id),
@@ -1144,28 +1389,30 @@ export default function RoutesNewPage() {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         userId: driver.userId || driver.id, // Top-level userId as string
+                                        vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
+                                        venueGroupsInfo: remainingGroups,
                                         venues: venuesData
                                     })
                                 })
 
                                 if (updateResponse.ok) {
-                                    success(`Group '${draggedItem.name}' removed from ${driver.name}'s route`)
+                                    success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Driver) route`)
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
                                 } else {
                                     throw new Error('Failed to update route')
                                 }
                             } else {
-                                // No venues left, delete the entire route
+                                // No venues or groups left, delete the entire route
                                 const deleteResponse = await fetch("/api/driver-routes", {
                                     method: "DELETE",
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ routeId: route.routeId }),
                                 })
                                 if (deleteResponse.ok) {
-                                    success(`Last group removed. Route deleted for ${driver.name}`)
+                                    success(`Last group removed. Route deleted for ${driver.name} (Driver)`)
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
                                 }
@@ -1602,37 +1849,92 @@ export default function RoutesNewPage() {
                                                                 <div className="h-1 bg-blue-500 rounded-full mb-2 animate-pulse"></div>
                                                             )}
 
-                                                            <div
-                                                                draggable
-                                                                onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
-                                                                onDragEnd={handleDragEnd}
-                                                                onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
-                                                                onDrop={(e) => handleVenueDrop(e, index, driver.id)}
-                                                                className={`p-3 rounded-lg border-2 cursor-move transition-all duration-200 shadow-sm hover:shadow-md ${item.type === 'group'
-                                                                    ? 'bg-purple-50 border-purple-200 hover:border-purple-300'
-                                                                    : 'bg-blue-50 border-blue-200 hover:border-blue-300'}`}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Priority Number */}
-                                                                    <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
-                                                                        {index + 1}
+                                                            {item.type === 'group' ? (
+                                                                // Group display with chevron
+                                                                <div className="border-2 border-purple-200 rounded-lg overflow-hidden">
+                                                                    <div
+                                                                        draggable
+                                                                        onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                        onDragEnd={handleDragEnd}
+                                                                        onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                        onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                        className="p-3 bg-purple-50 cursor-move hover:bg-purple-100 transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            toggleDriverGroup(item.id, driver.id)
+                                                                        }}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            {/* Priority Number */}
+                                                                            <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-purple-600 border border-purple-300">
+                                                                                {index + 1}
+                                                                            </div>
+
+                                                                            <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
+                                                                                <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                                                                <span className="truncate">{item?.name || item?.groupName || `Group ${item.id}`}</span>
+                                                                            </div>
+
+                                                                            {/* Chevron */}
+                                                                            {expandedGroups[`${driver.id}-${item.id}`] ? (
+                                                                                <ChevronDown className="h-4 w-4 text-purple-600" />
+                                                                            ) : (
+                                                                                <ChevronRight className="h-4 w-4 text-purple-600" />
+                                                                            )}
+                                                                        </div>
                                                                     </div>
 
-                                                                    <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
-                                                                        {item.type === 'group' ? (
-                                                                            <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                                                                        ) : (
+                                                                    {/* Expanded group venues */}
+                                                                    {expandedGroups[`${driver.id}-${item.id}`] && (
+                                                                        <div className="p-3 space-y-2 bg-white border-t border-purple-200">
+                                                                            {item.venues && item.venues.length > 0 ? (
+                                                                                item.venues.map((venue) => (
+                                                                                    <div
+                                                                                        key={venue.id || venue.venueId}
+                                                                                        className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
+                                                                                    >
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                                                                            <span className="truncate">{venue.name || venue.locationName || `Venue ${venue.id}`}</span>
+                                                                                        </div>
+                                                                                        {venue.machine && (
+                                                                                            <div className="text-xs text-slate-500 mt-1 ml-5">
+                                                                                                Machine: {venue.machine.name || 'N/A'}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                ))
+                                                                            ) : (
+                                                                                <div className="text-sm text-slate-500 text-center py-2">
+                                                                                    No venues in this group
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                // Individual venue display
+                                                                <div
+                                                                    draggable
+                                                                    onDragStart={(e) => handleDragStart(e, item, item.type, driver.id)}
+                                                                    onDragEnd={handleDragEnd}
+                                                                    onDragOver={(e) => handleVenueDragOver(e, index, driver.id)}
+                                                                    onDrop={(e) => handleVenueDrop(e, index, driver.id)}
+                                                                    className="p-3 bg-blue-50 cursor-move hover:bg-blue-100 transition-colors rounded-lg border-2 border-blue-200 hover:border-blue-300"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        {/* Priority Number */}
+                                                                        <div className="flex-shrink-0 w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-300">
+                                                                            {index + 1}
+                                                                        </div>
+
+                                                                        <div className="text-sm font-medium text-slate-800 flex items-center gap-2 flex-1">
                                                                             <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                                                        )}
-                                                                        <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                            <span className="truncate">{`${item?.name ?? ''} - (${item?.machine?.name?.split('-').pop() ?? ''})`}</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                {item.type === 'group' && (
-                                                                    <div className="text-xs text-purple-600 mt-1 ml-8">
-                                                                        Group Assignment
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                            )}
 
                                                             {/* Drop indicator below (for last item) */}
                                                             {dragOverIndex?.driverId === driver.id && dragOverIndex?.index === index + 1 && index === driver.assignedVenues.length - 1 && (
