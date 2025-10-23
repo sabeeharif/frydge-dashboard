@@ -33,7 +33,7 @@ export const navItems = [
     : []), // spread conditional item
   { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
   { name: "Machines", path: "/dashboard/machines", icon: Package },
-  { name: "Routes", path: "/dashboard/routes", icon: Navigation },
+  // { name: "Routes", path: "/dashboard/routes", icon: Navigation },
   { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
   { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
   // { name: "Location", path: "/dashboard/locations", icon: MapPin },
