@@ -323,6 +323,54 @@ export default function RoutesNewPage() {
         }
     }
 
+    // Refresh venue groups to update userId arrays after route changes
+    const refetchVenueGroups = async () => {
+        try {
+            console.log('Refetching venue groups...')
+            const response = await api.getVenueGroups({ limit: 100 })
+            console.log('Venue groups refetch response:', response)
+            
+            if (response.ok) {
+                const data = await response.json()
+                console.log('Venue groups data:', data)
+                
+                // Apply the same transformation as in initial load
+                const transformedVenueGroups = data.groups || data.data || []
+                const groupsWithExpansion = transformedVenueGroups.map((group, index) => ({
+                    id: group.id || group.groupId || index + 1,
+                    name: group.name || group.groupName || `Group ${index + 1}`,
+                    isExpanded: false,
+                    venues: group.venues || group.venueList || [],
+                    ...group
+                }))
+                
+                console.log('=== VENUE GROUPS REFETCH DEBUG ===')
+                console.log('Raw API data:', data)
+                console.log('Transformed groups:', groupsWithExpansion)
+                groupsWithExpansion.forEach(group => {
+                    console.log(`Group ${group.name || group.id}:`, {
+                        id: group.id,
+                        name: group.name,
+                        userId: group.userId,
+                        userIdType: typeof group.userId,
+                        userIdLength: group.userId?.length
+                    })
+                })
+                console.log('=== END VENUE GROUPS REFETCH DEBUG ===')
+                
+                setAllVenueGroups(groupsWithExpansion)
+                setVenueGroups(groupsWithExpansion)
+                console.log('Venue groups refetched successfully')
+            } else {
+                console.error('Failed to refetch venue groups:', response)
+                const errorData = await response.json().catch(() => ({}))
+                console.error('Venue groups refetch error details:', errorData)
+            }
+        } catch (err) {
+            console.error('Error refetching venue groups:', err)
+        }
+    }
+
     // Get all venues - DO NOT filter assigned venues, show ALL
     const getAvailableVenues = () => {
         return allVenues
@@ -330,14 +378,8 @@ export default function RoutesNewPage() {
 
     // Get available groups (not assigned to any driver)
     const getAvailableGroups = () => {
-        if (!drivers || drivers.length === 0) return allVenueGroups
-
-        const assignedGroupIds = drivers.flatMap(driver =>
-            driver.assignedVenues
-                .filter(item => item.type === 'group')
-                .map(item => item.id)
-        )
-        return allVenueGroups.filter(group => !assignedGroupIds.includes(group.id))
+        // Always return all groups - don't filter out assigned ones
+        return allVenueGroups
     }
 
     // Toggle group expansion
@@ -445,6 +487,34 @@ export default function RoutesNewPage() {
             return "bg-green-100 border-green-400 text-green-800 hover:bg-green-200 hover:border-green-500"
         } else {
             // Assigned to 2 or more different drivers - red (conflict)
+            return "bg-red-100 border-red-400 text-red-800 hover:bg-red-200 hover:border-red-500"
+        }
+    }
+
+    const getGroupTypeColor = (group) => {
+        // Color coding based on UNIQUE userId count for groups
+        // Get unique user IDs from the array
+        const uniqueUserIds = [...new Set(group?.userId || [])]
+        const uniqueCount = uniqueUserIds.length
+        
+        console.log(`Color coding for group ${group?.name || group?.id}:`, {
+            group: group,
+            userId: group?.userId,
+            uniqueUserIds: uniqueUserIds,
+            uniqueCount: uniqueCount
+        })
+        
+        if (uniqueCount === 0) {
+            // Not assigned to any driver - white
+            console.log(`Group ${group?.name || group?.id} -> WHITE (0 users)`)
+            return "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+        } else if (uniqueCount === 1) {
+            // Assigned to exactly 1 unique driver - green
+            console.log(`Group ${group?.name || group?.id} -> GREEN (1 user)`)
+            return "bg-green-100 border-green-400 text-green-800 hover:bg-green-200 hover:border-green-500"
+        } else {
+            // Assigned to 2 or more different drivers - red (conflict)
+            console.log(`Group ${group?.name || group?.id} -> RED (${uniqueCount} users)`)
             return "bg-red-100 border-red-400 text-red-800 hover:bg-red-200 hover:border-red-500"
         }
     }
@@ -773,7 +843,8 @@ export default function RoutesNewPage() {
                 // For groups, only send group info, no individual venues
                 routeData.venueGroupsInfo = [{
                     groupId: groupInfo.id || groupInfo.groupId,
-                    priority: groupInfo.priority || 1
+                    priority: groupInfo.priority || 1,
+                    userId: [driver.userId || driver.id]
                 }]
             } else {
                 // For individual venues, transform venues to match API format
@@ -811,6 +882,32 @@ export default function RoutesNewPage() {
             const result = await response.json()
             console.log("Route created successfully:", result)
 
+            // Update the venue group with the new userId if it's a group
+            if (groupInfo) {
+                try {
+                    // Get existing userIds from the group and add the new one
+                    const existingUserIds = groupInfo.userId || []
+                    const newUserId = driver.userId || driver.id
+                    const updatedUserIds = existingUserIds.includes(newUserId) 
+                        ? existingUserIds 
+                        : [...existingUserIds, newUserId]
+                    
+                    const groupUpdateData = {
+                        userId: updatedUserIds,
+                        groupId: groupInfo.id || groupInfo.groupId,
+                        groupName: groupInfo.name || groupInfo.groupName || `Group ${groupInfo.id}`,
+                        venues: groupInfo.venues || []
+                    }
+                    
+                    const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                    if (!groupUpdateResponse.ok) {
+                        console.error('Failed to update venue group:', groupUpdateResponse)
+                    }
+                } catch (groupError) {
+                    console.error('Error updating venue group:', groupError)
+                }
+            }
+
             // Show appropriate success message based on whether it's a group or venue
             if (groupInfo) {
                 success(`Group '${groupInfo.name || groupInfo.groupName || 'Group'}' assigned to ${driver.name} (Driver)!`)
@@ -820,6 +917,9 @@ export default function RoutesNewPage() {
 
             // Refresh vacant locations to update userId arrays
             await refetchVacantLocations()
+            
+            // Refresh venue groups to update userId arrays
+            await refetchVenueGroups()
             
             // Refresh routes after creation
             const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
@@ -915,15 +1015,89 @@ export default function RoutesNewPage() {
                                     throw new Error('Failed to update route for previous driver')
                                 }
                                 console.log(`Updated route ${route.routeId} for driver ${previousDriver.name}`)
+                                
+                                // Update venue group if it's a group being moved
+                                if (draggedItem.sourceType === 'group') {
+                                    try {
+                                        const currentGroup = allVenueGroups.find(g => g.id === draggedItem.id || g.groupId === draggedItem.id)
+                                        const existingUserIds = currentGroup?.userId || draggedItem.userId || []
+                                        const previousUserId = previousDriver.userId || previousDriver.id
+                                        const updatedUserIds = existingUserIds.filter(id => id !== previousUserId)
+                                        
+                                        console.log('Updating venue group for previous driver:', {
+                                            groupId: draggedItem.id,
+                                            existingUserIds,
+                                            previousUserId,
+                                            updatedUserIds
+                                        })
+                                        
+                                        const groupUpdateData = {
+                                            userId: updatedUserIds,
+                                            groupId: draggedItem.id || draggedItem.groupId,
+                                            groupName: draggedItem.name || draggedItem.groupName || `Group ${draggedItem.id}`,
+                                            venues: draggedItem.venues || []
+                                        }
+                                        
+                                        const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                        if (groupUpdateResponse.ok) {
+                                            console.log('Venue group updated successfully for previous driver:', groupUpdateData)
+                                        } else {
+                                            console.error('Failed to update venue group for previous driver:', groupUpdateResponse)
+                                        }
+                                    } catch (groupError) {
+                                        console.error('Error updating venue group for previous driver:', groupError)
+                                    }
+                                }
+                                
                                 // Refresh vacant locations to update userId arrays
                                 await refetchVacantLocations()
+                                
+                                // Refresh venue groups to update userId arrays
+                                await refetchVenueGroups()
                             } else {
                                 // No venues left, delete the entire route
                                 const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
                                     console.log(`Deleted route ${route.routeId} from driver ${previousDriver.name} (no venues left)`)
+                                    
+                                    // Update venue group if it's a group being moved
+                                    if (draggedItem.sourceType === 'group') {
+                                        try {
+                                            const currentGroup = allVenueGroups.find(g => g.id === draggedItem.id || g.groupId === draggedItem.id)
+                                            const existingUserIds = currentGroup?.userId || draggedItem.userId || []
+                                            const previousUserId = previousDriver.userId || previousDriver.id
+                                            const updatedUserIds = existingUserIds.filter(id => id !== previousUserId)
+                                            
+                                            console.log('Updating venue group for deleted route:', {
+                                                groupId: draggedItem.id,
+                                                existingUserIds,
+                                                previousUserId,
+                                                updatedUserIds
+                                            })
+                                            
+                                            const groupUpdateData = {
+                                                userId: updatedUserIds,
+                                                groupId: draggedItem.id || draggedItem.groupId,
+                                                groupName: draggedItem.name || draggedItem.groupName || `Group ${draggedItem.id}`,
+                                                venues: draggedItem.venues || []
+                                            }
+                                            
+                                            const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                            if (groupUpdateResponse.ok) {
+                                                console.log('Venue group updated successfully for deleted route:', groupUpdateData)
+                                            } else {
+                                                console.error('Failed to update venue group for deleted route:', groupUpdateResponse)
+                                            }
+                                        } catch (groupError) {
+                                            console.error('Error updating venue group for deleted route:', groupError)
+                                        }
+                                    }
+                                    
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
+                                    
+                                    // Refresh venue groups to update userId arrays
+                                    await refetchVenueGroups()
                                 }
                             }
 
@@ -1069,7 +1243,11 @@ export default function RoutesNewPage() {
                                 const prevRouteId = prevRoutes[0].routeId
                                 const remainingGroups = (prevRoutes[0].venueGroupsInfo || [])
                                     .filter(g => g.groupId !== draggedItem.id)
-                                    .map((g, index) => ({ ...g, priority: index + 1 }))
+                                    .map((g, index) => ({ 
+                                        ...g, 
+                                        priority: index + 1,
+                                        userId: g.userId || [previousDriver.userId || previousDriver.id] // Preserve existing userId or use previous driver's userId
+                                    }))
                                 
                                 // Update previous driver's route
                                 const prevUpdateResponse = await api.updateDriverRoute({
@@ -1111,7 +1289,8 @@ export default function RoutesNewPage() {
                             ...existingGroups,
                             {
                                 groupId: draggedItem.id || draggedItem.groupId,
-                                priority: existingGroups.length + 1
+                                priority: existingGroups.length + 1,
+                                userId: [driver.userId || driver.id]
                             }
                         ]
                         
@@ -1125,7 +1304,52 @@ export default function RoutesNewPage() {
                             })
                         
                         if (updateResponse.ok) {
+                            // Update the venue group with the new userId
+                            try {
+                                console.log('=== VENUE GROUP ASSIGNMENT DEBUG ===')
+                                console.log('draggedItem:', draggedItem)
+                                console.log('driver:', driver)
+                                
+                                // Get existing userIds from the group and add the new one
+                                const existingUserIds = draggedItem.userId || []
+                                const newUserId = driver.userId || driver.id
+                                const updatedUserIds = existingUserIds.includes(newUserId) 
+                                    ? existingUserIds 
+                                    : [...existingUserIds, newUserId]
+                                
+                                console.log('existingUserIds:', existingUserIds)
+                                console.log('newUserId:', newUserId)
+                                console.log('updatedUserIds:', updatedUserIds)
+                                
+                                const groupUpdateData = {
+                                    userId: updatedUserIds,
+                                    groupId: draggedItem.id || draggedItem.groupId,
+                                    groupName: draggedItem.name || draggedItem.groupName || `Group ${draggedItem.id}`,
+                                    venues: draggedItem.venues || []
+                                }
+                                
+                                console.log('Sending venue group assignment update:', groupUpdateData)
+                                const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                console.log('Venue group assignment response:', groupUpdateResponse)
+                                
+                                if (groupUpdateResponse.ok) {
+                                    const responseData = await groupUpdateResponse.json().catch(() => ({}))
+                                    console.log('Venue group assignment updated successfully:', responseData)
+                                } else {
+                                    console.error('Failed to update venue group during assignment:', groupUpdateResponse)
+                                    const errorData = await groupUpdateResponse.json().catch(() => ({}))
+                                    console.error('Venue group assignment error details:', errorData)
+                                }
+                                console.log('=== END VENUE GROUP ASSIGNMENT DEBUG ===')
+                            } catch (groupError) {
+                                console.error('Error updating venue group during assignment:', groupError)
+                            }
+                            
                             success(`Group '${draggedItem.name}' added to ${driver.name}'s (Driver) route!`)
+                            
+                            // Refresh venue groups to update userId arrays
+                            await refetchVenueGroups()
+                            
                             // Refresh routes for both drivers
                             const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
                             setDrivers(updatedDriversWithRoutes)
@@ -1241,9 +1465,86 @@ export default function RoutesNewPage() {
                                 // No venues left, delete the entire route
                                 const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
+                                    // Before deleting the route, update all venue groups to remove this driver's userId
+                                    try {
+                                        const currentUserId = driver.userId || driver.id || driver.vlUserId
+                                        const groupsToUpdate = route.venueGroupsInfo || []
+                                        
+                                        console.log('=== VENUE REMOVAL - ROUTE DELETION - UPDATING VENUE GROUPS ===')
+                                        console.log('Driver being removed:', driver.name, 'userId:', currentUserId)
+                                        console.log('Groups in deleted route:', groupsToUpdate)
+                                        
+                                        // Update each group to remove this driver's userId
+                                        for (const groupInfo of groupsToUpdate) {
+                                            try {
+                                                // Find the current group data
+                                                const currentGroup = allVenueGroups.find(g => 
+                                                    g.id === groupInfo.groupId || 
+                                                    g.groupId === groupInfo.groupId
+                                                )
+                                                
+                                                let existingUserIds = []
+                                                if (currentGroup) {
+                                                    existingUserIds = currentGroup.userId || []
+                                                } else {
+                                                    // Fallback: try to fetch the group
+                                                    console.log('Group not found in allVenueGroups, fetching group:', groupInfo.groupId)
+                                                    const groupResponse = await api.getVenueGroupById(groupInfo.groupId)
+                                                    if (groupResponse.ok) {
+                                                        const groupData = await groupResponse.json()
+                                                        existingUserIds = groupData.groups?.userId || []
+                                                    }
+                                                }
+                                                
+                                                const updatedUserIds = existingUserIds.filter(id => {
+                                                    // Convert both to strings for comparison to handle type mismatches
+                                                    const idStr = String(id).trim()
+                                                    const currentUserIdStr = String(currentUserId).trim()
+                                                    const shouldRemove = idStr === currentUserIdStr
+                                                    
+                                                    console.log(`  Comparing: "${idStr}" === "${currentUserIdStr}" ? ${shouldRemove}`)
+                                                    return !shouldRemove
+                                                })
+                                                
+                                                console.log(`Updating group ${groupInfo.groupId}:`)
+                                                console.log('  existingUserIds:', existingUserIds)
+                                                console.log('  userId to remove:', currentUserId)
+                                                console.log('  updatedUserIds:', updatedUserIds)
+                                                
+                                                // Only update if there are changes
+                                                if (existingUserIds.length !== updatedUserIds.length) {
+                                                    const groupUpdateData = {
+                                                        userId: updatedUserIds,
+                                                        groupId: groupInfo.groupId,
+                                                        groupName: currentGroup?.name || currentGroup?.groupName || `Group ${groupInfo.groupId}`,
+                                                        venues: currentGroup?.venues || []
+                                                    }
+                                                    
+                                                    const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                                    console.log('Group update API response:', groupUpdateResponse.status, groupUpdateResponse.ok)
+                                                    if (groupUpdateResponse.ok) {
+                                                        const responseData = await groupUpdateResponse.json().catch(() => ({}))
+                                                        console.log(`Successfully updated group ${groupInfo.groupId}:`, responseData)
+                                                    } else {
+                                                        const errorData = await groupUpdateResponse.json().catch(() => ({}))
+                                                        console.error(`Failed to update group ${groupInfo.groupId}:`, errorData)
+                                                    }
+                                                }
+                                            } catch (groupError) {
+                                                console.error(`Error updating group ${groupInfo.groupId}:`, groupError)
+                                            }
+                                        }
+                                        console.log('=== END VENUE REMOVAL - ROUTE DELETION - VENUE GROUPS UPDATE ===')
+                                    } catch (error) {
+                                        console.error('Error updating venue groups during route deletion:', error)
+                                    }
+                                    
                                     success(`Last venue removed. Route deleted for ${driver.name}`)
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
+                                    
+                                    // Refresh venue groups to update userId arrays
+                                    await refetchVenueGroups()
                                 }
                             }
 
@@ -1309,7 +1610,11 @@ export default function RoutesNewPage() {
                             // Get remaining groups and venues
                             const remainingGroups = (route.venueGroupsInfo || [])
                                 .filter(g => g.groupId !== draggedItem.id)
-                                .map((g, index) => ({ ...g, priority: index + 1 }))
+                                .map((g, index) => ({ 
+                                    ...g, 
+                                    priority: index + 1,
+                                    userId: g.userId || [driver.userId || driver.id] // Preserve existing userId or use current driver's userId
+                                }))
                             
                             const remainingVenues = driver.assignedVenues
                                 .filter(v => v.type === 'venue')
@@ -1345,6 +1650,76 @@ export default function RoutesNewPage() {
                                     })
 
                                 if (updateResponse.ok) {
+                                    // Update the venue group to remove the userId
+                                    try {
+                                        // Get the current group data to ensure we have the latest userId array
+                                        console.log('Searching for group with draggedItem.id:', draggedItem.id)
+                                        console.log('Searching for group with draggedItem.groupId:', draggedItem.groupId)
+                                        console.log('Available groups:', allVenueGroups.map(g => ({ id: g.id, groupId: g.groupId, name: g.name })))
+                                        
+                                        const currentGroup = allVenueGroups.find(g => 
+                                            g.id === draggedItem.id || 
+                                            g.groupId === draggedItem.id ||
+                                            g.id === draggedItem.groupId ||
+                                            g.groupId === draggedItem.groupId
+                                        )
+                                        
+                                        console.log('Found currentGroup:', currentGroup)
+                                        
+                                        // If group not found in allVenueGroups, try to get it from the draggedItem or fetch it
+                                        let existingUserIds = []
+                                        if (currentGroup) {
+                                            existingUserIds = currentGroup.userId || []
+                                        } else {
+                                            // Fallback: use draggedItem data or try to fetch the group
+                                            existingUserIds = draggedItem.userId || []
+                                            console.log('Group not found in allVenueGroups, using draggedItem data:', existingUserIds)
+                                        }
+                                        
+                                        const currentUserId = driver.userId || driver.id || driver.vlUserId
+                                        const updatedUserIds = existingUserIds.filter(id => id !== currentUserId)
+                                        
+                                        console.log('=== VENUE GROUP UNASSIGN DEBUG ===')
+                                        console.log('draggedItem:', draggedItem)
+                                        console.log('currentGroup found:', currentGroup)
+                                        console.log('allVenueGroups:', allVenueGroups)
+                                        console.log('existingUserIds:', existingUserIds)
+                                        console.log('currentUserId to remove:', currentUserId)
+                                        console.log('updatedUserIds after removal:', updatedUserIds)
+                                        console.log('=== END DEBUG ===')
+                                        
+                                        // Only update if there are changes to make
+                                        if (existingUserIds.length !== updatedUserIds.length) {
+                                            const groupUpdateData = {
+                                                userId: updatedUserIds,
+                                                groupId: draggedItem.id || draggedItem.groupId,
+                                                groupName: draggedItem.name || draggedItem.groupName || `Group ${draggedItem.id}`,
+                                                venues: draggedItem.venues || []
+                                            }
+                                            
+                                            console.log('Sending venue group update with data:', groupUpdateData)
+                                            const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                            console.log('Venue group update response:', groupUpdateResponse)
+                                            
+                                            if (groupUpdateResponse.ok) {
+                                                const responseData = await groupUpdateResponse.json().catch(() => ({}))
+                                                console.log('Venue group updated successfully:', responseData)
+                                            } else {
+                                                console.error('Failed to update venue group:', groupUpdateResponse)
+                                                const errorData = await groupUpdateResponse.json().catch(() => ({}))
+                                                console.error('Venue group update error details:', errorData)
+                                            }
+                                        } else {
+                                            console.log('No changes needed - userId array is already correct')
+                                        }
+                                    } catch (groupError) {
+                                        console.error('Error updating venue group:', groupError)
+                                    }
+                                    
+                                    // Refresh venue groups to update userId arrays AFTER venue group update
+                                    console.log('Refetching venue groups after unassign...')
+                                    await refetchVenueGroups()
+                                    
                                     success(`Group '${draggedItem.name}' removed from ${driver.name}'s (Driver) route`)
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
@@ -1355,9 +1730,88 @@ export default function RoutesNewPage() {
                                 // No venues or groups left, delete the entire route
                                 const deleteResponse = await api.deleteDriverRoute({ routeId: route.routeId })
                                 if (deleteResponse.ok) {
+                                    // Before deleting the route, update all venue groups to remove this driver's userId
+                                    try {
+                                        const currentUserId = driver.userId || driver.id || driver.vlUserId
+                                        const groupsToUpdate = route.venueGroupsInfo || []
+                                        
+                                        console.log('=== ROUTE DELETION - UPDATING VENUE GROUPS ===')
+                                        console.log('Driver being removed:', driver.name, 'userId:', currentUserId, 'type:', typeof currentUserId)
+                                        console.log('Driver object:', driver)
+                                        console.log('Groups in deleted route:', groupsToUpdate)
+                                        console.log('Current route data:', route)
+                                        
+                                        // Update each group to remove this driver's userId
+                                        for (const groupInfo of groupsToUpdate) {
+                                            try {
+                                                // Find the current group data
+                                                const currentGroup = allVenueGroups.find(g => 
+                                                    g.id === groupInfo.groupId || 
+                                                    g.groupId === groupInfo.groupId
+                                                )
+                                                
+                                                let existingUserIds = []
+                                                if (currentGroup) {
+                                                    existingUserIds = currentGroup.userId || []
+                                                } else {
+                                                    // Fallback: try to fetch the group
+                                                    console.log('Group not found in allVenueGroups, fetching group:', groupInfo.groupId)
+                                                    const groupResponse = await api.getVenueGroupById(groupInfo.groupId)
+                                                    if (groupResponse.ok) {
+                                                        const groupData = await groupResponse.json()
+                                                        existingUserIds = groupData.groups?.userId || []
+                                                    }
+                                                }
+                                                
+                                                const updatedUserIds = existingUserIds.filter(id => {
+                                                    // Convert both to strings for comparison to handle type mismatches
+                                                    const idStr = String(id).trim()
+                                                    const currentUserIdStr = String(currentUserId).trim()
+                                                    const shouldRemove = idStr === currentUserIdStr
+                                                    
+                                                    console.log(`  Comparing: "${idStr}" === "${currentUserIdStr}" ? ${shouldRemove}`)
+                                                    return !shouldRemove
+                                                })
+                                                
+                                                console.log(`Updating group ${groupInfo.groupId}:`)
+                                                console.log('  existingUserIds:', existingUserIds)
+                                                console.log('  userId to remove:', currentUserId)
+                                                console.log('  updatedUserIds:', updatedUserIds)
+                                                
+                                                // Only update if there are changes
+                                                if (existingUserIds.length !== updatedUserIds.length) {
+                                                    const groupUpdateData = {
+                                                        userId: updatedUserIds,
+                                                        groupId: groupInfo.groupId,
+                                                        groupName: currentGroup?.name || currentGroup?.groupName || `Group ${groupInfo.groupId}`,
+                                                        venues: currentGroup?.venues || []
+                                                    }
+                                                    
+                                                    const groupUpdateResponse = await api.updateVenueGroup(groupUpdateData)
+                                                    console.log('Group update API response:', groupUpdateResponse.status, groupUpdateResponse.ok)
+                                                    if (groupUpdateResponse.ok) {
+                                                        const responseData = await groupUpdateResponse.json().catch(() => ({}))
+                                                        console.log(`Successfully updated group ${groupInfo.groupId}:`, responseData)
+                                                    } else {
+                                                        const errorData = await groupUpdateResponse.json().catch(() => ({}))
+                                                        console.error(`Failed to update group ${groupInfo.groupId}:`, errorData)
+                                                    }
+                                                }
+                                            } catch (groupError) {
+                                                console.error(`Error updating group ${groupInfo.groupId}:`, groupError)
+                                            }
+                                        }
+                                        console.log('=== END ROUTE DELETION - VENUE GROUPS UPDATE ===')
+                                    } catch (error) {
+                                        console.error('Error updating venue groups during route deletion:', error)
+                                    }
+                                    
                                     success(`Last group removed. Route deleted for ${driver.name} (Driver)`)
                                     // Refresh vacant locations to update userId arrays
                                     await refetchVacantLocations()
+                                    
+                                    // Refresh venue groups to update userId arrays
+                                    await refetchVenueGroups()
                                 }
                             }
 
@@ -1670,7 +2124,7 @@ export default function RoutesNewPage() {
                             {availableGroups.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500">
                                     <Users className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-                                    <p className="text-sm">All groups assigned</p>
+                                    <p className="text-sm">No groups available</p>
                                 </div>
                             ) : (
                                 availableGroups.map((group) => {
@@ -1684,7 +2138,7 @@ export default function RoutesNewPage() {
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, group, 'group')}
                                                 onDragEnd={handleDragEnd}
-                                                className="p-3 bg-purple-50 cursor-move hover:bg-purple-100 transition-colors flex items-center justify-between"
+                                                className={`p-3 cursor-move transition-colors flex items-center justify-between ${getGroupTypeColor(group)}`}
                                                 onClick={(e) => {
                                                     e.stopPropagation()
                                                     toggleGroup(group.id)
@@ -1702,9 +2156,9 @@ export default function RoutesNewPage() {
 
                                             {isExpanded && (
                                                 <div className="p-3 space-y-2 bg-white border-t border-slate-200">
-                                                    {group.venues && group.venues.map((venue) => (
+                                                    {group.venues && group.venues.map((venue, venueIndex) => (
                                                         <div
-                                                            key={venue.id || venue.venueId}
+                                                            key={`${group.id}-venue-${venue.id || venue.venueId}-${venueIndex}`}
                                                             className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
                                                         >
                                                             {`${venue?.name ?? ''} - (${venue?.machine?.name?.split('-').pop() ?? ''})` || venue.venueName}
@@ -1827,9 +2281,9 @@ export default function RoutesNewPage() {
                                                                     {expandedGroups[`${driver.id}-${item.id}`] && (
                                                                         <div className="p-3 space-y-2 bg-white border-t border-purple-200">
                                                                             {item.venues && item.venues.length > 0 ? (
-                                                                                item.venues.map((venue) => (
+                                                                                item.venues.map((venue, venueIndex) => (
                                                                                     <div
-                                                                                        key={venue.id || venue.venueId}
+                                                                                        key={`${item.id}-venue-${venue.id || venue.venueId}-${venueIndex}`}
                                                                                         className="p-2 text-sm text-slate-600 bg-slate-50 rounded border border-slate-200"
                                                                                     >
                                                                                         <div className="flex items-center gap-2">
