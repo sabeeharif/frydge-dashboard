@@ -5,6 +5,232 @@ import { useToast } from "@/app/contexts/ToastContext"
 import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
 
+// Priority Management Utility Functions
+const calculateItemPriority = (venues, venueGroupsInfo, dropIndex, itemType) => {
+    // Create a combined array to determine the correct priority
+    const allItems = []
+    
+    // Add venues with their current priorities
+    if (venues && venues.length > 0) {
+        venues.forEach(venue => {
+            allItems.push({
+                type: 'venue',
+                id: venue.id,
+                priority: venue.priority || 0,
+                data: venue
+            })
+        })
+    }
+    
+    // Add groups with their current priorities
+    if (venueGroupsInfo && venueGroupsInfo.length > 0) {
+        venueGroupsInfo.forEach(group => {
+            allItems.push({
+                type: 'group',
+                id: group.groupId,
+                priority: group.priority || 0,
+                data: group
+            })
+        })
+    }
+    
+    // Sort by current priority to maintain order
+    allItems.sort((a, b) => a.priority - b.priority)
+    
+    // Calculate new priority based on drop position
+    let newPriority = 1
+    if (dropIndex >= 0 && dropIndex < allItems.length) {
+        newPriority = dropIndex + 1
+    } else if (dropIndex >= allItems.length) {
+        newPriority = allItems.length + 1
+    }
+    
+    return newPriority
+}
+
+const recalculateAllPriorities = (venues, venueGroupsInfo) => {
+    // Create combined array and sort by current priority
+    const allItems = []
+    
+    if (venues && venues.length > 0) {
+        venues.forEach(venue => {
+            allItems.push({
+                type: 'venue',
+                id: venue.id,
+                priority: venue.priority || 0,
+                data: venue
+            })
+        })
+    }
+    
+    if (venueGroupsInfo && venueGroupsInfo.length > 0) {
+        venueGroupsInfo.forEach(group => {
+            allItems.push({
+                type: 'group',
+                id: group.groupId,
+                priority: group.priority || 0,
+                data: group
+            })
+        })
+    }
+    
+    // Sort by current priority
+    allItems.sort((a, b) => a.priority - b.priority)
+    
+    // Reassign sequential priorities
+    allItems.forEach((item, index) => {
+        item.data.priority = index + 1
+    })
+    
+    // Separate back into venues and groups
+    const updatedVenues = allItems.filter(item => item.type === 'venue').map(item => item.data)
+    const updatedGroups = allItems.filter(item => item.type === 'group').map(item => item.data)
+    
+    return { updatedVenues, updatedGroups }
+}
+
+const insertItemAtPriority = (venues, venueGroupsInfo, newItem, targetPriority) => {
+    // Create combined array
+    const allItems = []
+    
+    if (venues && venues.length > 0) {
+        venues.forEach(venue => {
+            allItems.push({
+                type: 'venue',
+                id: venue.id,
+                priority: venue.priority || 0,
+                data: venue
+            })
+        })
+    }
+    
+    if (venueGroupsInfo && venueGroupsInfo.length > 0) {
+        venueGroupsInfo.forEach(group => {
+            allItems.push({
+                type: 'group',
+                id: group.groupId,
+                priority: group.priority || 0,
+                data: group
+            })
+        })
+    }
+    
+    // Sort by current priority
+    allItems.sort((a, b) => a.priority - b.priority)
+    
+    // Insert new item at target priority position
+    const insertIndex = Math.max(0, Math.min(targetPriority - 1, allItems.length))
+    allItems.splice(insertIndex, 0, newItem)
+    
+    // Recalculate all priorities
+    allItems.forEach((item, index) => {
+        item.data.priority = index + 1
+    })
+    
+    // Separate back into venues and groups
+    const updatedVenues = allItems.filter(item => item.type === 'venue').map(item => item.data)
+    const updatedGroups = allItems.filter(item => item.type === 'group').map(item => item.data)
+    
+    return { updatedVenues, updatedGroups }
+}
+
+const handleDropWithPriority = (venues, venueGroupsInfo, droppedItem, dropIndex) => {
+    // Create combined array of all items
+    const allItems = []
+    
+    if (venues && venues.length > 0) {
+        venues.forEach(venue => {
+            allItems.push({
+                type: 'venue',
+                id: venue.id,
+                priority: venue.priority || 0,
+                data: venue
+            })
+        })
+    }
+    
+    if (venueGroupsInfo && venueGroupsInfo.length > 0) {
+        venueGroupsInfo.forEach(group => {
+            allItems.push({
+                type: 'group',
+                id: group.groupId,
+                priority: group.priority || 0,
+                data: group
+            })
+        })
+    }
+    
+    // Sort by current priority
+    allItems.sort((a, b) => a.priority - b.priority)
+    
+    // Remove the dropped item if it already exists
+    const filteredItems = allItems.filter(item => 
+        !(item.type === droppedItem.type && item.id === droppedItem.id)
+    )
+    
+    // Insert the dropped item at the specified index
+    const insertIndex = Math.max(0, Math.min(dropIndex, filteredItems.length))
+    filteredItems.splice(insertIndex, 0, droppedItem)
+    
+    // Recalculate all priorities
+    filteredItems.forEach((item, index) => {
+        item.data.priority = index + 1
+    })
+    
+    // Separate back into venues and groups
+    const updatedVenues = filteredItems.filter(item => item.type === 'venue').map(item => item.data)
+    const updatedGroups = filteredItems.filter(item => item.type === 'group').map(item => item.data)
+    
+    return { updatedVenues, updatedGroups }
+}
+
+const reorderItemsWithUnifiedPriority = (venues, venueGroupsInfo, fromIndex, toIndex) => {
+    // Create combined array of all items
+    const allItems = []
+    
+    if (venues && venues.length > 0) {
+        venues.forEach(venue => {
+            allItems.push({
+                type: 'venue',
+                id: venue.id,
+                priority: venue.priority || 0,
+                data: venue
+            })
+        })
+    }
+    
+    if (venueGroupsInfo && venueGroupsInfo.length > 0) {
+        venueGroupsInfo.forEach(group => {
+            allItems.push({
+                type: 'group',
+                id: group.groupId,
+                priority: group.priority || 0,
+                data: group
+            })
+        })
+    }
+    
+    // Sort by current priority to get the correct order
+    allItems.sort((a, b) => a.priority - b.priority)
+    
+    // Move item from fromIndex to toIndex
+    if (fromIndex >= 0 && fromIndex < allItems.length && toIndex >= 0 && toIndex < allItems.length) {
+        const [movedItem] = allItems.splice(fromIndex, 1)
+        allItems.splice(toIndex, 0, movedItem)
+        
+        // Recalculate all priorities based on new order
+        allItems.forEach((item, index) => {
+            item.data.priority = index + 1
+        })
+    }
+    
+    // Separate back into venues and groups
+    const updatedVenues = allItems.filter(item => item.type === 'venue').map(item => item.data)
+    const updatedGroups = allItems.filter(item => item.type === 'group').map(item => item.data)
+    
+    return { updatedVenues, updatedGroups }
+}
+
 export default function RoutesNewPage() {
     // State for API data
     const [allVenues, setAllVenues] = useState([])
@@ -840,12 +1066,49 @@ export default function RoutesNewPage() {
             // Handle group assignment
             if (groupInfo) {
                 console.log('Creating route with group info:', groupInfo)
-                // For groups, only send group info, no individual venues
-                routeData.venueGroupsInfo = [{
-                    groupId: groupInfo.id || groupInfo.groupId,
-                    priority: groupInfo.priority || 1,
-                    userId: [driver.userId || driver.id]
-                }]
+                // For groups, calculate priority based on existing route items
+                const existingVenues = []
+                const existingGroups = []
+                
+                // Get existing route data if any
+                try {
+                    const existingResponse = await api.getDriverRoutes({ userId: driver.userId || driver.id, fetchAll: true })
+                    if (existingResponse.ok) {
+                        const existingData = await existingResponse.json()
+                        const existingRoutes = existingData.routes || existingData.data || []
+                        if (existingRoutes.length > 0) {
+                            existingVenues.push(...(existingRoutes[0].venues || []))
+                            existingGroups.push(...(existingRoutes[0].venueGroupsInfo || []))
+                        }
+                    }
+                } catch (err) {
+                    console.log('No existing route found, creating new one')
+                }
+                
+                // Calculate correct priority for the new group
+                const { updatedGroups } = insertItemAtPriority(
+                    existingVenues,
+                    existingGroups,
+                    {
+                        type: 'group',
+                        id: groupInfo.id || groupInfo.groupId,
+                        priority: 0, // Will be recalculated
+                        data: {
+                            groupId: groupInfo.id || groupInfo.groupId,
+                            priority: 1, // Will be recalculated
+                            userId: [driver.userId || driver.id]
+                        }
+                    },
+                    1 // Insert at position 1 if no existing items
+                )
+                
+                // Ensure all groups have proper userId arrays
+                const finalGroups = updatedGroups.map(group => ({
+                    ...group,
+                    userId: Array.isArray(group.userId) ? group.userId : [driver.userId || driver.id]
+                }))
+                
+                routeData.venueGroupsInfo = finalGroups
             } else {
                 // For individual venues, transform venues to match API format
                 const venuesData = venues.map((venue, index) => ({
@@ -1241,13 +1504,23 @@ export default function RoutesNewPage() {
                             
                             if (prevRoutes.length > 0) {
                                 const prevRouteId = prevRoutes[0].routeId
+                                // Remove the group and recalculate priorities for remaining items
                                 const remainingGroups = (prevRoutes[0].venueGroupsInfo || [])
                                     .filter(g => g.groupId !== draggedItem.id)
-                                    .map((g, index) => ({ 
-                                        ...g, 
-                                        priority: index + 1,
-                                        userId: g.userId || [previousDriver.userId || previousDriver.id] // Preserve existing userId or use previous driver's userId
-                                    }))
+                                
+                                const remainingVenues = prevRoutes[0].venues || []
+                                
+                                // Recalculate priorities for all remaining items
+                                const { updatedVenues, updatedGroups } = recalculateAllPriorities(
+                                    remainingVenues,
+                                    remainingGroups
+                                )
+                                
+                                // Preserve userId for groups
+                                const finalGroups = updatedGroups.map(g => ({
+                                    ...g,
+                                    userId: Array.isArray(g.userId) ? g.userId : [previousDriver.userId || previousDriver.id]
+                                }))
                                 
                                 // Update previous driver's route
                                 const prevUpdateResponse = await api.updateDriverRoute({
@@ -1255,8 +1528,8 @@ export default function RoutesNewPage() {
                                     vlUserId: previousDriver.vlUserId || previousDriver.userId || previousDriver.id,
                                     routeId: prevRouteId,
                                     routeName: prevRoutes[0].routeName || `Route-${previousDriver.firstName || previousDriver.name}`,
-                                    venueGroupsInfo: remainingGroups,
-                                    venues: prevRoutes[0].venues || []
+                                    venueGroupsInfo: finalGroups,
+                                    venues: updatedVenues
                                 })
                                 
                                 if (!prevUpdateResponse.ok) {
@@ -1284,23 +1557,36 @@ export default function RoutesNewPage() {
                         const routeId = routes[0].routeId
                         const existingGroups = routes[0].venueGroupsInfo || []
                         
-                        // Add new group to existing groups
-                        const updatedGroups = [
-                            ...existingGroups,
+                        // Calculate correct priority for the new group based on drop position
+                        const { updatedVenues, updatedGroups } = insertItemAtPriority(
+                            routes[0].venues || [],
+                            existingGroups,
                             {
-                                groupId: draggedItem.id || draggedItem.groupId,
-                                priority: existingGroups.length + 1,
-                                userId: [driver.userId || driver.id]
-                            }
-                        ]
+                                type: 'group',
+                                id: draggedItem.id || draggedItem.groupId,
+                                priority: 0, // Will be recalculated
+                                data: {
+                                    groupId: draggedItem.id || draggedItem.groupId,
+                                    priority: 1, // Will be recalculated
+                                    userId: [driver.userId || driver.id]
+                                }
+                            },
+                            (routes[0].venues?.length || 0) + (existingGroups.length || 0) + 1 // Insert at end
+                        )
+                        
+                        // Ensure all groups have proper userId arrays
+                        const finalGroups = updatedGroups.map(group => ({
+                            ...group,
+                            userId: Array.isArray(group.userId) ? group.userId : [driver.userId || driver.id]
+                        }))
                         
                         const updateResponse = await api.updateDriverRoute({
                                 userId: driver.userId || driver.id,
                                 vlUserId: driver.vlUserId || driver.userId || driver.id,
                                 routeId: routeId,
                                 routeName: routes[0].routeName || `Route-${driver.firstName || driver.name}`,
-                                venueGroupsInfo: updatedGroups,
-                                venues: routes[0].venues || []
+                                venueGroupsInfo: finalGroups,
+                                venues: updatedVenues
                             })
                         
                         if (updateResponse.ok) {
@@ -1402,15 +1688,32 @@ export default function RoutesNewPage() {
                 // Remove venue from local state first
                 const remainingVenues = driver.assignedVenues
                     .filter(v => v.id !== draggedItem.id && v.type === 'venue')
-                    .map((v, index) => ({ ...v, priority: index + 1 })) // Reindex priorities
-                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+                
+                const remainingGroups = driver.assignedVenues
+                    .filter(v => v.type === 'group')
+                
+                // Recalculate priorities for all remaining items
+                const { updatedVenues, updatedGroups } = recalculateAllPriorities(
+                    remainingVenues,
+                    remainingGroups.map(g => ({ 
+                        groupId: g.id, 
+                        priority: g.priority, 
+                        userId: Array.isArray(g.userId) ? g.userId : [driver.userId || driver.id]
+                    }))
+                )
+                
+                // Combine updated items and sort by priority
+                const allRemainingItems = [
+                    ...updatedVenues.map(v => ({ ...v, type: 'venue' })),
+                    ...updatedGroups.map(g => ({ ...g, type: 'group', id: g.groupId }))
+                ].sort((a, b) => (a.priority || 0) - (b.priority || 0))
 
                 setDrivers(prev =>
                     prev.map(d =>
                         d.id === draggedFromDriver
                             ? {
                                 ...d,
-                                assignedVenues: remainingVenues
+                                assignedVenues: allRemainingItems
                             }
                             : d
                     )
@@ -1427,12 +1730,12 @@ export default function RoutesNewPage() {
                         if (routes.length > 0) {
                             const route = routes[0] // Get the main route
 
-                            // If there are remaining venues, update the route
-                            if (remainingVenues.length > 0) {
-                                const venuesData = remainingVenues.map((venue, index) => ({
+                            // If there are remaining items, update the route
+                            if (allRemainingItems.length > 0) {
+                                const venuesData = updatedVenues.map((venue, index) => ({
                                     userId: [driver.userId || driver.id], // Each venue needs userId as array
                                     id: parseInt(venue.id),
-                                    priority: index + 1,
+                                    priority: venue.priority, // Use recalculated priority
                                     name: venue.name || "Unknown Location",
                                     locationName: venue.locationName || venue.name || "Lobby",
                                     address: venue.address || "No address provided",
@@ -1446,12 +1749,19 @@ export default function RoutesNewPage() {
                                     },
                                 }))
 
+                                // Ensure all groups have proper userId arrays
+                                const finalGroups = updatedGroups.map(group => ({
+                                    ...group,
+                                    userId: Array.isArray(group.userId) ? group.userId : [driver.userId || driver.id]
+                                }))
+
                                 const updateResponse = await api.updateDriverRoute({
                                         userId: driver.userId || driver.id, // Top-level userId as string
                                         vlUserId: driver.vlUserId || driver.userId || driver.id, // Top-level vlUserId as string
                                         routeId: route.routeId,
                                         routeName: route.routeName || `Route-${driver.firstName || driver.name}`,
-                                        venues: venuesData
+                                        venues: venuesData,
+                                        venueGroupsInfo: finalGroups
                                     })
 
                                 if (updateResponse.ok) {
@@ -1838,25 +2148,28 @@ export default function RoutesNewPage() {
         const driver = drivers.find(d => d.id === driverId)
         if (!driver) return
 
-        // Create a new array with reordered venues
-        const reorderedVenues = [...driver.assignedVenues]
-        const [movedItem] = reorderedVenues.splice(fromIndex, 1)
-        reorderedVenues.splice(toIndex, 0, movedItem)
-
-        // Update priorities based on new order (1, 2, 3, 4...)
-        const venuesWithNewPriorities = reorderedVenues.map((venue, index) => ({
-            ...venue,
-            priority: index + 1
+        // Separate venues and groups from assignedVenues for unified priority handling
+        const venues = driver.assignedVenues.filter(item => item.type === 'venue')
+        const groups = driver.assignedVenues.filter(item => item.type === 'group').map(g => ({
+            groupId: g.id,
+            priority: g.priority,
+            userId: g.userId || [driver.userId || driver.id] // Ensure userId is always an array
         }))
 
-        // Sort venues by priority before updating state
-        const sortedVenues = venuesWithNewPriorities.sort((a, b) => (a.priority || 0) - (b.priority || 0))
+        // Use unified priority reordering
+        const { updatedVenues, updatedGroups } = reorderItemsWithUnifiedPriority(venues, groups, fromIndex, toIndex)
+
+        // Combine back into assignedVenues format for local state
+        const allItems = [
+            ...updatedVenues.map(v => ({ ...v, type: 'venue' })),
+            ...updatedGroups.map(g => ({ ...g, type: 'group', id: g.groupId }))
+        ].sort((a, b) => (a.priority || 0) - (b.priority || 0))
 
         // Update local state immediately for better UX
         setDrivers(prev =>
             prev.map(d =>
                 d.id === driverId
-                    ? { ...d, assignedVenues: sortedVenues }
+                    ? { ...d, assignedVenues: allItems }
                     : d
             )
         )
@@ -1866,9 +2179,7 @@ export default function RoutesNewPage() {
             const userId = driver.userId || driver.id
 
             // Transform venues to API format
-            const venuesData = venuesWithNewPriorities
-                .filter(item => item.type === 'venue') // Only send venues, not groups
-                .map((venue) => ({
+            const venuesData = updatedVenues.map((venue) => ({
                     userId: [userId], // Each venue needs userId as array
                     id: parseInt(venue.id),
                     priority: venue.priority,
@@ -1900,11 +2211,12 @@ export default function RoutesNewPage() {
                             userId: userId, // Top-level userId as string
                             routeId: routeId,
                             routeName: routeName,
-                            venues: venuesData
+                            venues: venuesData,
+                            venueGroupsInfo: updatedGroups // Use updated groups with correct priorities
                         })
 
                     if (updateResponse.ok) {
-                        success(`Venue priorities updated for ${driver.name}!`)
+                        success(`Item priorities updated for ${driver.name}!`)
                         // Refetch routes to ensure UI is in sync with backend
                         const updatedDriversWithRoutes = await loadExistingRoutesForDrivers(drivers)
                         setDrivers(updatedDriversWithRoutes)
@@ -1914,7 +2226,7 @@ export default function RoutesNewPage() {
                 }
             }
         } catch (err) {
-            console.error('Error updating venue priorities:', err)
+            console.error('Error updating item priorities:', err)
             error(`Failed to update priorities: ${err.message}`)
 
             // Revert the local state on error
