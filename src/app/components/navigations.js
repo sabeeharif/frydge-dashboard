@@ -15,11 +15,12 @@ import {
 // Safe parse user role from localStorage
 let userRole = null;
 if (typeof window !== "undefined") {
-  const storedUserData = localStorage.getItem("userData");
+  const storedUserData = localStorage.getItem("frydge-user-data");
+  console.log(storedUserData, "storedUserData");
   if (storedUserData) {
     try {
       const parsed = JSON.parse(storedUserData);
-      userRole = parsed?.user?.dsbUserRole || null;
+      userRole = parsed?.dsbUserRole || parsed?.user?.dsbUserRole || null;
     } catch (err) {
       console.error("Failed to parse userData from localStorage:", err);
     }
