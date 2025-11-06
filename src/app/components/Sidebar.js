@@ -3,16 +3,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 // import { navItems } from '../config/navigation';
 import UserProfile from './UserProfile';
 import Logo from './Logo';
-import { navItems } from './navigations';
+import { getNavItems } from './navigations';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [items, setItems] = useState([]);
+
+  // Read nav items from localStorage on mount and when storage changes
+  useEffect(() => {
+    const load = () => setItems(getNavItems());
+    load();
+    const onStorage = (e) => {
+      if (e.key === 'frydge-auth-token' || e.key === 'frydge-user-data') {
+        load();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    // Also listen for custom events from AuthService if any in future
+    window.addEventListener('auth:updated', load);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('auth:updated', load);
+    };
+  }, []);
 
   return (
     <aside className={`hidden lg:flex flex-col fixed left-0 top-0 z-30 transition-all duration-300 ease-in-out ${
@@ -39,7 +58,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.path;
           

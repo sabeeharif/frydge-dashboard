@@ -263,6 +263,9 @@ export default function CleanerRoutesPage() {
     const dragCounter = useRef(0)
     const [dragOverIndex, setDragOverIndex] = useState(null) // Track which position we're hovering over for reordering
     const [modalDragOverIndex, setModalDragOverIndex] = useState(null) // Track drag over position in modal selected venues
+    // Modal search state
+    const [availableSearchTerm, setAvailableSearchTerm] = useState("")
+    const [selectedSearchTerm, setSelectedSearchTerm] = useState("")
 
     // Scroll state and refs
     const driversScrollRef = useRef(null)
@@ -849,7 +852,7 @@ export default function CleanerRoutesPage() {
         setModalDragOverIndex(index)
     }
 
-    // Handle drop on specific venue in modal for reordering
+    // Handle drop on specific venue in modal for reordering OR inserting new
     const handleModalVenueDrop = (e, targetIndex) => {
         e.preventDefault()
         e.stopPropagation()
@@ -857,9 +860,23 @@ export default function CleanerRoutesPage() {
         if (draggedItem) {
             const fromIndex = selectedVenues.findIndex(v => v.id === draggedItem.id)
             if (fromIndex !== -1) {
+                // Reorder existing item within selected list
                 handleModalVenueReorder(fromIndex, targetIndex)
+            } else {
+                // Insert a NEW venue dropped from the left list at the target index
+                setSelectedVenues(prev => {
+                    if (prev.some(v => v.id === draggedItem.id)) return prev
+                    const next = [...prev]
+                    const clampedIndex = Math.max(0, Math.min(targetIndex, next.length))
+                    next.splice(clampedIndex, 0, draggedItem)
+                    return next.map((venue, index) => ({
+                        ...venue,
+                        priority: index + 1
+                    }))
+                })
             }
         }
+        setDraggedItem(null)
         setModalDragOverIndex(null)
     }
 
@@ -2669,10 +2686,29 @@ export default function CleanerRoutesPage() {
                                         <div className="mb-3">
                                             <h3 className="text-base font-semibold text-gray-800 mb-1">Available Venues</h3>
                                             <p className="text-xs text-gray-600">Drag venues to the right to {editingGroup ? 'update' : 'create'} your group</p>
+                                            <div className="mt-2">
+                                                <input
+                                                    type="text"
+                                                    value={availableSearchTerm}
+                                                    onChange={(e) => setAvailableSearchTerm(e.target.value)}
+                                                    placeholder="Search venues..."
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            {allVenues.filter(venue => !selectedVenues.find(sv => sv.id === venue.id)).map((venue) => (
+                                            {allVenues
+                                                .filter(venue => !selectedVenues.find(sv => sv.id === venue.id))
+                                                .filter(venue => {
+                                                    const term = availableSearchTerm.trim().toLowerCase()
+                                                    if (!term) return true
+                                                    const name = (venue.name || '').toLowerCase()
+                                                    const loc = (venue.locationName || '').toLowerCase()
+                                                    const machineName = (venue.machine?.name || '').toLowerCase()
+                                                    return name.includes(term) || loc.includes(term) || machineName.includes(term)
+                                                })
+                                                .map((venue) => (
                                                 <div
                                                     key={venue.id}
                                                     draggable
@@ -2751,6 +2787,17 @@ export default function CleanerRoutesPage() {
                                             )}
                                         </div>
 
+                                        {/* Search within Selected Venues */}
+                                        <div className="mb-2">
+                                            <input
+                                                type="text"
+                                                value={selectedSearchTerm}
+                                                onChange={(e) => setSelectedSearchTerm(e.target.value)}
+                                                placeholder="Search selected venues..."
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            />
+                                        </div>
+
                                         <div
                                             className="min-h-[150px] border-2 border-dashed border-gray-300 rounded-lg p-3 space-y-2"
                                             onDragOver={handleModalDragOver}
@@ -2762,7 +2809,16 @@ export default function CleanerRoutesPage() {
                                                     <p className="text-xs">Drop venues here to add them to the group</p>
                                                 </div>
                                             ) : (
-                                                selectedVenues.map((venue, index) => (
+                                                selectedVenues
+                                                    .filter(venue => {
+                                                        const term = selectedSearchTerm.trim().toLowerCase()
+                                                        if (!term) return true
+                                                        const name = (venue.name || '').toLowerCase()
+                                                        const loc = (venue.locationName || '').toLowerCase()
+                                                        const machineName = (venue.machine?.name || '').toLowerCase()
+                                                        return name.includes(term) || loc.includes(term) || machineName.includes(term)
+                                                    })
+                                                    .map((venue, index) => (
                                                     <div key={venue.id}>
                                                         {/* Drop indicator above */}
                                                         {modalDragOverIndex === index && (
@@ -2806,7 +2862,7 @@ export default function CleanerRoutesPage() {
                                                             <div className="h-1 bg-blue-500 rounded-full mt-2 animate-pulse"></div>
                                                         )}
                                                     </div>
-                                                ))
+                                                    ))
                                             )}
                                         </div>
 
