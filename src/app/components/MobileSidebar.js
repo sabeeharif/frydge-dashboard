@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 // import { navItems } from '../config/navigation';
 import Logo from './Logo';
-import { navItems } from './navigations';
+// import { navItems } from './navigations';
+import { getNavItems } from './navigations';
 
 export default function MobileSidebar({ isOpen, onClose }) {
   const pathname = usePathname();

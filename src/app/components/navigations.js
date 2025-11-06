@@ -12,32 +12,34 @@ import {
   Sparkles,
 } from "lucide-react";
 
-// Safe parse user role from localStorage
-let userRole = null;
-if (typeof window !== "undefined") {
-  const storedUserData = localStorage.getItem("frydge-user-data");
-  console.log(storedUserData, "storedUserData");
-  if (storedUserData) {
-    try {
-      const parsed = JSON.parse(storedUserData);
-      userRole = parsed?.dsbUserRole || parsed?.user?.dsbUserRole || null;
-    } catch (err) {
-      console.error("Failed to parse userData from localStorage:", err);
+// Dynamic builder to always reflect current role from localStorage
+export function getNavItems() {
+  let role = null;
+  if (typeof window !== "undefined") {
+    const storedUserData = localStorage.getItem("frydge-user-data");
+    if (storedUserData) {
+      try {
+        const parsed = JSON.parse(storedUserData);
+        // Prefer flat shape (current), fallback to nested (legacy)
+        role = parsed?.dsbUserRole || parsed?.user?.dsbUserRole || null;
+      } catch (err) {
+        console.error("Failed to parse userData from localStorage:", err);
+      }
     }
   }
-}
 
-export const navItems = [
-  { name: "Overview", path: "/dashboard/overview", icon: Home },
-  ...(userRole === "admin"
-    ? [{ name: "Users", path: "/dashboard/users", icon: Users }]
-    : []), // spread conditional item
-  { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
-  { name: "Machines", path: "/dashboard/machines", icon: Package },
-  // { name: "Routes", path: "/dashboard/routes", icon: Navigation },
-  { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
-  { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
-  // { name: "Location", path: "/dashboard/locations", icon: MapPin },
-  // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
-  // { name: "Settings", path: "/dashboard/settings", icon: Settings },
-];
+  return [
+    { name: "Overview", path: "/dashboard/overview", icon: Home },
+    ...(role === "admin"
+      ? [{ name: "Users", path: "/dashboard/users", icon: Users }]
+      : []),
+    { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
+    { name: "Machines", path: "/dashboard/machines", icon: Package },
+    // { name: "Routes", path: "/dashboard/routes", icon: Navigation },
+    { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
+    { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
+    // { name: "Location", path: "/dashboard/locations", icon: MapPin },
+    // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
+    // { name: "Settings", path: "/dashboard/settings", icon: Settings },
+  ];
+}
