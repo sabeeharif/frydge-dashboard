@@ -1,9 +1,11 @@
 "use client"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
+import Link from "next/link"
 import { ChevronDown, ChevronRight, Users, MapPin, Truck, Navigation, MapPinCheckIcon, X, Plus } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
 import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
+import { normalizeSearchValue, venueMatchesSearchTerm } from "@/app/utils/venueSearch"
 
 // Priority Management Utility Functions
 const calculateItemPriority = (venues, venueGroupsInfo, dropIndex, itemType) => {
@@ -267,6 +269,29 @@ export default function CleanerRoutesPage() {
     const [availableSearchTerm, setAvailableSearchTerm] = useState("")
     const [selectedSearchTerm, setSelectedSearchTerm] = useState("")
 
+    const normalizedAvailableSearch = useMemo(
+        () => normalizeSearchValue(availableSearchTerm),
+        [availableSearchTerm]
+    )
+
+    const normalizedSelectedSearch = useMemo(
+        () => normalizeSearchValue(selectedSearchTerm),
+        [selectedSearchTerm]
+    )
+
+    const filteredAvailableVenues = useMemo(
+        () =>
+            allVenues
+                .filter((venue) => !selectedVenues.find((sv) => sv.id === venue.id))
+                .filter((venue) => venueMatchesSearchTerm(venue, normalizedAvailableSearch)),
+        [allVenues, selectedVenues, normalizedAvailableSearch]
+    )
+
+    const filteredSelectedVenues = useMemo(
+        () => selectedVenues.filter((venue) => venueMatchesSearchTerm(venue, normalizedSelectedSearch)),
+        [selectedVenues, normalizedSelectedSearch]
+    )
+
     // Scroll state and refs
     const driversScrollRef = useRef(null)
     const autoScrollInterval = useRef(null)
@@ -359,6 +384,13 @@ export default function CleanerRoutesPage() {
 
         fetchAllData()
     }, [])
+
+    useEffect(() => {
+        if (!showCreateModal) {
+            setAvailableSearchTerm("")
+            setSelectedSearchTerm("")
+        }
+    }, [showCreateModal])
 
     // Refresh routes when page becomes visible (handles navigation back)
     useEffect(() => {
@@ -882,6 +914,7 @@ export default function CleanerRoutesPage() {
 
     const clearSelectedVenues = () => {
         setSelectedVenues([])
+        setSelectedSearchTerm("")
     }
 
     // Refresh venue groups data
@@ -1056,17 +1089,6 @@ export default function CleanerRoutesPage() {
             error(`Error deleting venue group: ${err.message}`)
         } finally {
             setIsDeleting(null)
-        }
-    }
-
-    // Handle edit button click
-    const handleEditVenueGroup = (group) => {
-        setEditingGroup(group)
-        setGroupName(group.name || group.groupName || "")
-        setSelectedVenues(group.venues || [])
-        // Modal should already be open, if not open it
-        if (!showCreateModal) {
-            setShowCreateModal(true)
         }
     }
 
@@ -2322,13 +2344,13 @@ export default function CleanerRoutesPage() {
                         </svg>
                         <span className="font-semibold">Refresh Routes</span>
                     </button> */}
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600  text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        <Link
+                            href="/dashboard/cleaner-routes/manage-cleaner-venue-group"
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
                         >
                             <Plus className="h-5 w-5" />
-                            <span className="font-semibold">Manage Venue Group</span>
-                        </button>
+                            <span className="font-semibold">Manage Venue Groups</span>
+                        </Link>
                     </div>
                 </div>
 
@@ -2698,34 +2720,51 @@ export default function CleanerRoutesPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            {allVenues
-                                                .filter(venue => !selectedVenues.find(sv => sv.id === venue.id))
-                                                .filter(venue => {
-                                                    const term = availableSearchTerm.trim().toLowerCase()
-                                                    if (!term) return true
-                                                    const name = (venue.name || '').toLowerCase()
-                                                    const loc = (venue.locationName || '').toLowerCase()
-                                                    const machineName = (venue.machine?.name || '').toLowerCase()
-                                                    return name.includes(term) || loc.includes(term) || machineName.includes(term)
-                                                })
-                                                .map((venue) => (
-                                                <div
-                                                    key={venue.id}
-                                                    draggable
-                                                    onDragStart={(e) => handleModalDragStart(e, venue)}
-                                                    onDragEnd={handleModalDragEnd}
-                                                    className={`p-2 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor(venue)}`}
-                                                >
-                                                    <div className="text-sm font-medium">
-                                                        {venue.name}
-                                                    </div>
-                                                    {venue.locationName && venue.locationName !== venue.name && (
-                                                        <div className="text-xs mt-1">
-                                                            {venue.locationName}
-                                                        </div>
-                                                    )}
+                                            {filteredAvailableVenues.length === 0 ? (
+                                                <div className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                                    {normalizedAvailableSearch
+                                                        ? `No venues found for "${availableSearchTerm.trim()}"`
+                                                        : "No venues available"}
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                filteredAvailableVenues.map((venue) => (
+                                                    <div
+                                                        key={venue.id}
+                                                        draggable
+                                                        onDragStart={(e) => handleModalDragStart(e, venue)}
+                                                        onDragEnd={handleModalDragEnd}
+                                                        className={`p-2 rounded-lg border-2 cursor-move hover:shadow-md transition-all duration-200 ${getVenueTypeColor(venue)}`}
+                                                    >
+                                                        <div className="text-sm font-medium">
+                                                            {venue.name}
+                                                        </div>
+                                                        {venue.locationName && venue.locationName !== venue.name && (
+                                                            <div className="text-xs mt-1">
+                                                                {venue.locationName}
+                                                            </div>
+                                                        )}
+                                                        {venue.address && (
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                {venue.address}
+                                                            </div>
+                                                        )}
+                                                        <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                                                            <span>{venue.machine?.name || "No machine assigned"}</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedVenues(prev => {
+                                                                        if (prev.some(v => v.id === venue.id)) return prev
+                                                                        return [...prev, venue]
+                                                                    })
+                                                                }}
+                                                                className="text-blue-600 hover:text-blue-800"
+                                                            >
+                                                                Add
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                         {/* </div> */}
                                     </div>
@@ -2808,17 +2847,14 @@ export default function CleanerRoutesPage() {
                                                     <MapPin className="h-6 w-6 mx-auto mb-2 text-gray-300" />
                                                     <p className="text-xs">Drop venues here to add them to the group</p>
                                                 </div>
+                                            ) : filteredSelectedVenues.length === 0 ? (
+                                                <div className="text-center text-gray-500 py-8 text-sm">
+                                                    {normalizedSelectedSearch
+                                                        ? `No selected venues match "${selectedSearchTerm.trim()}"`
+                                                        : "No selected venues found"}
+                                                </div>
                                             ) : (
-                                                selectedVenues
-                                                    .filter(venue => {
-                                                        const term = selectedSearchTerm.trim().toLowerCase()
-                                                        if (!term) return true
-                                                        const name = (venue.name || '').toLowerCase()
-                                                        const loc = (venue.locationName || '').toLowerCase()
-                                                        const machineName = (venue.machine?.name || '').toLowerCase()
-                                                        return name.includes(term) || loc.includes(term) || machineName.includes(term)
-                                                    })
-                                                    .map((venue, index) => (
+                                                filteredSelectedVenues.map((venue, index) => (
                                                     <div key={venue.id}>
                                                         {/* Drop indicator above */}
                                                         {modalDragOverIndex === index && (
@@ -2914,12 +2950,12 @@ export default function CleanerRoutesPage() {
                                                                     <span className="text-xs text-gray-600">({group.venues?.length || 0} venues)</span>
                                                                 </div>
                                                                 <div className="flex gap-2">
-                                                                    <button
-                                                                        onClick={() => handleEditVenueGroup(group)}
+                                                                    <Link
+                                                                        href={`/dashboard/cleaner-routes/manage-cleaner-venue-group?groupId=${group.groupId || group.id}`}
                                                                         className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                                                     >
                                                                         Edit
-                                                                    </button>
+                                                                    </Link>
                                                                     <button
                                                                         onClick={() => handleDeleteVenueGroup(group)}
                                                                         disabled={isDeleting === group.id}
