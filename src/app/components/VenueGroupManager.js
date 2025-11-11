@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MapPin, Users, Pencil, Trash2, Plus, Search, X } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/app/contexts/ToastContext"
@@ -61,7 +61,6 @@ const transformVenues = (venues = []) => {
 
     return result
 }
-
 const transformGroups = (groups = []) => {
     return groups.map((group, index) => ({
         id: group.id || group.groupId || `group-${index}`,
@@ -93,7 +92,7 @@ const contextCopy = {
     },
 }
 
-export default function VenueGroupManager({ context = "driver" }) {
+function VenueGroupManagerContent({ context = "driver" }) {
     const copy = contextCopy[context] || contextCopy.driver
     const { success, error } = useToast()
     const router = useRouter()
@@ -365,12 +364,14 @@ export default function VenueGroupManager({ context = "driver" }) {
 
         setSelectedVenues((prev) => {
             const existingIndex = prev.findIndex((venue) => venue.id === draggedItem.id)
+            const targetIndex = modalDragOverIndex !== null ? modalDragOverIndex : index
             if (existingIndex >= 0) {
                 const reordered = [...prev]
                 const [moved] = reordered.splice(existingIndex, 1)
-                return insertVenueAtIndex(reordered, moved, index)
+                const adjustedIndex = existingIndex < targetIndex ? targetIndex - 1 : targetIndex
+                return insertVenueAtIndex(reordered, moved, adjustedIndex)
             }
-            return insertVenueAtIndex(prev, draggedItem, index)
+            return insertVenueAtIndex(prev, draggedItem, targetIndex)
         })
 
         setDraggedItem(null)
@@ -586,7 +587,7 @@ export default function VenueGroupManager({ context = "driver" }) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 py-8">
                     <div
                         ref={modalRef}
-                        className="relative flex h-[90vh] w-full max-w-6xl flex-col rounded-3xl bg-white shadow-2xl"
+                        className="relative flex h-[98vh] w-full max-w-6xl flex-col rounded-3xl bg-white shadow-2xl "
                     >
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
                             <div>
@@ -828,6 +829,20 @@ export default function VenueGroupManager({ context = "driver" }) {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function VenueGroupManager(props) {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex items-center justify-center h-[60vh]">
+                    <Loader />
+                </div>
+            }
+        >
+            <VenueGroupManagerContent {...props} />
+        </Suspense>
     )
 }
 
