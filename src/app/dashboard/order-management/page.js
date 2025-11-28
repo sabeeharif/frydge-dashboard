@@ -100,6 +100,8 @@ function CreateOrderModal({ isOpen, onClose, onSave, standardQuantities }) {
     const [currentSupplier, setCurrentSupplier] = useState("")
     const [currentProduct, setCurrentProduct] = useState("")
     const [currentQuantity, setCurrentQuantity] = useState("")
+    const [isStandard, setIsStandard] = useState(false)
+    const [isLow, setIsLow] = useState(false)
     const [isLowOrder, setIsLowOrder] = useState(false)
 
     const currentProducts = currentSupplier ? mockProducts[currentSupplier] || [] : []
@@ -161,6 +163,28 @@ function CreateOrderModal({ isOpen, onClose, onSave, standardQuantities }) {
         setIsLowOrder(false)
         onClose()
     }
+      const handleStandardChange = (checked) => {
+    setIsStandard(checked)
+    setIsLow(false)
+    if (checked && currentMachine) {
+      const standardQty = standardQuantities.find((q) => q.machineId === currentMachine)?.quantity || 10
+      setCurrentQuantity(standardQty.toString())
+    } else {
+      setCurrentQuantity("")
+    }
+  }
+
+  const handleLowChange = (checked) => {
+    setIsLow(checked)
+    setIsStandard(false)
+    if (checked && currentMachine) {
+      const standardQty = standardQuantities.find((q) => q.machineId === currentMachine)?.quantity || 10
+      const lowQty = Math.ceil(standardQty / 2)
+      setCurrentQuantity(lowQty.toString())
+    } else {
+      setCurrentQuantity("")
+    }
+  }
 
     if (!isOpen) return null
 
@@ -229,44 +253,68 @@ function CreateOrderModal({ isOpen, onClose, onSave, standardQuantities }) {
                             </div>
 
                             {currentSupplier && (
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label htmlFor="product" className="text-sm font-medium block mb-1">Product</label>
-                                        <select
-                                            id="product"
-                                            value={currentProduct}
-                                            onChange={(e) => setCurrentProduct(e.target.value)}
-                                            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2"
-                                        >
-                                            <option value="">Select product</option>
-                                            {currentProducts.map((p) => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                <div className="space-y-3">
 
-                                    <div>
-                                        <label htmlFor="quantity" className="text-sm font-medium block mb-1">Quantity (optional)</label>
-                                        <input
-                                            id="quantity"
-                                            type="number"
-                                            min="0"
-                                            value={currentQuantity}
-                                            onChange={(e) => setCurrentQuantity(e.target.value)}
-                                            placeholder="Leave blank for default"
-                                            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2"
-                                        />
-                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="product" className="text-sm font-medium block mb-1">Product</label>
+                                            <select
+                                                id="product"
+                                                value={currentProduct}
+                                                onChange={(e) => setCurrentProduct(e.target.value)}
+                                                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2"
+                                            >
+                                                <option value="">Select product</option>
+                                                {currentProducts.map((p) => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                                    <div className="flex items-end gap-2">
-                                        <button
-                                            onClick={() => setIsLowOrder(!isLowOrder)}
-                                            className="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-gray-300 bg-white hover:bg-gray-100"
-                                        >
-                                            {isLowOrder ? "Low Order 50%" : "Standard Order"}
-                                        </button>
+                                        <div>
+                                            <label htmlFor="quantity" className="text-sm font-medium block mb-1">Quantity (optional)</label>
+                                            <input
+                                                id="quantity"
+                                                type="number"
+                                                min="0"
+                                                value={currentQuantity}
+                                                onChange={(e) => setCurrentQuantity(e.target.value)}
+                                                placeholder="Leave blank for default"
+                                                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2"
+                                            />
+                                        </div>
+
+                                    </div>
+                                    <div className="border rounded-lg p-4 bg-white space-y-3">
+                                        <p className="text-sm font-semibold text-gray-700">Order Type:</p>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="standard-order"
+                                                    checked={isStandard}
+                                                    onChange={(e) => handleStandardChange(e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300"
+                                                />
+                                                <label htmlFor="standard-order" className="cursor-pointer text-sm">
+                                                    <span className="font-medium">Standard Order</span>
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    id="low-order"
+                                                    checked={isLow}
+                                                    onChange={(e) => handleLowChange(e.target.checked)}
+                                                    className="w-4 h-4 rounded border-gray-300"
+                                                />
+                                                <label htmlFor="low-order" className="cursor-pointer text-sm">
+                                                    <span className="font-medium">Low Order (50%)</span>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
