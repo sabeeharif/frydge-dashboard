@@ -38,6 +38,8 @@ export function getNavItems() {
     // { name: "Routes", path: "/dashboard/routes", icon: Navigation },
     { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
     { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
+    { name: "Suppliers Management", path: "/dashboard/suppliers-management", icon: Users },
+    { name: "Order Management", path: "/dashboard/order-management", icon: Package },
     // { name: "Location", path: "/dashboard/locations", icon: MapPin },
     // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
     // { name: "Settings", path: "/dashboard/settings", icon: Settings },
