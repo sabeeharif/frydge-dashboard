@@ -214,6 +214,26 @@ function SuppliersPageContent() {
     }))
   }
 
+  const handleAddressChange = (field, value) => {
+  setFormData(prev => ({
+    ...prev,
+    address: {
+      ...prev.address,
+      [field]: value,
+    },
+  }));
+};
+  const handleEditAddressChange = (field, value) => {
+  setEditFormData(prev => ({
+    ...prev,
+    address: {
+      ...prev.address,
+      [field]: value,
+    },
+  }));
+};
+
+
   const handleCreateSupplier = () => {
     if (!formData.supplierId) formData.supplierId = `SUP${(suppliers.length + 1).toString().padStart(3, "0")}`
     setSuppliers((prev) => [...prev, formData])
@@ -551,7 +571,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={formData.address?.street || ""}
-                      onChange={(e) => handleInputChange("address.street", e.target.value)}
+                      onChange={(e) => handleAddressChange("street", e.target.value)}
                       placeholder="Enter street"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -562,7 +582,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={formData.address?.city || ""}
-                      onChange={(e) => handleInputChange("address.city", e.target.value)}
+                      onChange={(e) => handleAddressChange("city", e.target.value)}
                       placeholder="Enter city"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -573,7 +593,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={formData.address?.state || ""}
-                      onChange={(e) => handleInputChange("address.state", e.target.value)}
+                      onChange={(e) => handleAddressChange("state", e.target.value)}
                       placeholder="Enter state"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -584,7 +604,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={formData.address?.zip || ""}
-                      onChange={(e) => handleInputChange("address.zip", e.target.value)}
+                      onChange={(e) => handleAddressChange("zip", e.target.value)}
                       placeholder="Enter ZIP code"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -595,15 +615,12 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={formData.address?.country || ""}
-                      onChange={(e) => handleInputChange("address.country", e.target.value)}
+                      onChange={(e) => handleAddressChange("country", e.target.value)}
                       placeholder="Enter country"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-
-
-
               </div>
             </div>
 
@@ -656,7 +673,7 @@ function SuppliersPageContent() {
                   <input
                     type="text"
                     value={editFormData?.companyName}
-                    onChange={(e) => handleInputChange("companyName", e.target.value)}
+                    onChange={(e) => handleEditInputChange("companyName", e.target.value)}
                     placeholder="Enter company name"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -669,7 +686,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.contactName}
-                      onChange={(e) => handleInputChange("contactName", e.target.value)}
+                      onChange={(e) => handleEditInputChange("contactName", e.target.value)}
                       placeholder="Enter contact name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -680,7 +697,7 @@ function SuppliersPageContent() {
                     <input
                       type="email"
                       value={editFormData?.contactEmail}
-                      onChange={(e) => handleInputChange("contactEmail", e.target.value)}
+                      onChange={(e) => handleEditInputChange("contactEmail", e.target.value)}
                       placeholder="Enter contact email"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -691,7 +708,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onChange={(e) => handleEditInputChange("phone", e.target.value)}
                       placeholder="Enter phone number"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -701,7 +718,7 @@ function SuppliersPageContent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Active</label>
                     <select
                       value={editFormData?.isActive}
-                      onChange={(e) => handleInputChange("isActive", e.target.value === "true")}
+                      onChange={(e) => handleEditInputChange("isActive", e.target.value === "true")}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value={true}>Active</option>
@@ -721,7 +738,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.address?.street || ""}
-                      onChange={(e) => handleInputChange("address.street", e.target.value)}
+                      onChange={(e) => handleEditAddressChange("street", e.target.value)}
                       placeholder="Enter street"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -732,7 +749,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.address?.city || ""}
-                      onChange={(e) => handleInputChange("address.city", e.target.value)}
+                      onChange={(e) => handleEditAddressChange("city", e.target.value)}
                       placeholder="Enter city"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -743,7 +760,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.address?.state || ""}
-                      onChange={(e) => handleInputChange("address.state", e.target.value)}
+                      onChange={(e) => handleEditAddressChange("state", e.target.value)}
                       placeholder="Enter state"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -754,7 +771,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.address?.zip || ""}
-                      onChange={(e) => handleInputChange("address.zip", e.target.value)}
+                      onChange={(e) => handleEditAddressChange("zip", e.target.value)}
                       placeholder="Enter ZIP code"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
@@ -765,7 +782,7 @@ function SuppliersPageContent() {
                     <input
                       type="text"
                       value={editFormData?.address?.country || ""}
-                      onChange={(e) => handleInputChange("address.country", e.target.value)}
+                      onChange={(e) => handleEditAddressChange("country", e.target.value)}
                       placeholder="Enter country"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
