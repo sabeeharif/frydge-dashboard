@@ -10,6 +10,7 @@ import {
   Trello,
   Truck,
   Sparkles,
+  PackageSearch,
 } from "lucide-react";
 
 // Dynamic builder to always reflect current role from localStorage
@@ -40,6 +41,7 @@ export function getNavItems() {
     { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
     { name: "Suppliers Management", path: "/dashboard/suppliers-management", icon: Users },
     { name: "Order Management", path: "/dashboard/order-management", icon: Package },
+    { name: "Products Management", path: "/dashboard/product-management", icon: PackageSearch },
     // { name: "Location", path: "/dashboard/locations", icon: MapPin },
     // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
     // { name: "Settings", path: "/dashboard/settings", icon: Settings },
