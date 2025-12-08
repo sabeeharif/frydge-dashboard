@@ -6,6 +6,9 @@ import Loader from "@/app/components/Loader";
 import ManageProductsModal from "@/app/components/products/ManageProductsModal";
 import ProductTable from "@/app/components/products/ProductTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
+import CreateProductModal from "@/app/components/products/CreateProductModal";
+import EditProductModal from "@/app/components/products/EditProductModal";
+import DeleteModal from "@/app/components/products/DeleteModal";
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([
@@ -55,15 +58,32 @@ const ProductManagement = () => {
       supplierId: null,
     },
   ]);
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "",
+    price: "",
+    stock: "",
+    isActive: true,
+    supplierId: "",
+  });
+  // Modal State
+  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
+  // Products State
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [updatingProduct, setUpdatingProduct] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
 
+  // Mock
   const allSuppliers = [
     { id: "1", name: "Supplier A" },
     { id: "2", name: "Supplier B" },
     { id: "3", name: "Supplier C" },
   ];
-
-  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Pagination state
   const itemsPerPage = 5;
@@ -96,12 +116,84 @@ const ProductManagement = () => {
     setIsManageModalOpen(true);
   };
 
-  const handleEdit = (product) => {
-    console.log("Edit:", product);
+  const handleInputChange = (key, value) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Function to Perform Create
+  const handleCreateProduct = () => {
+    setCreatingProduct(true);
+
+    const newProduct = {
+      id: products.length + 1,
+      ...formData,
+    };
+
+    setProducts((prev) => [...prev, newProduct]);
+
+    setCreatingProduct(false);
+    setShowCreateProductModal(false);
+
+    // Reset form
+    setFormData({
+      name: "",
+      category: "",
+      price: "",
+      stock: "",
+      isActive: true,
+      supplierId: "",
+    });
+  };
+
+  const closeCreateProductModal = () => {
+    setShowCreateProductModal(false);
+
+    // Optional: reset form after closing
+    setFormData({
+      name: "",
+      category: "",
+      price: "",
+      stock: "",
+      isActive: true,
+      supplierId: "",
+    });
+  };
+
+  const openEditModal = (product) => {
+    setEditingProductId(product.id);
+    setFormData({
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      stock: product.stock,
+      isActive: product.isActive,
+      supplierId: product.supplierId || "",
+    });
+    setShowEditProductModal(true);
+  };
+
+  // Function to Perform Update
+  const handleUpdateProduct = () => {
+    setUpdatingProduct(true);
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === editingProductId ? { ...p, ...formData } : p))
+    );
+
+    setUpdatingProduct(false);
+    setShowEditProductModal(false);
   };
 
   const handleDelete = (product) => {
-    console.log("Delete:", product);
+    setSelectedProduct(product); // store the product to delete
+    setShowDeleteProductModal(true); // open modal
+  };
+
+  // Function to Perform Deletion
+  const confirmDeleteProduct = () => {
+    setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
+    setShowDeleteProductModal(false);
+    setSelectedProduct(null);
   };
 
   return (
@@ -128,7 +220,7 @@ const ProductManagement = () => {
             Refresh
           </button>
           <button
-            // onClick={openCreateModal}
+            onClick={() => setShowCreateProductModal(true)}
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -142,7 +234,7 @@ const ProductManagement = () => {
         products={paginatedProducts}
         suppliers={allSuppliers}
         onManage={handleManage}
-        onEdit={handleEdit}
+        onEdit={openEditModal}
         onDelete={handleDelete}
       />
 
@@ -161,6 +253,36 @@ const ProductManagement = () => {
           suppliers={allSuppliers}
           onAssign={handleAssignSupplier}
           onClose={() => setIsManageModalOpen(false)}
+        />
+      )}
+
+      {showCreateProductModal && (
+        <CreateProductModal
+          closeModal={closeCreateProductModal}
+          handleCreateProduct={handleCreateProduct}
+          creatingProduct={creatingProduct}
+          formData={formData}
+          handleInputChange={handleInputChange}
+          allSuppliers={allSuppliers}
+        />
+      )}
+
+      {showEditProductModal && (
+        <EditProductModal
+          closeModal={() => setShowEditProductModal(false)}
+          updatingProduct={updatingProduct}
+          handleUpdateProduct={handleUpdateProduct}
+          formData={formData}
+          handleInputChange={handleInputChange}
+          allSuppliers={allSuppliers}
+        />
+      )}
+
+      {showDeleteProductModal && (
+        <DeleteModal
+          open={showDeleteProductModal}
+          onClose={() => setShowDeleteProductModal(false)}
+          onDelete={confirmDeleteProduct}
         />
       )}
     </div>
