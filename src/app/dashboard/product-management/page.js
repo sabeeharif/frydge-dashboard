@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { PackageSearch, RefreshCw, Plus } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import ManageProductsModal from "@/app/components/products/ManageProductsModal";
@@ -9,55 +9,10 @@ import PaginationControls from "@/app/components/products/PaginationControls";
 import CreateProductModal from "@/app/components/products/CreateProductModal";
 import EditProductModal from "@/app/components/products/EditProductModal";
 import DeleteModal from "@/app/components/products/DeleteModal";
+import productApi from "@/app/utils/axios/productApi";
 
 const ProductManagement = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Basmati Rice",
-      category: "Grains",
-      price: 950,
-      stock: 60,
-      isActive: true,
-      supplierId: null,
-    },
-    {
-      id: 2,
-      name: "Olive Oil",
-      category: "Cooking Oil",
-      price: 1250,
-      stock: 40,
-      isActive: true,
-      supplierId: null,
-    },
-    {
-      id: 3,
-      name: "Sugar",
-      category: "Essentials",
-      price: 180,
-      stock: 150,
-      isActive: true,
-      supplierId: null,
-    },
-    {
-      id: 4,
-      name: "Milk",
-      category: "Dairy",
-      price: 220,
-      stock: 35,
-      isActive: false,
-      supplierId: null,
-    },
-    {
-      id: 5,
-      name: "Brown Bread",
-      category: "Bakery",
-      price: 150,
-      stock: 22,
-      isActive: true,
-      supplierId: null,
-    },
-  ]);
+  const [products, setProducts] = useState([]);
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -67,6 +22,7 @@ const ProductManagement = () => {
     isActive: true,
     supplierId: "",
   });
+  const [limit, setLimit] = useState(10); // dynamic limit
   // Modal State
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -195,6 +151,25 @@ const ProductManagement = () => {
     setShowDeleteProductModal(false);
     setSelectedProduct(null);
   };
+
+  const fetchProducts = async () => {
+    try {
+      const customHeader = {
+        "Content-Type": "application/json",
+        Authorization: "ZnJ5ZGdlQDEyMzQhQCM=",
+      };
+
+      const res = await productApi.getAll(limit, customHeader);
+      console.log("res", res)
+      setProducts(res.data.products || []); // depends on your API response
+    } catch (error) {
+      console.error("Failed to load products", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [limit]); // refetch when limit changes
 
   return (
     <div className="p-8 space-y-8">
