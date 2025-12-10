@@ -879,4 +879,31 @@ export const api = {
       };
     }
   },
+
+  getProducts: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    // Add limit
+    if (params.limit) {
+      queryParams.append('limit', params.limit);
+    }
+    
+    // Add lastKey only if it's not null or undefined
+    if (params.lastKey && params.lastKey !== 'null' && params.lastKey !== null) {
+      queryParams.append('lastKey', params.lastKey);
+    }
+    
+    // Add productId if provided
+    if (params.userId) {
+      queryParams.append('productId', params.productId);
+    }
+
+    // Add supplierId if provided
+    if (params.userId) {
+      queryParams.append('supplierId', params.supplierId);
+    }
+    
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/products?${queryString}`);
+  },
 };

@@ -10,9 +10,13 @@ import CreateProductModal from "@/app/components/products/CreateProductModal";
 import EditProductModal from "@/app/components/products/EditProductModal";
 import DeleteModal from "@/app/components/products/DeleteModal";
 import productApi from "@/app/utils/axios/productApi";
+import { AuthService, api } from "@/app/lib/auth"
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
+  const [lastKey, setLastKey] = useState(null)
+  const [hasNextPage, setHasNextPage] = useState(false)
+
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -34,6 +38,10 @@ const ProductManagement = () => {
   const [updatingProduct, setUpdatingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
 
+  const AWS_BASE_URL = 'https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge';
+  const AUTH_TOKEN = 'ZnJ5ZGdlQDEyMzQhQCM=';
+  const pageSize = 10
+
   // Mock
   const allSuppliers = [
     { id: "1", name: "Supplier A" },
@@ -51,11 +59,13 @@ const ProductManagement = () => {
     startIndex + itemsPerPage
   );
 
-  const hasNextPage = startIndex + itemsPerPage < products.length;
+  // const hasNextPage = startIndex + itemsPerPage < products.length;
 
   const handleNextPage = () => {
-    if (hasNextPage) setPage((p) => p + 1);
-  };
+    if (hasNextPage && lastKey) {
+      fetchUsers(lastKey)
+    }
+  }
 
   const handleRefresh = () => {
     setPage(1);
@@ -152,16 +162,46 @@ const ProductManagement = () => {
     setSelectedProduct(null);
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (useLastKey = null) => {
     try {
-      const customHeader = {
-        "Content-Type": "application/json",
-        Authorization: "ZnJ5ZGdlQDEyMzQhQCM=",
-      };
+      // const customHeader = {
+      //   "Content-Type": "application/json",
+      //   Authorization: "ZnJ5ZGdlQDEyMzQhQCM=",
+      // };
 
-      const res = await productApi.getAll(limit, customHeader);
-      console.log("res", res)
-      setProducts(res.data.products || []); // depends on your API response
+      // const res = await productApi.getAll(limit, customHeader);
+      // console.log("res", res)
+
+      console.log("Fetching products...")
+      
+      let apiUrl = `/api/products?limit=${pageSize}`
+      if (useLastKey) {
+        apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
+      }
+
+      const response = await api.getProducts({
+        limit: pageSize,
+        lastKey: useLastKey
+      })
+      console.log("Client fetch response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Client received data:", data)
+
+      // Handle different response structures
+      const fetchedProducts = data.products || data.results || []
+      const newLastKey = data.lastKey || null
+
+
+      // setProducts(products_data.data.products || []); // depends on your API response
+      setProducts(fetchedProducts)
+      setLastKey(newLastKey)
+      setHasNextPage(!!newLastKey)
     } catch (error) {
       console.error("Failed to load products", error);
     }
