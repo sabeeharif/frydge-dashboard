@@ -26,6 +26,7 @@ const ProductManagement = () => {
   const [supplierLastKey, setSupplierLastKey] = useState(null);
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false);
   const [supplierPageSize, setSupplierPageSize] = useState(10);
+  const [isRotating, setIsRotating] = useState(false);
   // Modal State
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -65,7 +66,10 @@ const ProductManagement = () => {
     }
   };
 
-  const handleRefresh = () => {};
+  const handleRefresh = async () => {
+    setIsRotating(true);
+    setTimeout(() => setIsRotating(false), 600); // stop after animation};
+  }
 
   // Update suppliers
   const handleAssignSupplier = async (productId, supplierId) => {
@@ -306,7 +310,7 @@ const ProductManagement = () => {
             onClick={handleRefresh}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
