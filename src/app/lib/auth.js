@@ -17,23 +17,23 @@ export class AuthService {
   // Check if user is logged in
   static isLoggedIn() {
     if (typeof window === 'undefined') return false;
-    
+
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const userData = localStorage.getItem(USER_DATA_KEY);
-    
+
     if (!token || !userData) return false;
-    
+
     // Check if session has expired
     try {
       const user = JSON.parse(userData);
       const now = Date.now();
       const sessionTime = user.sessionTime || 0;
-      
+
       if (now - sessionTime > SESSION_TIMEOUT) {
         this.logout();
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error parsing user data:', error);
@@ -51,7 +51,7 @@ export class AuthService {
   // Get current user data
   static getUserData() {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const userData = localStorage.getItem(USER_DATA_KEY);
       return userData ? JSON.parse(userData) : null;
@@ -78,13 +78,13 @@ export class AuthService {
       if (response.status === 200 && data.key) {
         // Store auth token and user data
         localStorage.setItem(AUTH_TOKEN_KEY, data.key);
-        
+
         const userData = {
           ...data.user,
           sessionTime: Date.now(),
         };
         localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
-        
+
         return {
           success: true,
           message: 'Login successful',
@@ -114,7 +114,7 @@ export class AuthService {
   // Logout user and clear session data
   static logout() {
     if (typeof window === 'undefined') return;
-    
+
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(USER_DATA_KEY);
   }
@@ -133,7 +133,7 @@ export class ApiService {
   // Make authenticated request to AWS API
   static async awsRequest(endpoint, options = {}) {
     const authToken = AuthService.getAuthToken();
-    
+
     if (!authToken) {
       throw new Error('No authentication token available');
     }
@@ -163,7 +163,7 @@ export class ApiService {
   // Make authenticated request to Vendlive API
   static async vendliveRequest(endpoint, options = {}) {
     const authToken = AuthService.getAuthToken();
-    
+
     if (!authToken) {
       throw new Error('No authentication token available');
     }
@@ -193,7 +193,7 @@ export class ApiService {
   // Make request to Frydge sales API
   static async frydgeSalesRequest(params) {
     const url = `${FRYDGE_SALES_URL}?${new URLSearchParams(params).toString()}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -210,20 +210,20 @@ export const api = {
   // Orders
   getOrders: async (params = {}) => {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters except null values
     Object.entries(params).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== 'null') {
         queryParams.append(key, value);
       }
     });
-    
+
     const queryString = queryParams.toString();
     const response = await ApiService.awsRequest(`/orders?${queryString}`);
-    
+
     if (response.ok) {
       const data = await response.json();
-      
+
       // Transform the response to match frontend expectations
       const transformedResponse = {
         orders: data.orderData || [],
@@ -232,28 +232,28 @@ export const api = {
         message: data.message || "Orders retrieved",
         total: data.total || data.orderData?.length || 0,
       };
-      
+
       return {
         ok: true,
         json: () => Promise.resolve(transformedResponse),
         status: response.status,
       };
     }
-    
+
     return response;
   },
 
   // Driver Routes
   getDriverRoutes: (params = {}) => {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters except null values
     Object.entries(params).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== 'null') {
         queryParams.append(key, value);
       }
     });
-    
+
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/driver_routes?${queryString}`);
   },
@@ -275,14 +275,14 @@ export const api = {
   // Cleaner Routes
   getCleanerRoutes: (params = {}) => {
     const queryParams = new URLSearchParams();
-    
+
     // Add all parameters except null values
     Object.entries(params).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== 'null') {
         queryParams.append(key, value);
       }
     });
-    
+
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/cleaner_routes?${queryString}`);
   },
@@ -310,22 +310,22 @@ export const api = {
   // Users (Dashboard Users)
   getUsers: (params = {}) => {
     const queryParams = new URLSearchParams();
-    
+
     // Add limit
     if (params.limit) {
       queryParams.append('limit', params.limit);
     }
-    
+
     // Add lastKey only if it's not null or undefined
     if (params.lastKey && params.lastKey !== 'null' && params.lastKey !== null) {
       queryParams.append('lastKey', params.lastKey);
     }
-    
+
     // Add userId if provided
     if (params.userId) {
       queryParams.append('userId', params.userId);
     }
-    
+
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/dashboard_users?${queryString}`);
   },
@@ -376,9 +376,9 @@ export const api = {
   getVacantLocations: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const url = `https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/driver_routes/vacant_locations?${queryString}`;
-    
+
     console.log('Fetching vacant locations from:', url);
-    
+
     try {
       const response = await fetch(url, {
         method: "GET",
@@ -429,11 +429,11 @@ export const api = {
   // Venue Group by ID - Direct call with CORS handling
   getVenueGroupById: async (id) => {
     const url = `https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/venue_group?groupId=${id}`;
-    
+
     console.log('Venue Group by ID - Group ID:', id);
     console.log('Venue Group by ID - URL:', url);
     console.log('Venue Group by ID - Authorization header:', 'ZnJ5ZGdlQDEyMzQhQCM=');
-    
+
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -444,26 +444,26 @@ export const api = {
         mode: 'cors',
         credentials: 'omit',
       });
-      
+
       console.log('Venue Group by ID - Response status:', response.status);
       console.log('Venue Group by ID - Response ok:', response.ok);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Venue Group by ID - API Error:', errorText);
       }
-      
+
       return response;
     } catch (error) {
       console.error('Venue Group by ID Error:', error);
-      
+
       // If CORS error, return helpful message
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         console.error('Venue Group by ID - CORS Error detected');
         return {
           ok: false,
           status: 403,
-          json: () => Promise.resolve({ 
+          json: () => Promise.resolve({
             error: "CORS Error: Unable to fetch venue group details. The AWS API Gateway needs CORS configuration to allow browser requests.",
             corsError: true,
             suggestion: "This is a CORS issue. The AWS API Gateway needs to be configured to allow browser requests. Contact your backend team to enable CORS for this endpoint.",
@@ -471,7 +471,7 @@ export const api = {
           }),
         };
       }
-      
+
       return {
         ok: false,
         status: 500,
@@ -544,7 +544,7 @@ export const api = {
   getMachineSales: (params) => {
     const { machineId, startDate, endDate } = params;
     const url = `https://frydge.com/testing2/vlCalls/orderSalesGET.php?machineId=${machineId}&startDate=${startDate}&endDate=${endDate}`;
-    
+
     return fetch(url, {
       method: 'GET',
       headers: {
@@ -557,7 +557,7 @@ export const api = {
   getMachineVenue: (params = {}) => {
     const { machineId } = params;
     const url = `https://frydge.com/testing2/vlCalls/venueMachineIdGET.php?machineId=${machineId}`;
-    
+
     return fetch(url, {
       method: 'GET',
       headers: {
@@ -570,7 +570,7 @@ export const api = {
   getDeviceStatus: async (params = {}) => {
     const { deviceId, machineId } = params;
     const token = AuthService.getAuthToken();
-    
+
     if (!token) {
       return {
         ok: false,
@@ -578,7 +578,7 @@ export const api = {
         json: () => Promise.resolve({ error: "No authentication token available" }),
       };
     }
-    
+
     if (!deviceId || !machineId) {
       return {
         ok: false,
@@ -586,9 +586,9 @@ export const api = {
         json: () => Promise.resolve({ error: "deviceId and machineId are required" }),
       };
     }
-    
+
     const url = `https://vendlive.com/api/2.0/devices/${deviceId}/?machineId=${machineId}`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -598,7 +598,7 @@ export const api = {
           'accept': 'application/json',
         },
       });
-      
+
       return response;
     } catch (error) {
       console.error('Device Status Error:', error);
@@ -614,13 +614,13 @@ export const api = {
   toggleDevice: async (data) => {
     const { deviceId, machineId, enabled } = data;
     const token = AuthService.getAuthToken();
-    
+
     console.log('Device Toggle - Device ID:', deviceId);
     console.log('Device Toggle - Machine ID:', machineId);
     console.log('Device Toggle - Enabled:', enabled);
     console.log('Device Toggle - Token available:', !!token);
     console.log('Device Toggle - Token length:', token ? token.length : 0);
-    
+
     if (!token) {
       console.error('Device Toggle - No authentication token available');
       return {
@@ -629,7 +629,7 @@ export const api = {
         json: () => Promise.resolve({ error: "No authentication token available" }),
       };
     }
-    
+
     if (!deviceId || !machineId || enabled === undefined) {
       console.error('Device Toggle - Missing required fields');
       return {
@@ -638,14 +638,14 @@ export const api = {
         json: () => Promise.resolve({ error: "deviceId, machineId, and enabled are required" }),
       };
     }
-    
+
     const url = `https://vendlive.com/api/2.0/devices/${deviceId}/?machineId=${machineId}`;
     const requestBody = { enabled };
-    
+
     console.log('Device Toggle - URL:', url);
     console.log('Device Toggle - Request body:', requestBody);
     console.log('Device Toggle - Authorization header:', `Token ${token}`);
-    
+
     try {
       const response = await fetch(url, {
         method: 'PATCH',
@@ -656,15 +656,15 @@ export const api = {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       console.log('Device Toggle - Response status:', response.status);
       console.log('Device Toggle - Response ok:', response.ok);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Device Toggle - API Error:', errorText);
       }
-      
+
       return response;
     } catch (error) {
       console.error('Device Toggle Error:', error);
@@ -679,11 +679,11 @@ export const api = {
   // Enable Machine (AWS) - Direct call with CORS handling
   enableMachine: async (data) => {
     const { machineId, enabled, removeOrders } = data;
-    
+
     console.log('Enable Machine - Machine ID:', machineId);
     console.log('Enable Machine - Enabled:', enabled);
     console.log('Enable Machine - Remove Orders:', removeOrders);
-    
+
     if (!machineId || enabled === undefined || removeOrders === undefined) {
       console.error('Enable Machine - Missing required fields');
       return {
@@ -692,18 +692,18 @@ export const api = {
         json: () => Promise.resolve({ error: "Missing required fields" }),
       };
     }
-    
+
     const url = 'https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/machine_internal/enable';
     const requestBody = {
       machineId,
       enabled,
       removeOrders
     };
-    
+
     console.log('Enable Machine - URL:', url);
     console.log('Enable Machine - Request body:', requestBody);
     console.log('Enable Machine - Authorization header:', 'ZnJ5ZGdlQDEyMzQhQCM=');
-    
+
     try {
       const response = await fetch(url, {
         method: 'PATCH',
@@ -715,26 +715,26 @@ export const api = {
         mode: 'cors',
         credentials: 'omit',
       });
-      
+
       console.log('Enable Machine - Response status:', response.status);
       console.log('Enable Machine - Response ok:', response.ok);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Enable Machine - API Error:', errorText);
       }
-      
+
       return response;
     } catch (error) {
       console.error('Enable Machine Error:', error);
-      
+
       // If CORS error, return helpful message
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         console.error('Enable Machine - CORS Error detected');
         return {
           ok: false,
           status: 403,
-          json: () => Promise.resolve({ 
+          json: () => Promise.resolve({
             error: "CORS Error: Unable to enable/disable machine. The AWS API Gateway needs CORS configuration to allow browser requests.",
             corsError: true,
             suggestion: "This is a CORS issue. The AWS API Gateway needs to be configured to allow browser requests. Contact your backend team to enable CORS for this endpoint.",
@@ -742,7 +742,7 @@ export const api = {
           }),
         };
       }
-      
+
       return {
         ok: false,
         status: 500,
@@ -755,11 +755,11 @@ export const api = {
   syncMachine: async (data) => {
     const { machineId } = data;
     const token = AuthService.getAuthToken();
-    
+
     console.log('Sync Machine - Machine ID:', machineId);
     console.log('Sync Machine - Token available:', !!token);
     console.log('Sync Machine - Token length:', token ? token.length : 0);
-    
+
     if (!token) {
       console.error('Sync Machine - No authentication token available');
       return {
@@ -768,7 +768,7 @@ export const api = {
         json: () => Promise.resolve({ error: "No authentication token available" }),
       };
     }
-    
+
     if (!machineId) {
       console.error('Sync Machine - Machine ID is required');
       return {
@@ -777,12 +777,12 @@ export const api = {
         json: () => Promise.resolve({ error: "Machine ID is required" }),
       };
     }
-    
+
     const url = `https://vendlive.com/api/1.0/machine/${machineId}/sync-channels-to-machine/`;
-    
+
     console.log('Sync Machine - URL:', url);
     console.log('Sync Machine - Authorization header:', `Token ${token}`);
-    
+
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -791,15 +791,15 @@ export const api = {
           'Authorization': `Token ${token}`,
         },
       });
-      
+
       console.log('Sync Machine - Response status:', response.status);
       console.log('Sync Machine - Response ok:', response.ok);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Sync Machine - API Error:', errorText);
       }
-      
+
       return response;
     } catch (error) {
       console.error('Sync Machine Error:', error);
@@ -814,7 +814,7 @@ export const api = {
   // Get Encrypted Machine ID (AWS) - Direct call with CORS handling
   getEncryptedMachineId: async (params = {}) => {
     const { machineId } = params;
-    
+
     if (!machineId) {
       return {
         ok: false,
@@ -822,11 +822,11 @@ export const api = {
         json: () => Promise.resolve({ error: "Missing machineId" }),
       };
     }
-    
+
     const url = `https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge/machine_internal/qrlink/${machineId}`;
-    
+
     console.log('Fetching encrypted machine ID from:', url);
-    
+
     try {
       // Try direct fetch first
       const response = await fetch(url, {
@@ -834,10 +834,10 @@ export const api = {
         mode: 'cors',
         credentials: 'omit',
       });
-      
+
       console.log('Response status:', response.status);
       console.log('Response ok:', response.ok);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Success, data:', data);
@@ -857,13 +857,13 @@ export const api = {
       }
     } catch (error) {
       console.error('Get Encrypted Machine ID Error:', error);
-      
+
       // If CORS error, return helpful message
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         return {
           ok: false,
           status: 403,
-          json: () => Promise.resolve({ 
+          json: () => Promise.resolve({
             error: "CORS Error: Unable to fetch encrypted machine ID. The AWS API Gateway needs CORS configuration to allow browser requests.",
             corsError: true,
             suggestion: "This is a CORS issue. The AWS API Gateway needs to be configured to allow browser requests. Contact your backend team to enable CORS for this endpoint.",
@@ -871,7 +871,7 @@ export const api = {
           }),
         };
       }
-      
+
       return {
         ok: false,
         status: 500,
@@ -882,17 +882,17 @@ export const api = {
 
   getProducts: (params = {}) => {
     const queryParams = new URLSearchParams();
-    
+
     // Add limit
     if (params.limit) {
       queryParams.append('limit', params.limit);
     }
-    
+
     // Add lastKey only if it's not null or undefined
     if (params.lastKey && params.lastKey !== 'null' && params.lastKey !== null) {
       queryParams.append('lastKey', params.lastKey);
     }
-    
+
     // Add productId if provided
     if (params.userId) {
       queryParams.append('productId', params.productId);
@@ -902,8 +902,37 @@ export const api = {
     if (params.userId) {
       queryParams.append('supplierId', params.supplierId);
     }
-    
+
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/products?${queryString}`);
+  },
+
+  updateProduct: (payload) => {
+    return ApiService.awsRequest(`/products`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getSuppliers: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append('limit', params.limit);
+    }
+
+    // Add lastKey
+    if (params.lastKey !== undefined && params.lastKey !== null && params.lastKey !== "null") {
+      queryParams.append('lastKey', params.lastKey);
+    }
+
+    // Add supplierId filter (optional)
+    if (params.supplierId) {
+      queryParams.append('supplierId', params.supplierId);
+    }
+
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/suppliers?${queryString}`);
   },
 };

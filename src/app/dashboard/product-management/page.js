@@ -9,24 +9,23 @@ import PaginationControls from "@/app/components/products/PaginationControls";
 import CreateProductModal from "@/app/components/products/CreateProductModal";
 import EditProductModal from "@/app/components/products/EditProductModal";
 import DeleteModal from "@/app/components/products/DeleteModal";
-import productApi from "@/app/utils/axios/productApi";
 import { AuthService, api } from "@/app/lib/auth"
 
 const ProductManagement = () => {
+  // States
   const [products, setProducts] = useState([]);
-  const [lastKey, setLastKey] = useState(null)
-  const [hasNextPage, setHasNextPage] = useState(false)
-
-  // Form State
   const [formData, setFormData] = useState({
     name: "",
-    category: "",
-    price: "",
-    stock: "",
-    isActive: true,
     supplierId: "",
+    productCategoryId: "",
+    externalId: "",
+    costPrice: "",
   });
   const [limit, setLimit] = useState(10); // dynamic limit
+  const [suppliers, setSuppliers] = useState([]);
+  const [supplierLastKey, setSupplierLastKey] = useState(null);
+  const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false);
+  const [supplierPageSize, setSupplierPageSize] = useState(10);
   // Modal State
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -37,17 +36,7 @@ const ProductManagement = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [updatingProduct, setUpdatingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
-
-  const AWS_BASE_URL = 'https://tngndxywc1.execute-api.eu-central-1.amazonaws.com/Dev/frydge';
-  const AUTH_TOKEN = 'ZnJ5ZGdlQDEyMzQhQCM=';
   const pageSize = 10
-
-  // Mock
-  const allSuppliers = [
-    { id: "1", name: "Supplier A" },
-    { id: "2", name: "Supplier B" },
-    { id: "3", name: "Supplier C" },
-  ];
 
   // Pagination state
   const itemsPerPage = 5;
@@ -59,34 +48,69 @@ const ProductManagement = () => {
     startIndex + itemsPerPage
   );
 
-  // const hasNextPage = startIndex + itemsPerPage < products.length;
+  const hasNextPage = startIndex + itemsPerPage < products.length;
+  const hasPrevPage = page > 1;
 
+  // Handle next page
   const handleNextPage = () => {
-    if (hasNextPage && lastKey) {
-      fetchUsers(lastKey)
+    if (hasNextPage) {
+      setPage(page + 1);
     }
-  }
-
-  const handleRefresh = () => {
-    setPage(1);
   };
 
-  const handleAssignSupplier = (productId, supplierId) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, supplierId } : p))
-    );
+  // Handle previous page
+  const handlePrevPage = () => {
+    if (hasPrevPage) {
+      setPage(page - 1);
+    }
   };
 
+  const handleRefresh = () => {};
+
+  // Update suppliers
+  const handleAssignSupplier = async (productId, supplierId) => {
+    try {
+      // 1️⃣ Immediately update UI (optimistic update)
+      setProducts((prev) =>
+        prev.map((p) => (p.productId === productId ? { ...p, supplierId } : p))
+      );
+
+      // 2️⃣ Send update to backend
+      const response = await api.updateProduct({
+        productId: productId, supplierId: supplierId, productCategoryId: "",
+        costPrice: ""
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update supplier");
+      }
+
+      console.log("Supplier assigned successfully");
+
+    } catch (error) {
+      console.error("Error assigning supplier:", error);
+
+      // 3️⃣ Optional: Undo UI change on failure
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.productId === productId ? { ...p, supplierId: null } : p
+        )
+      );
+    }
+  };
+
+  // Modal
   const handleManage = (product) => {
     setSelectedProduct(product);
     setIsManageModalOpen(true);
   };
 
+  // Input Form
   const handleInputChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Function to Perform Create
+  // Create Product
   const handleCreateProduct = () => {
     setCreatingProduct(true);
 
@@ -111,6 +135,7 @@ const ProductManagement = () => {
     });
   };
 
+  // Modal
   const closeCreateProductModal = () => {
     setShowCreateProductModal(false);
 
@@ -125,31 +150,60 @@ const ProductManagement = () => {
     });
   };
 
+  // Modal
   const openEditModal = (product) => {
-    setEditingProductId(product.id);
+    setEditingProductId(product.productId);
+
     setFormData({
-      name: product.name,
-      category: product.category,
-      price: product.price,
-      stock: product.stock,
-      isActive: product.isActive,
+      name: product.name || "",
       supplierId: product.supplierId || "",
+      productCategoryId: product.productCategoryId || "",
+      externalId: product.externalId || "",
+      costPrice: product.costPrice || "",
     });
+
     setShowEditProductModal(true);
   };
 
-  // Function to Perform Update
-  const handleUpdateProduct = () => {
+  // Update Product
+  const handleUpdateProduct = async () => {
     setUpdatingProduct(true);
 
+    // Backup previous state in case API fails
+    const previousProducts = [...products];
+
+    // Optimistic UI update
     setProducts((prev) =>
-      prev.map((p) => (p.id === editingProductId ? { ...p, ...formData } : p))
+      prev.map((p) => (p.productId === editingProductId ? { ...p, ...formData } : p))
     );
 
-    setUpdatingProduct(false);
-    setShowEditProductModal(false);
+    try {
+      // Call the API
+      const response = await api.updateProduct({ productId: editingProductId, ...formData });
+
+      if (!response.ok) {
+        throw new Error("Failed to update product");
+      }
+
+      const updated = await response.json();
+      console.log("Product updated successfully:", updated);
+
+      // Close modal on success
+      setShowEditProductModal(false);
+
+    } catch (error) {
+      console.error("Update failed:", error);
+
+      // Rollback on API error
+      setProducts(previousProducts);
+
+      alert("Failed to update product. Please try again.");
+    } finally {
+      setUpdatingProduct(false);
+    }
   };
 
+  // Remove Product
   const handleDelete = (product) => {
     setSelectedProduct(product); // store the product to delete
     setShowDeleteProductModal(true); // open modal
@@ -162,18 +216,9 @@ const ProductManagement = () => {
     setSelectedProduct(null);
   };
 
+  // Fetch
   const fetchProducts = async (useLastKey = null) => {
     try {
-      // const customHeader = {
-      //   "Content-Type": "application/json",
-      //   Authorization: "ZnJ5ZGdlQDEyMzQhQCM=",
-      // };
-
-      // const res = await productApi.getAll(limit, customHeader);
-      // console.log("res", res)
-
-      console.log("Fetching products...")
-      
       let apiUrl = `/api/products?limit=${pageSize}`
       if (useLastKey) {
         apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
@@ -195,21 +240,51 @@ const ProductManagement = () => {
 
       // Handle different response structures
       const fetchedProducts = data.products || data.results || []
-      const newLastKey = data.lastKey || null
-
-
-      // setProducts(products_data.data.products || []); // depends on your API response
       setProducts(fetchedProducts)
-      setLastKey(newLastKey)
-      setHasNextPage(!!newLastKey)
     } catch (error) {
       console.error("Failed to load products", error);
+    }
+  };
+
+  // Fetch
+  const fetchSuppliers = async (useLastKey = null) => {
+    try {
+      const response = await api.getSuppliers({
+        limit: supplierPageSize,   // dynamic limit
+        lastKey: useLastKey        // pagination key
+      });
+
+      console.log("Supplier fetch response:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Supplier data received:", data);
+
+      const fetchedSuppliers = data.suppliers || data.results || [];
+      const newLastKey = data.lastKey || null;
+
+      setSuppliers(fetchedSuppliers);
+      setSupplierLastKey(newLastKey);
+      setHasMoreSuppliers(!!newLastKey);
+
+    } catch (error) {
+      console.error("Failed to load suppliers", error);
     }
   };
 
   useEffect(() => {
     fetchProducts();
   }, [limit]); // refetch when limit changes
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [supplierPageSize]);
+
+
 
   return (
     <div className="p-8 space-y-8">
@@ -228,7 +303,7 @@ const ProductManagement = () => {
       <div className="">
         <div className="flex justify-end gap-3">
           <button
-            // onClick={() => fetchUsers()}
+            onClick={handleRefresh}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -247,7 +322,7 @@ const ProductManagement = () => {
       {/* Table */}
       <ProductTable
         products={paginatedProducts}
-        suppliers={allSuppliers}
+        suppliers={suppliers}
         onManage={handleManage}
         onEdit={openEditModal}
         onDelete={handleDelete}
@@ -257,7 +332,8 @@ const ProductManagement = () => {
       <PaginationControls
         paginatedItems={paginatedProducts}
         hasNextPage={hasNextPage}
-        onRefresh={handleRefresh}
+        hasPrevPage={hasPrevPage}
+        onRefresh={handlePrevPage}
         onNextPage={handleNextPage}
       />
 
@@ -265,7 +341,7 @@ const ProductManagement = () => {
       {isManageModalOpen && (
         <ManageProductsModal
           product={selectedProduct}
-          suppliers={allSuppliers}
+          suppliers={suppliers}
           onAssign={handleAssignSupplier}
           onClose={() => setIsManageModalOpen(false)}
         />
@@ -289,7 +365,7 @@ const ProductManagement = () => {
           handleUpdateProduct={handleUpdateProduct}
           formData={formData}
           handleInputChange={handleInputChange}
-          allSuppliers={allSuppliers}
+          allSuppliers={suppliers}
         />
       )}
 

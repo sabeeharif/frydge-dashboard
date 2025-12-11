@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const PaginationControls = ({
   paginatedItems = [],
   hasNextPage = false,
+  hasPrevPage = false,
   onRefresh,
   onNextPage,
 }) => {
@@ -20,24 +21,27 @@ const PaginationControls = ({
       </div>
 
       <div className="flex items-center space-x-2">
-        {/* Refresh */}
+        {/* Prev Page */}
         <button
           onClick={onRefresh}
-          className="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+          disabled={!hasPrevPage}
+          className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasPrevPage
+            ? "text-gray-300 cursor-not-allowed"
+            : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+            }`}
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Refresh
+          Prev
         </button>
 
         {/* Next Page */}
         <button
           onClick={onNextPage}
           disabled={!hasNextPage}
-          className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-            !hasNextPage
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-          }`}
+          className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasNextPage
+            ? "text-gray-300 cursor-not-allowed"
+            : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+            }`}
         >
           Next
           <ChevronRight className="h-4 w-4 ml-1" />

@@ -53,70 +53,55 @@ const EditProductModal = ({
                 </label>
                 <input
                   type="text"
-                  value={formData.category}
+                  value={formData.productCategoryId || ""}
                   onChange={(e) =>
-                    handleInputChange("category", e.target.value)
+                    handleInputChange("productCategoryId", e.target.value)
                   }
-                  placeholder="Enter category"
+                  placeholder="Enter category id"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
+              {/* Cost Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price
+                  Cost Price
                 </label>
                 <input
                   type="number"
-                  value={formData.price}
+                  value={formData.costPrice ?? ""}
                   onChange={(e) =>
-                    handleInputChange("price", Number(e.target.value))
+                    handleInputChange("costPrice", Number(e.target.value))
                   }
-                  placeholder="Enter price"
+                  placeholder="Enter cost price"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
-              {/* Stock */}
+              {/* External ID */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Stock
+                  External ID
                 </label>
                 <input
-                  type="number"
-                  value={formData.stock}
+                  type="text"
+                  value={formData.externalId || ""}
                   onChange={(e) =>
-                    handleInputChange("stock", Number(e.target.value))
+                    handleInputChange("externalId", e.target.value)
                   }
-                  placeholder="Enter stock"
+                  placeholder="Enter external ID"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
-              {/* Active */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Active
-                </label>
-                <select
-                  value={formData.isActive}
-                  onChange={(e) =>
-                    handleInputChange("isActive", e.target.value === "true")
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value={true}>Active</option>
-                  <option value={false}>Inactive</option>
-                </select>
-              </div>
 
               {/* Supplier */}
-              <div className="col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Supplier
                 </label>
                 <select
-                  value={formData.supplierId}
+                  value={formData.supplierId || ""}
                   onChange={(e) =>
                     handleInputChange("supplierId", e.target.value)
                   }
@@ -124,7 +109,7 @@ const EditProductModal = ({
                 >
                   <option value="">Select Supplier</option>
                   {allSuppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <option key={s.supplierId} value={s.supplierId}>
                       {s.name}
                     </option>
                   ))}

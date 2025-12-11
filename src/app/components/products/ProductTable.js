@@ -51,15 +51,14 @@ const ProductTable = ({
             ) : (
               products?.map((product, index) => {
                 const supplier = suppliers.find(
-                  (s) => s.id === product?.supplierId
+                  (s) => s.supplierId === product?.supplierId
                 );
 
                 return (
                   <tr
                     key={product.id}
-                    className={`${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-blue-50 transition-colors duration-200`}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      } hover:bg-blue-50 transition-colors duration-200`}
                   >
                     <td className="px-6 py-4">{index + 1}</td>
 
@@ -73,15 +72,16 @@ const ProductTable = ({
 
                     {/* Category */}
                     <td className="px-6 py-4 text-gray-700">
-                      {product.category}
+                      {product.productCategoryId || "No Category"}
                     </td>
 
                     {/* Price */}
                     <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
                       <DollarSign className="h-4 w-4 text-green-600" />
-                      {product.price}
+                      {product.costPrice ? product.costPrice : "N/A"}
                     </td>
 
+                    {/* Supplier */}
                     <td className="px-6 py-4 text-gray-700">
                       {supplier ? supplier.name : "None Assigned"}
                     </td>

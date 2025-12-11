@@ -11,10 +11,10 @@ export default function ManageProductsModal({
     product?.supplierId || ""
   );
 
-  const assignedSupplier = suppliers.find((s) => s.id === product?.supplierId);
+  const assignedSupplier = suppliers?.find((s) => s?.supplierId === product?.supplierId);
 
   const handleSave = () => {
-    onAssign(product.id, selectedSupplier); // Return product + supplier
+    onAssign(product?.productId, selectedSupplier); // Return product + supplier
     onClose();
   };
 
@@ -56,7 +56,7 @@ export default function ManageProductsModal({
         >
           <option value="">Select supplier...</option>
           {suppliers?.map((sup) => (
-            <option key={sup.id} value={sup.id}>
+            <option key={sup.supplierId} value={sup.supplierId}>
               {sup.name}
             </option>
           ))}
