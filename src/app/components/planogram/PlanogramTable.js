@@ -1,6 +1,7 @@
 // ProductTable.jsx
 import React from "react";
 import { Boxes, Package, DollarSign } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const PlanogramTable = ({
   planogram = [],
@@ -8,6 +9,12 @@ const PlanogramTable = ({
   onEdit,
   onDelete,
 }) => {
+  const router = useRouter()
+  const navigate = (planogramVersionId) => {
+    router.push(
+      `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
+    );
+  }
   return (
     <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {/* HORIZONTAL SCROLL */}
@@ -25,7 +32,7 @@ const PlanogramTable = ({
                 Machines
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-              Order
+                Order
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                 Actions
@@ -76,12 +83,12 @@ const PlanogramTable = ({
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4 text-sm">
-                        {/* <button
-                          onClick={() => onManage(product)}
+                        <button
+                          onClick={() => navigate(product.planogramVersionId)}
                           className="text-green-600 hover:underline"
                         >
-                          Manage
-                        </button> */}
+                          View Details
+                        </button>
                         <button
                           onClick={() => onEdit(product)}
                           className="text-blue-600 hover:underline"

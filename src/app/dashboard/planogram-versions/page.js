@@ -15,22 +15,7 @@ import { useRouter } from "next/navigation";
 
 const PlanogramManagement = () => {
     // States
-    const [planograms, setPlanograms] = useState([{
-        name: "Meal",
-        // "tag": "", // optional
-        versionDetails: [
-            {
-                "machineId": 9292,
-                "friendlyName": "AEG-DVT-FRYDGE-004",
-                "primePlanogram": true
-            },
-            {
-                "machineId": 9294,
-                "friendlyName": "AEG-DVT-FRYDGE-006",
-                "primePlanogram": false
-            }
-        ]
-    }]);
+    const [planograms, setPlanograms] = useState([]);
     const [formData, setFormData] = useState({
         name: "",
         versionDetails: []
@@ -86,39 +71,6 @@ const PlanogramManagement = () => {
         setIsRotating(true);
         setTimeout(() => setIsRotating(false), 600); // stop after animation};
     }
-
-    // Update suppliers
-    //   const handleAssignSupplier = async (productId, supplierId) => {
-    //     try {
-    //       // 1️⃣ Immediately update UI (optimistic update)
-    //       setProducts((prev) =>
-    //         prev.map((p) => (p.productId === productId ? { ...p, supplierId } : p))
-    //       );
-
-    //       // 2️⃣ Send update to backend
-    //       const response = await api.updateProduct({
-    //         productId: productId, supplierId: supplierId, productCategoryId: "",
-    //         costPrice: ""
-    //       });
-
-    //       if (!response.ok) {
-    //         throw new Error("Failed to update supplier");
-    //       }
-
-    //       console.log("Supplier assigned successfully");
-
-    //     } catch (error) {
-    //       console.error("Error assigning supplier:", error);
-
-    //       // 3️⃣ Optional: Undo UI change on failure
-    //       setProducts((prev) =>
-    //         prev.map((p) =>
-    //           p.productId === productId ? { ...p, supplierId: null } : p
-    //         )
-    //       );
-    //     }
-    //   };
-
 
     // Modal
     const handleManage = (product) => {
@@ -188,6 +140,7 @@ const PlanogramManagement = () => {
             alert(error.message || "Something went wrong");
         } finally {
             setCreatingProduct(false);
+            closeCreateProductModal()
         }
     };
 
@@ -199,17 +152,13 @@ const PlanogramManagement = () => {
         // Optional: reset form after closing
         setFormData({
             name: "",
-            category: "",
-            price: "",
-            stock: "",
-            isActive: true,
-            supplierId: "",
+            versionDetails: []
         });
     };
 
     // Modal
     const openEditModal = (product) => {
-        setEditingProductId(product.productId);
+        setEditingProductId(product.planogramVersionId);
 
         setFormData({
             name: product.name || "",
@@ -224,16 +173,15 @@ const PlanogramManagement = () => {
         setUpdatingProduct(true);
 
         // Backup previous state in case API fails
-        const previousProducts = [...products];
-
+        const previousProducts = [...planograms];
         // Optimistic UI update
-        setProducts((prev) =>
-            prev.map((p) => (p.productId === editingProductId ? { ...p, ...formData } : p))
+        setPlanograms((prev) =>
+            prev.map((p) => (p.planogramVersionId === editingProductId ? { ...p, ...formData } : p))
         );
 
         try {
             // Call the API
-            const response = await api.updateProduct({ productId: editingProductId, ...formData });
+            const response = await api.updatePlangoramVersion({ planogramVersionId: editingProductId, ...formData });
 
             if (!response.ok) {
                 throw new Error("Failed to update product");
@@ -249,7 +197,7 @@ const PlanogramManagement = () => {
             console.error("Update failed:", error);
 
             // Rollback on API error
-            setProducts(previousProducts);
+            setPlanograms(previousProducts);
 
             alert("Failed to update product. Please try again.");
         } finally {
@@ -271,34 +219,34 @@ const PlanogramManagement = () => {
     //   };
 
     // Fetch
-    //   const fetchProducts = async (useLastKey = null) => {
-    //     try {
-    //       let apiUrl = `/api/products?limit=${pageSize}`
-    //       if (useLastKey) {
-    //         apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
-    //       }
+    const fetchPlanogramVersions = async (useLastKey = null) => {
+        try {
+            let apiUrl = `/api/planogram_versions?limit=${pageSize}`
+            if (useLastKey) {
+                apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
+            }
 
-    //       const response = await api.getProducts({
-    //         limit: pageSize,
-    //         lastKey: useLastKey
-    //       })
-    //       console.log("Client fetch response status:", response.status)
+            const response = await api.getPlanogramVersions({
+                limit: pageSize,
+                lastKey: useLastKey
+            })
+            console.log("Client fetch response status:", response.status)
 
-    //       if (!response.ok) {
-    //         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-    //         throw new Error(errorData.error || `HTTP ${response.status}`)
-    //       }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                throw new Error(errorData.error || `HTTP ${response.status}`)
+            }
 
-    //       const data = await response.json()
-    //       console.log("Client received data:", data)
+            const data = await response.json()
+            console.log("Client received data:", data)
 
-    //       // Handle different response structures
-    //       const fetchedProducts = data.products || data.results || []
-    //       setProducts(fetchedProducts)
-    //     } catch (error) {
-    //       console.error("Failed to load products", error);
-    //     }
-    //   };
+            // Handle different response structures
+            const fetchedProducts = data?.planogramVersions || data.results || []
+            setPlanograms(fetchedProducts)
+        } catch (error) {
+            console.error("Failed to load products", error);
+        }
+    };
 
     // Fetch
     //   const fetchSuppliers = async (useLastKey = null) => {
@@ -330,18 +278,15 @@ const PlanogramManagement = () => {
     //     }
     //   };
 
-    //   useEffect(() => {
-    //     fetchProducts();
-    //   }, [limit]); // refetch when limit changes
-
-    //   useEffect(() => {
-    //     fetchSuppliers();
-    //   }, [supplierPageSize]);
+    useEffect(() => {
+        fetchPlanogramVersions();
+    }, [limit]); // refetch when limit changes
 
 
 
     return (
         <div className="p-8 space-y-8">
+           
             {/* Head */}
             <div className="">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
@@ -364,7 +309,12 @@ const PlanogramManagement = () => {
                         Refresh
                     </button>
                     <button
-                        onClick={() => setShowCreateProductModal(true)}
+                        onClick={() => {
+                            setShowCreateProductModal(true); setFormData({
+                                name: "",
+                                versionDetails: [],
+                            });
+                        }}
                         className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
                     >
                         <Plus className="h-4 w-4" />

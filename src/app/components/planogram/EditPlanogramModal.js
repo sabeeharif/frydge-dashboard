@@ -12,7 +12,7 @@ const EditProductModal = ({
   const [machines, setMachines] = useState()
   const [errors, setErrors] = useState({
     machine: "",
-    prime: "",
+    primePlanogram: "",
   });
 
   const fetchMachines = async (page) => {
@@ -44,12 +44,13 @@ const EditProductModal = ({
   useEffect(() => {
     fetchMachines(1);
   }, []);
+
   const handleAddRow = () => {
     setFormData((prev) => ({
       ...prev,
       versionDetails: [
         ...prev.versionDetails,
-        { machineId: "", isPrime: false },
+        { machineId: "", primePlanogram: false },
       ],
     }));
   };
@@ -67,6 +68,16 @@ const EditProductModal = ({
       };
     });
   };
+  const handleDelete = (index) => {
+  setFormData((prev) => {
+    if (prev.versionDetails.length === 1) return prev;
+    return {
+      ...prev,
+      versionDetails: prev.versionDetails.filter((_, i) => i !== index),
+    };
+  });
+};
+
   console.log(formData);
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -145,7 +156,7 @@ const EditProductModal = ({
 
                                 // Check duplicate machine
                                 const isDuplicate = formData.versionDetails.some(
-                                  (item, i) => item.machineId === selectedId || parseInt(selectedId) && i !== index
+                                  (item, i) => item.machineId === (selectedId || parseInt(selectedId)) && i !== index
                                 );
 
                                 if (isDuplicate) {
@@ -204,7 +215,7 @@ const EditProductModal = ({
                                   }
                                 }
 
-                                setErrors((prev) => ({ ...prev, prime: "" }));
+                                setErrors((prev) => ({ ...prev, primePlanogram: "" }));
                                 updateRow(index, "primePlanogram", checked);
                               }}
                               className="w-5 h-5"
@@ -214,12 +225,12 @@ const EditProductModal = ({
 
                           {/* Actions */}
                           <td className="px-4 py-3 text-center space-x-3">
-                            <button
+                            {/* <button
                               onClick={() => handleEdit(index)}
                               className="text-blue-600 font-medium"
                             >
                               Edit
-                            </button>
+                            </button> */}
                             <button
                               onClick={() => handleDelete(index)}
                               className="text-red-600 font-medium"
@@ -235,8 +246,8 @@ const EditProductModal = ({
                     <p className="text-sm text-red-600 mt-2">{errors.machine}</p>
                   )}
 
-                  {errors.prime && (
-                    <p className="text-sm text-red-600 mt-2">{errors.prime}</p>
+                  {errors.primePlanogram && (
+                    <p className="text-sm text-red-600 mt-2">{errors.primePlanogram}</p>
                   )}
                 </div>
 
@@ -271,7 +282,7 @@ const EditProductModal = ({
             transition-colors flex items-center gap-2"
           >
             {updatingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
-            {updatingProduct ? "Updating..." : "Update Product"}
+            {updatingProduct ? "Updating..." : "Update Planogram"}
           </button>
         </div>
       </div>

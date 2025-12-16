@@ -935,19 +935,91 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/suppliers?${queryString}`);
   },
+  getProductsCategories: (params = {}) => {
+    const queryParams = new URLSearchParams();
 
-    // Create Venue Group
+    // Add limit
+    if (params.limit) {
+      queryParams.append('limit', params.limit);
+    }
+
+    // Add lastKey
+    if (params.lastKey !== undefined && params.lastKey !== null && params.lastKey !== "null") {
+      queryParams.append('lastKey', params.lastKey);
+    }
+
+
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/product_categories?${queryString}`);
+  },
+
+// Get Ploanogram Versions
+getPlanogramVersions: (params = {}) => {
+  const queryParams = new URLSearchParams();
+
+  // Add limit
+  if (params.limit) {
+    queryParams.append("limit", params.limit);
+  }
+
+  // Add lastKey only if it's valid
+  if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
+    queryParams.append("lastKey", params.lastKey);
+  }
+
+  // ✅ Add planogramVersionId only if provided
+  if (
+    params.planogramVersionId &&
+    params.planogramVersionId !== "null" &&
+    params.planogramVersionId !== null
+  ) {
+    queryParams.append("planogramVersionId", params.planogramVersionId);
+  }
+
+  const queryString = queryParams.toString();
+
+  return ApiService.awsRequest(
+    `/planogram_versions${queryString ? `?${queryString}` : ""}`
+  );
+},
+
+
+    // Create Planogram Version
   createPlanogramVersion: (data) => {
     return ApiService.awsRequest('/planogram_versions', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
+  // Update Planogram Version 
+    updatePlangoramVersion: (payload) => {
+      console.log(payload);
+    return ApiService.awsRequest(`/planogram_versions`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Init Planogram Structure
   initPlanogramStructure: (planogramId, data) => {
   return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
+},
+getPlanogramStructure: (params = {}) => {
+  const queryParams = new URLSearchParams();
+
+  // Add machineId
+  if (params.machineId && params.machineId !== "null") {
+    queryParams.append("machineId", params.machineId);
+  }
+
+  const queryString = queryParams.toString();
+
+  return ApiService.awsRequest(
+    `/planogram_versions/structure${queryString ? `?${queryString}` : ""}`
+  );
 },
 
 };

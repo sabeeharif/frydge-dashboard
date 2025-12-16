@@ -13,13 +13,13 @@ const CreatePlanogramModal = ({
   const [machines, setMachines] = useState()
   const [errors, setErrors] = useState({
     machine: "",
-    prime: "",
+    primePlanogram: "",
   });
 
   const fetchMachines = async (page) => {
     try {
       // setLoading(true);
-      const pageSize=100
+      const pageSize = 100
       console.log("Fetching machines for page:", page);
       const response = await api.getMachines({ page, pageSize });
       console.log("Client fetch response status:", response.status);
@@ -50,7 +50,7 @@ const CreatePlanogramModal = ({
       ...prev,
       versionDetails: [
         ...prev.versionDetails,
-        { machineId: "", isPrime: false },
+        { machineId: "", primePlanogram: false },
       ],
     }));
   };
@@ -72,8 +72,16 @@ const CreatePlanogramModal = ({
 
 
   const handleDelete = (index) => {
-    setRows(rows.filter((_, i) => i !== index));
+    setFormData((prev) => {
+      if (prev.versionDetails.length === 1) return prev;
+      return {
+        ...prev,
+        versionDetails: prev.versionDetails.filter((_, i) => i !== index),
+      };
+    });
   };
+
+
 
   const handleEdit = (index) => {
     // optional – you can enable inline editing or modal later
@@ -210,17 +218,19 @@ const CreatePlanogramModal = ({
                                   const alreadyPrime = formData.versionDetails.some(
                                     (item, i) => item.primePlanogram && i !== index
                                   );
-
+                                  console.log(alreadyPrime);
                                   if (alreadyPrime) {
                                     setErrors((prev) => ({
                                       ...prev,
                                       primePlanogram: "Only one Prime Planogram is allowed.",
                                     }));
                                     return;
+                                  } else {
+                                    setErrors((prev) => ({ ...prev, primePlanogram: "" }));
                                   }
                                 }
 
-                                setErrors((prev) => ({ ...prev, prime: "" }));
+                                setErrors((prev) => ({ ...prev, primePlanogram: "" }));
                                 updateRow(index, "primePlanogram", checked);
                               }}
                               className="w-5 h-5"
@@ -245,8 +255,8 @@ const CreatePlanogramModal = ({
                     <p className="text-sm text-red-600 mt-2">{errors.machine}</p>
                   )}
 
-                  {errors.prime && (
-                    <p className="text-sm text-red-600 mt-2">{errors.prime}</p>
+                  {errors?.primePlanogram && (
+                    <p className="text-sm text-red-600 mt-2">{errors.primePlanogram}</p>
                   )}
 
                 </div>
