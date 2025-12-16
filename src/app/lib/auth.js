@@ -935,4 +935,19 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/suppliers?${queryString}`);
   },
+
+    // Create Venue Group
+  createPlanogramVersion: (data) => {
+    return ApiService.awsRequest('/planogram_versions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  initPlanogramStructure: (planogramId, data) => {
+  return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+},
+
 };
