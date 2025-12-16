@@ -60,45 +60,6 @@ const PlanogramStructure = () => {
     }
   }
 
-  // const handleInitStructure = async () => {
-  //   try {
-  //     const response = await api.initPlanogramStructure(planogramVersionId);
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json().catch(() => ({
-  //         error: "Failed to init structure",
-  //       }));
-  //       throw new Error(errorData.error);
-  //     }
-
-  //     const result = await response.json();
-  //     console.log("Structure initialized:", result);
-
-  //     if (result.planogramVersionStructure?.length > 0) {
-  //       const channels =
-  //         result.planogramVersionStructure[0].channelDetails || [];
-
-  //       // 🔹 Group by channel
-  //       const grouped = channels.reduce((acc, item) => {
-  //         if (!acc[item.channel]) acc[item.channel] = [];
-  //         acc[item.channel].push(item);
-  //         return acc;
-  //       }, {});
-
-  //       // 🔹 Sort internalChannel inside each channel
-  //       Object.keys(grouped).forEach((channel) => {
-  //         grouped[channel].sort(
-  //           (a, b) => a.shelf - b.shelf
-  //         );
-  //       });
-  //       console.log(grouped);
-  //       setStructure(grouped);
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //     alert(error.message || "Something went wrong");
-  //   }
-  // };
   // Fetch
   const fetchSuppliers = async (useLastKey = null) => {
     try {
@@ -155,12 +116,6 @@ const PlanogramStructure = () => {
     }
   };
 
-
-  // useEffect(() => {
-  //   if (planogramVersionId) {
-  //     handleInitStructure()
-  //   }
-  // }, [planogramVersionId])
 
   useEffect(() => {
     fetchSuppliers();
