@@ -7,6 +7,7 @@ const EditProductModal = ({
   formData,
   handleInputChange,
   allSuppliers,
+  allCategories
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -39,6 +40,7 @@ const EditProductModal = ({
               <input
                 type="text"
                 value={formData.name}
+                disabled
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter product name"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -49,17 +51,22 @@ const EditProductModal = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
+                  Supplier
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.productCategoryId || ""}
                   onChange={(e) =>
                     handleInputChange("productCategoryId", e.target.value)
                   }
-                  placeholder="Enter category id"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                >
+                  <option value="">Select Category</option>
+                  {allCategories?.map((s) => (
+                    <option key={s.supplierId} value={s.productCategoryId}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Cost Price */}
@@ -89,6 +96,7 @@ const EditProductModal = ({
                   onChange={(e) =>
                     handleInputChange("externalId", e.target.value)
                   }
+                  disabled
                   placeholder="Enter external ID"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -98,7 +106,7 @@ const EditProductModal = ({
               {/* Supplier */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Supplier
+                  Assign Supplier
                 </label>
                 <select
                   value={formData.supplierId || ""}

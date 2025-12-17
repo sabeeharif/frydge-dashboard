@@ -939,12 +939,12 @@ export const api = {
     const queryParams = new URLSearchParams();
 
     // Add limit
-    if (params.limit) {
+    if (params?.limit) {
       queryParams.append('limit', params.limit);
     }
 
     // Add lastKey
-    if (params.lastKey !== undefined && params.lastKey !== null && params.lastKey !== "null") {
+    if (params?.lastKey !== undefined && params.lastKey !== null && params.lastKey !== "null") {
       queryParams.append('lastKey', params.lastKey);
     }
 
@@ -953,47 +953,47 @@ export const api = {
     return ApiService.awsRequest(`/product_categories?${queryString}`);
   },
 
-// Get Ploanogram Versions
-getPlanogramVersions: (params = {}) => {
-  const queryParams = new URLSearchParams();
+  // Get Ploanogram Versions
+  getPlanogramVersions: (params = {}) => {
+    const queryParams = new URLSearchParams();
 
-  // Add limit
-  if (params.limit) {
-    queryParams.append("limit", params.limit);
-  }
+    // Add limit
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
 
-  // Add lastKey only if it's valid
-  if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
-    queryParams.append("lastKey", params.lastKey);
-  }
+    // Add lastKey only if it's valid
+    if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
+      queryParams.append("lastKey", params.lastKey);
+    }
 
-  // ✅ Add planogramVersionId only if provided
-  if (
-    params.planogramVersionId &&
-    params.planogramVersionId !== "null" &&
-    params.planogramVersionId !== null
-  ) {
-    queryParams.append("planogramVersionId", params.planogramVersionId);
-  }
+    // ✅ Add planogramVersionId only if provided
+    if (
+      params.planogramVersionId &&
+      params.planogramVersionId !== "null" &&
+      params.planogramVersionId !== null
+    ) {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
 
-  const queryString = queryParams.toString();
+    const queryString = queryParams.toString();
 
-  return ApiService.awsRequest(
-    `/planogram_versions${queryString ? `?${queryString}` : ""}`
-  );
-},
+    return ApiService.awsRequest(
+      `/planogram_versions${queryString ? `?${queryString}` : ""}`
+    );
+  },
 
-
-    // Create Planogram Version
+  // Create Planogram Version
   createPlanogramVersion: (data) => {
     return ApiService.awsRequest('/planogram_versions', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
+
   // Update Planogram Version 
-    updatePlangoramVersion: (payload) => {
-      console.log(payload);
+  updatePlangoramVersion: (payload) => {
+    console.log(payload);
     return ApiService.awsRequest(`/planogram_versions`, {
       method: 'PUT',
       body: JSON.stringify(payload),
@@ -1002,24 +1002,32 @@ getPlanogramVersions: (params = {}) => {
 
   // Init Planogram Structure
   initPlanogramStructure: (planogramId, data) => {
-  return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-},
-getPlanogramStructure: (params = {}) => {
-  const queryParams = new URLSearchParams();
+    return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 
-  // Add machineId
-  if (params.machineId && params.machineId !== "null") {
-    queryParams.append("machineId", params.machineId);
-  }
+  getPlanogramStructure: (params = {}) => {
+    const queryParams = new URLSearchParams();
 
-  const queryString = queryParams.toString();
+    // Add machineId
+    if (params.machineId && params.machineId !== "null") {
+      queryParams.append("machineId", params.machineId);
+    }
 
-  return ApiService.awsRequest(
-    `/planogram_versions/structure${queryString ? `?${queryString}` : ""}`
-  );
-},
+    const queryString = queryParams.toString();
 
+    return ApiService.awsRequest(
+      `/planogram_versions/structure${queryString ? `?${queryString}` : ""}`
+    );
+  },
+  // Update Planogram Version 
+  updatePlangoramVersionStructure: (planogramId, payload) => {
+    console.log(payload);
+    return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
 };

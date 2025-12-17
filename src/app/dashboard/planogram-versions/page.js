@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 
 const PlanogramManagement = () => {
     // States
+    const [loading, setLoading] = useState()
     const [planograms, setPlanograms] = useState([]);
     const [formData, setFormData] = useState({
         name: "",
@@ -41,7 +42,7 @@ const PlanogramManagement = () => {
     const pageSize = 10
 
     // Pagination state
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
     const [page, setPage] = useState(1);
 
     const startIndex = (page - 1) * itemsPerPage;
@@ -220,6 +221,7 @@ const PlanogramManagement = () => {
 
     // Fetch
     const fetchPlanogramVersions = async (useLastKey = null) => {
+        setLoading(true)
         try {
             let apiUrl = `/api/planogram_versions?limit=${pageSize}`
             if (useLastKey) {
@@ -245,6 +247,8 @@ const PlanogramManagement = () => {
             setPlanograms(fetchedProducts)
         } catch (error) {
             console.error("Failed to load products", error);
+        } finally {
+            setLoading(false)
         }
     };
 
@@ -281,12 +285,18 @@ const PlanogramManagement = () => {
     useEffect(() => {
         fetchPlanogramVersions();
     }, [limit]); // refetch when limit changes
-
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+                <Loader />
+            </div>
+        )
+    }
 
 
     return (
         <div className="p-8 space-y-8">
-           
+
             {/* Head */}
             <div className="">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">

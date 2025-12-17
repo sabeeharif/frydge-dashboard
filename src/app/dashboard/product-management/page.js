@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { PackageSearch, RefreshCw, Plus } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import ManageProductsModal from "@/app/components/products/ManageProductsModal";
@@ -25,9 +25,24 @@ const ProductManagement = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [supplierLastKey, setSupplierLastKey] = useState(null);
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false);
+    const [isRotating, setIsRotating] = useState(false);
   const [supplierPageSize, setSupplierPageSize] = useState(10);
-  const [isRotating, setIsRotating] = useState(false);
+  const [productLastKey, setProductLastKey] = useState(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPrevPage, setHasPrevPage] = useState(false);
+  const pageHistoryRef = useRef([]);
+
   // Modal State
+  const categoryTimeoutRef = useRef(null)
+  const isFetchingAllCategoriesRef = useRef(false)
+
+  const [allCategories, setAllCategories] = useState([])
+  const [categorySearchLoading, setCategorySearchLoading] = useState(false)
+  const [categoryFetchProgress, setCategoryFetchProgress] = useState({
+    current: 0,
+    total: 0
+  })
+
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
@@ -38,33 +53,122 @@ const ProductManagement = () => {
   const [updatingProduct, setUpdatingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const pageSize = 10
+const pageCacheRef = useRef({});
+const currentPageRef = useRef(0);
 
-  // Pagination state
-  const itemsPerPage = 5;
-  const [page, setPage] = useState(1);
 
-  const startIndex = (page - 1) * itemsPerPage;
-  const paginatedProducts = products.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const fetchAllCategoriesProgressively = async () => {
+    if (isFetchingAllCategoriesRef.current) return;
 
-  const hasNextPage = startIndex + itemsPerPage < products.length;
-  const hasPrevPage = page > 1;
+    isFetchingAllCategoriesRef.current = true;
+    setCategorySearchLoading(true);
+
+    try {
+      let allFetchedCategories = [];
+      let currentLastKey = null;
+      let pageCount = 0;
+      const maxPages = 50;
+
+      setCategoryFetchProgress({ current: 0, total: maxPages });
+
+      do {
+        pageCount++;
+        setCategoryFetchProgress({ current: pageCount, total: maxPages });
+
+        const response = await api.getProductsCategories({ limit: 20, lastKey: currentLastKey });
+        if (!response.ok) break;
+
+        const data = await response.json();
+        const newCategories = data.productCategories || data.results || [];
+
+        allFetchedCategories = [...allFetchedCategories, ...newCategories];
+        setAllCategories([...allFetchedCategories]);
+
+        currentLastKey = data.lastKey || null;
+
+        if (pageCount < maxPages && currentLastKey) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      } while (currentLastKey && pageCount < maxPages);
+
+      console.log(`Successfully fetched ${allFetchedCategories.length} categories`);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setCategorySearchLoading(false);
+      isFetchingAllCategoriesRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (categoryTimeoutRef.current) clearTimeout(categoryTimeoutRef.current);
+
+    if (!isFetchingAllCategoriesRef.current && allCategories.length === 0) {
+      categoryTimeoutRef.current = setTimeout(() => {
+        fetchAllCategoriesProgressively();
+      }, 500);
+    }
+
+    return () => {
+      if (categoryTimeoutRef.current) clearTimeout(categoryTimeoutRef.current);
+    };
+  }, []);
+
 
   // Handle next page
-  const handleNextPage = () => {
-    if (hasNextPage) {
-      setPage(page + 1);
-    }
+const handleNextPage = async () => {
+  const nextPage = currentPageRef.current + 1;
+
+  // ❌ No next page
+  if (!hasNextPage) return;
+
+  // ✅ Serve from cache
+  if (pageCacheRef.current[nextPage]) {
+    currentPageRef.current = nextPage;
+    const cached = pageCacheRef.current[nextPage];
+
+    setProducts(cached.products);
+    setProductLastKey(cached.lastKey);
+
+    setHasPrevPage(true);
+    setHasNextPage(!!cached.lastKey);
+    return;
+  }
+
+  // ✅ API call only once
+  currentPageRef.current = nextPage;
+  await fetchProducts(productLastKey, nextPage);
+};
+
+const handlePrevPage = () => {
+  const prevPage = currentPageRef.current - 1;
+
+  // ❌ Already on first page → disable
+  if (prevPage < 0) return;
+
+  const cached = pageCacheRef.current[prevPage];
+  if (!cached) return;
+
+  currentPageRef.current = prevPage;
+
+  setProducts(cached.products);
+  setProductLastKey(cached.lastKey);
+
+  // 🔒 Disable prev on first page
+  setHasPrevPage(prevPage > 0);
+  setHasNextPage(true);
+};
+
+
+useEffect(() => {
+  const init = async () => {
+    currentPageRef.current = 0;
+    await fetchProducts(null, 0);
   };
 
-  // Handle previous page
-  const handlePrevPage = () => {
-    if (hasPrevPage) {
-      setPage(page - 1);
-    }
-  };
+  init();
+}, []);
+
 
   const handleRefresh = async () => {
     setIsRotating(true);
@@ -219,36 +323,52 @@ const ProductManagement = () => {
     setShowDeleteProductModal(false);
     setSelectedProduct(null);
   };
-
+  const handelSyncProduct = () => {
+    setIsRotating(true)
+    setTimeout(() => {
+      fetchProducts();
+    }, 60000); // 1 minute = 60,000 ms
+  }
   // Fetch
-  const fetchProducts = async (useLastKey = null) => {
-    try {
-      let apiUrl = `/api/products?limit=${pageSize}`
-      if (useLastKey) {
-        apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
-      }
+const fetchProducts = async (lastKey = null, pageIndex) => {
+  try {
+    setIsRotating(true);
 
-      const response = await api.getProducts({
-        limit: pageSize,
-        lastKey: useLastKey
-      })
-      console.log("Client fetch response status:", response.status)
+    const response = await api.getProducts({
+      limit: pageSize,
+      lastKey,
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || `HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("Client received data:", data)
-
-      // Handle different response structures
-      const fetchedProducts = data.products || data.results || []
-      setProducts(fetchedProducts)
-    } catch (error) {
-      console.error("Failed to load products", error);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+
+    const fetchedProducts = data.products || data.results || [];
+    const newLastKey = data.lastKey || null;
+
+    // ✅ Cache page
+    pageCacheRef.current[pageIndex] = {
+      products: fetchedProducts,
+      lastKey: newLastKey,
+    };
+
+    setProducts(fetchedProducts);
+    setProductLastKey(newLastKey);
+
+    setHasNextPage(!!newLastKey);
+    setHasPrevPage(pageIndex > 0);
+
+  } catch (error) {
+    console.error("Failed to load products", error);
+  } finally {
+    setIsRotating(false);
+  }
+};
+
+
+
 
   // Fetch
   const fetchSuppliers = async (useLastKey = null) => {
@@ -279,12 +399,39 @@ const ProductManagement = () => {
       console.error("Failed to load suppliers", error);
     }
   };
+  // const fetchProductsCategories = async (useLastKey = null) => {
+  //   try {
+  //     const response = await api.getProductsCategories({
+  //       // dynamic limit
+  //       lastKey: useLastKey        // pagination key
+  //     });
+
+  //     console.log("Category fetch response:", response.status);
+
+  //     if (!response.ok) {
+  //       const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+  //       throw new Error(errorData.error || `HTTP ${response.status}`);
+  //     }
+
+  //     const data = await response.json();
+  //     console.log("Category data received:", data);
+
+  //     const fetchedCategory = data.productCategories || data.results || [];
+
+
+  //     setCategoriesOptions(fetchedCategory);
+
+  //   } catch (error) {
+  //     console.error("Failed to load suppliers", error);
+  //   }
+  // };
 
   useEffect(() => {
     fetchProducts();
   }, [limit]); // refetch when limit changes
 
   useEffect(() => {
+    // fetchProductsCategories()
     fetchSuppliers();
   }, [supplierPageSize]);
 
@@ -314,27 +461,27 @@ const ProductManagement = () => {
             Refresh
           </button>
           <button
-            onClick={() => setShowCreateProductModal(true)}
+            onClick={() => handelSyncProduct()}
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
           >
-            <Plus className="h-4 w-4" />
-            Create Product
+            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+            Sync Products
           </button>
         </div>
       </div>
 
       {/* Table */}
       <ProductTable
-        products={paginatedProducts}
+        products={products}
         suppliers={suppliers}
-        onManage={handleManage}
+        onManage={openEditModal}
         onEdit={openEditModal}
         onDelete={handleDelete}
       />
 
       {/* Pagination Controls */}
       <PaginationControls
-        paginatedItems={paginatedProducts}
+        paginatedItems={products}
         hasNextPage={hasNextPage}
         hasPrevPage={hasPrevPage}
         onRefresh={handlePrevPage}
@@ -351,17 +498,6 @@ const ProductManagement = () => {
         />
       )}
 
-      {showCreateProductModal && (
-        <CreateProductModal
-          closeModal={closeCreateProductModal}
-          handleCreateProduct={handleCreateProduct}
-          creatingProduct={creatingProduct}
-          formData={formData}
-          handleInputChange={handleInputChange}
-          allSuppliers={allSuppliers}
-        />
-      )}
-
       {showEditProductModal && (
         <EditProductModal
           closeModal={() => setShowEditProductModal(false)}
@@ -370,16 +506,10 @@ const ProductManagement = () => {
           formData={formData}
           handleInputChange={handleInputChange}
           allSuppliers={suppliers}
+          allCategories={allCategories}
         />
       )}
 
-      {showDeleteProductModal && (
-        <DeleteModal
-          open={showDeleteProductModal}
-          onClose={() => setShowDeleteProductModal(false)}
-          onDelete={confirmDeleteProduct}
-        />
-      )}
     </div>
   );
 };

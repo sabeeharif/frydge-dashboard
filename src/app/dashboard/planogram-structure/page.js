@@ -1,8 +1,10 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { api } from "@/app/lib/auth";
+import Loader from "@/app/components/Loader";
+import { Loader2 } from "lucide-react";
 
 const PlanogramStructure = () => {
   const [editItem, setEditItem] = useState(null)
@@ -13,10 +15,11 @@ const PlanogramStructure = () => {
   const [categoryOptions, setCategoriesOptions] = useState()
   const [supplierPageSize, setSupplierPageSize] = useState(10);
   const [categoryPageSize, setCategoryPageSize] = useState(10);
-
+  const [updatingPlanogram, setUpdatingPlanogram] = useState()
+  const [planogramMeta, setPlanogramMeta] = useState(null)
   const searchParams = useSearchParams()
   const machineId = searchParams.get("machineId")
-
+  const shelfRefs = useRef({});
   const [structure, setStructure] = useState({})
   const [loading, setLoading] = useState(false)
 
@@ -59,6 +62,39 @@ const PlanogramStructure = () => {
       alert("Update failed")
     }
   }
+  const handleUpdatePlanogram = async () => {
+
+    const channelDetails = Object.values(structure).flat()
+    console.log(channelDetails);
+    const payload = {
+      machineStructureId: planogramMeta.machineStructureId,
+      planogramVersionId: planogramMeta.planogramVersionId,
+      primeMachine: planogramMeta?.primeMachine,
+      machineId: planogramMeta.machineId,
+      channelDetails: channelDetails
+    }
+
+    console.log("Sending full payload:", payload)
+
+    try {
+      // // 🔹 API call
+      const response = await api.updatePlangoramVersionStructure(payload.planogramVersionId, payload)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log("Planogram updated successfully:", result)
+
+      setEditItem(null)
+    } catch (err) {
+      console.error("Update failed:", err)
+
+      alert("Update failed. Please try again.")
+    }
+  }
+
 
   // Fetch
   const fetchSuppliers = async (useLastKey = null) => {
@@ -144,19 +180,26 @@ const PlanogramStructure = () => {
     setSuppliers(suppliers.filter((s) => s !== supId))
   }
   const fetchPlanogramStructure = async () => {
-  try {
-    const response = await api.getPlanogramStructure({
-      machineId: machineId,
-    });
+    setLoading(true)
+    try {
+      const response = await api.getPlanogramStructure({
+        machineId: machineId,
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-    const result = await response.json();
+      const result = await response.json();
       console.log("Structure initialized:", result);
 
       if (result.planogramStructure?.length > 0) {
+        setPlanogramMeta({
+          machineStructureId: result?.planogramStructure[0].machineStructureId,
+          planogramVersionId: result?.planogramStructure[0].planogramVersionId,
+          machineId: result?.planogramStructure[0].machineId,
+          primeMachine: result?.planogramStructure[0].primeMachine
+        })
         const channels =
           result.planogramStructure[0].channelDetails || [];
 
@@ -176,18 +219,41 @@ const PlanogramStructure = () => {
         console.log(grouped);
         setStructure(grouped);
       }
-  } catch (error) {
-    console.error("Failed to fetch planogram structure", error);
+    } catch (error) {
+      console.error("Failed to fetch planogram structure", error);
+    } finally {
+      setLoading(false)
+    }
+  };
+  useEffect(() => {
+    fetchPlanogramStructure()
+  }, [machineId])
+  // 🔹 Sync all cards height in each shelf row
+  useEffect(() => {
+    Object.values(shelfRefs.current).forEach((cards) => {
+      if (!cards || cards.length === 0) return;
+      const maxHeight = Math.max(...cards.map((el) => el.offsetHeight));
+      cards.forEach((el) => {
+        if (el) el.style.height = `${maxHeight}px`;
+      });
+    });
+  }, [structure]);
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
+      </div>
+    )
   }
-};
-useEffect(()=>{
-  fetchPlanogramStructure()
-},[machineId])
+
+
 
 
   return (
     <div className="min-h-screen bg-gray-50 pt-4">
-       {/* <button
+      {/* <button
                 onClick={() => router.push(
                     `/dashboard/planogram-version-details?planogramVersionId=${planograms?.planogramVersionId}`
                 )}
@@ -209,45 +275,78 @@ useEffect(()=>{
             </button> */}
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <h3 className="text-4xl font-bold text-gray-900 mb-2">Planogram Structure</h3>
-          <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
+        <div className="flex justify-between items-center">
+          <div className="mb-8">
+            <h3 className="text-4xl font-bold text-gray-900 mb-2">Planogram Structure</h3>
+            <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
+          </div>
+          <div>
+            <button
+              onClick={handleUpdatePlanogram}
+              disabled={updatingPlanogram}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+            hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
+            transition-colors flex items-center gap-2"
+            >
+              {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
+              {updatingPlanogram ? "Updating..." : "Update Structure"}
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="">
           {Object.entries(structure)
-            .sort(([a], [b]) => Number(a) - Number(b))
+            .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
             .map(([shelfNumber, shelves]) => (
               <div key={shelfNumber} className="space-y-3">
-                <div className="flex items-center gap-3">
+                {/* Shelf header */}
+                {/* <div className="flex items-center gap-3">
                   <div className="text-lg font-bold px-4 py-1.5 border-2 border-blue-600 rounded-md bg-white text-blue-600">
                     Channel {shelfNumber}
                   </div>
                   <div className="flex-1 h-px bg-gray-300" />
-                </div>
+                </div> */}
 
-                {/* Shelves Grid for this channel */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {/* Shelves Grid */}
+                <div
+                  className="grid  items-stretch"
+                  style={{
+                    gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
+                  }}
+                >
                   {shelves.map((item, shelfIndex) => {
-                    const selectedCategories = categoryOptions?.filter((cat) => item.categoryIds?.includes(cat.productCategoryId))
-                    const selectedSuppliers = supplierOptions?.filter((sup) => item.supplierIds?.includes(sup.supplierId))
+                    const selectedCategories = categoryOptions?.filter((cat) =>
+                      item.categoryIds?.includes(cat.productCategoryId)
+                    );
+                    const selectedSuppliers = supplierOptions?.filter((sup) =>
+                      item.supplierIds?.includes(sup.supplierId)
+                    );
 
                     return (
                       <div
                         key={`${item.channel}-${item.shelf}`}
-                        className="relative border-2 border-gray-200 bg-white rounded-lg hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
+                        ref={(el) => {
+                          if (!shelfRefs.current[shelfNumber])
+                            shelfRefs.current[shelfNumber] = [];
+                          shelfRefs.current[shelfNumber][shelfIndex] = el;
+                        }}
+                        className="relative border-1 border-gray-200 bg-white min-h-60 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
                       >
-                        {/* Top Badge with Channel - Shelf format */}
+                        {/* Top Badge */}
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
-                          {item.shelf} - {item.channel}
+                            {item.shelf} - {item.channel}
                           </div>
                           {item.channelModified && (
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" title="Modified" />
+                            <div
+                              className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                              title="Modified"
+                            />
                           )}
                         </div>
 
-                        {selectedCategories.length > 0 && (
+                        {/* Categories */}
+                        {selectedCategories?.length > 0 && (
                           <div className="space-y-1">
                             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                               Categories
@@ -265,14 +364,17 @@ useEffect(()=>{
                           </div>
                         )}
 
+                        {/* Suppliers */}
                         {selectedSuppliers?.length > 0 && (
                           <div className="space-y-1">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Suppliers</div>
+                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              Suppliers
+                            </div>
                             <div className="flex flex-wrap gap-1">
                               {selectedSuppliers.map((sup) => (
                                 <span
                                   key={sup.supplierId}
-                                  className="bg-blue-100 text-blue-700 border border-blue-300 rounded pl-1 pr-1  text-xs inline-flex items-center"
+                                  className="bg-blue-100 text-blue-700 border border-blue-300 rounded pl-1 pr-1 text-xs inline-flex items-center"
                                 >
                                   {sup?.name}
                                   <button
@@ -287,6 +389,7 @@ useEffect(()=>{
                           </div>
                         )}
 
+                        {/* Configure Button */}
                         <button
                           onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
                           className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -294,12 +397,14 @@ useEffect(()=>{
                           Configure
                         </button>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               </div>
             ))}
         </div>
+
+
       </div>
 
       {/* Edit Modal */}

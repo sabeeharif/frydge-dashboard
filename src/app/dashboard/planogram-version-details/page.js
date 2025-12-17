@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService, api } from "@/app/lib/auth"
+import Loader from "@/app/components/Loader"
 
 
 export default function PlanogramDetails() {
-
+    const [loading, setLoading] = useState()
     const searchParams = useSearchParams()
     const params = searchParams.get("planogramVersionId")
     const router = useRouter()
@@ -15,6 +16,7 @@ export default function PlanogramDetails() {
 
 
     const fetchPlanogramVersions = async (useLastKey = null) => {
+        setLoading(true)
         try {
             let apiUrl = `/api/planogram_versions?limit=${pageSize}`
             if (useLastKey) {
@@ -41,6 +43,8 @@ export default function PlanogramDetails() {
             setPlanogram(fetchedProducts)
         } catch (error) {
             console.error("Failed to load products", error);
+        } finally {
+            setLoading(false)
         }
     };
 
@@ -61,6 +65,13 @@ export default function PlanogramDetails() {
         router.push(
             `/dashboard/planogram-structure?machineId=${machineId}`
         );
+    }
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+                <Loader />
+            </div>
+        )
     }
     return (
         <div className="p-8">
@@ -196,7 +207,7 @@ export default function PlanogramDetails() {
                                                 onClick={() => navigate(machine.machineId)}
                                                 className="text-green-600 hover:underline"
                                             >
-                                                View Details
+                                                View Structure
                                             </button>}
                                             {/* <button
                       onClick={() => handleEdit(machine)}

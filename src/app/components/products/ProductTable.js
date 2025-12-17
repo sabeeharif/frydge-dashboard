@@ -95,18 +95,18 @@ const ProductTable = ({
                         >
                           Manage
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => onEdit(product)}
                           className="text-blue-600 hover:underline"
                         >
                           Edit
-                        </button>
-                        <button
+                        </button> */}
+                        {/* <button
                           onClick={() => onDelete(product)}
                           className="text-red-600 hover:underline"
                         >
                           Delete
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
