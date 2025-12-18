@@ -39,34 +39,58 @@ const PlanogramManagement = () => {
     const [editingProductId, setEditingProductId] = useState(null);
     const router = useRouter();
 
-    const pageSize = 10
+    const pageSize = 10;
 
-    // Pagination state
-    const itemsPerPage = 10;
-    const [page, setPage] = useState(1);
+    // cursor pagination
+    const [planogramLastKey, setPlanogramLastKey] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPrevPage, setHasPrevPage] = useState(false);
 
-    const startIndex = (page - 1) * itemsPerPage;
-    const paginatedPlanograms = planograms?.slice(
-        startIndex,
-        startIndex + itemsPerPage
-    );
+    // cache + page index
+    const pageCacheRef = React.useRef({});
+    const currentPageRef = React.useRef(0);
 
-    const hasNextPage = startIndex + itemsPerPage < planograms?.length;
-    const hasPrevPage = page > 1;
 
     // Handle next page
     const handleNextPage = () => {
-        if (hasNextPage) {
-            setPage(page + 1);
+        if (!hasNextPage) return;
+
+        const nextPage = currentPageRef.current + 1;
+
+        // ✅ From cache
+        if (pageCacheRef.current[nextPage]) {
+            currentPageRef.current = nextPage;
+            const cached = pageCacheRef.current[nextPage];
+
+            setPlanograms(cached.items);
+            setPlanogramLastKey(cached.lastKey);
+            setHasPrevPage(true);
+            setHasNextPage(cached.items.length === pageSize);
+            return;
         }
+
+        // ✅ API call
+        currentPageRef.current = nextPage;
+        fetchPlanogramVersions(planogramLastKey);
     };
 
-    // Handle previous page
+
+
     const handlePrevPage = () => {
-        if (hasPrevPage) {
-            setPage(page - 1);
-        }
+        if (currentPageRef.current === 0) return;
+
+        const prevPage = currentPageRef.current - 1;
+        const cached = pageCacheRef.current[prevPage];
+        if (!cached) return;
+
+        currentPageRef.current = prevPage;
+
+        setPlanograms(cached.items);
+        setPlanogramLastKey(cached.lastKey);
+        setHasPrevPage(prevPage > 0);
+        setHasNextPage(true);
     };
+
 
     const handleRefresh = async () => {
         setIsRotating(true);
@@ -220,37 +244,41 @@ const PlanogramManagement = () => {
     //   };
 
     // Fetch
-    const fetchPlanogramVersions = async (useLastKey = null) => {
-        setLoading(true)
+    const fetchPlanogramVersions = async (lastKey = null) => {
         try {
-            let apiUrl = `/api/planogram_versions?limit=${pageSize}`
-            if (useLastKey) {
-                apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
-            }
+            setLoading(true);
 
             const response = await api.getPlanogramVersions({
                 limit: pageSize,
-                lastKey: useLastKey
-            })
-            console.log("Client fetch response status:", response.status)
+                lastKey,
+            });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-                throw new Error(errorData.error || `HTTP ${response.status}`)
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            const data = await response.json()
-            console.log("Client received data:", data)
+            const data = await response.json();
+            const fetched = data.planogramVersions || [];
+            const newLastKey = data.lastKey || null;
 
-            // Handle different response structures
-            const fetchedProducts = data?.planogramVersions || data.results || []
-            setPlanograms(fetchedProducts)
-        } catch (error) {
-            console.error("Failed to load products", error);
+            // 🔹 Cache current page
+            pageCacheRef.current[currentPageRef.current] = {
+                items: fetched,
+                lastKey: newLastKey,
+            };
+
+            setPlanograms(fetched);
+            setPlanogramLastKey(newLastKey);
+
+            // ✅ CRITICAL FIX
+            setHasNextPage(fetched.length === pageSize);
+            setHasPrevPage(currentPageRef.current > 0);
+
+        } catch (err) {
+            console.error("Failed to load planograms", err);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
+
 
     // Fetch
     //   const fetchSuppliers = async (useLastKey = null) => {
@@ -283,8 +311,13 @@ const PlanogramManagement = () => {
     //   };
 
     useEffect(() => {
-        fetchPlanogramVersions();
-    }, [limit]); // refetch when limit changes
+        currentPageRef.current = 0;
+        pageCacheRef.current = {};
+
+        fetchPlanogramVersions(null);
+    }, []);
+
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -335,7 +368,7 @@ const PlanogramManagement = () => {
 
             {/* Table */}
             <PlanogramTable
-                planogram={paginatedPlanograms}
+                planogram={planograms}
                 onManage={handleManage}
                 onEdit={openEditModal}
                 onDelete={handleDelete}
@@ -343,7 +376,7 @@ const PlanogramManagement = () => {
 
             {/* Pagination Controls */}
             <PaginationControls
-                paginatedItems={paginatedPlanograms}
+                paginatedItems={planograms}
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
                 onRefresh={handlePrevPage}

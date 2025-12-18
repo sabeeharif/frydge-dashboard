@@ -15,79 +15,47 @@ import {
   RefreshCw,
 } from "lucide-react"
 import Loader from "@/app/components/Loader"
-
-const initialSuppliers = [{
-  supplierId: "SUP001",
-  companyName: "Fresh Foods Ltd",
-  contactName: "Alice Johnson",
-  contactEmail: "alice.johnson@freshfoods.com",
-  phone: "+1-555-123-4567",
-  address: {
-    street: "123 Market Street",
-    city: "New York",
-    state: "NY",
-    zip: "10001",
-    country: "USA",
-  },
-  productsSupplied: ["Fruits", "Vegetables", "Dairy"],
-  isActive: true,
-  createdAt: "2025-11-27T12:00:00Z",
-  updatedAt: "2025-11-27T12:00:00Z",
-},
-{
-  supplierId: "SUP002",
-  companyName: "Tech Hardware Inc.",
-  contactName: "Bob Smith",
-  contactEmail: "bob.smith@techhardware.com",
-  phone: "+1-555-987-6543",
-  address: {
-    street: "456 Industrial Avenue",
-    city: "San Francisco",
-    state: "CA",
-    zip: "94107",
-    country: "USA",
-  },
-  productsSupplied: ["Laptops", "Monitors", "Keyboards"],
-  isActive: true,
-  createdAt: "2025-11-20T09:30:00Z",
-  updatedAt: "2025-11-25T14:15:00Z",
-}]
+import { api } from "@/app/lib/auth"
 
 function SuppliersPageContent() {
-  const [suppliers, setSuppliers] = useState(initialSuppliers)
+  const [suppliers, setSuppliers] = useState()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [search, setSearch] = useState("")
-  const [productSearch, setProductSearch] = useState()
-  const [lastKey, setLastKey] = useState(null)
-  const [hasNextPage, setHasNextPage] = useState(false)
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
+  // CRUD state
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
+  const [updatingSupplier, setUpdatingSupplier] = useState(false);
+  const [deletingSupplier, setDeletingSupplier] = useState(false);
+
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
 
   const [allSuppliers, setAllSuppliers] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 })
   const searchTimeoutRef = useRef(null)
   const isFetchingAllRef = useRef(false)
-
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [creatingSupplier, setCreatingSupplier] = useState(false)
-  const [updatingSupplier, setUpdatingSupplier] = useState(false)
   const [deletingUser, setDeletingUser] = useState(false)
   const [createError, setCreateError] = useState("")
   const [editError, setEditError] = useState("")
-
-  // Selected user for edit/delete
-  const [selectedSupplier, setSelectedSupplier] = useState(null)
-
+  const pageSize = 10;
+  // cursor pagination
+  const [supplierLastKey, setSupplierLastKey] = useState(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPrevPage, setHasPrevPage] = useState(false);
+  // cache + page index
+  const supplierPageCacheRef = useRef({});
+  const supplierCurrentPageRef = useRef(0);
   // Form states
   const [formData, setFormData] = useState({
     supplierId: "",
     companyName: "",
-    contactName: "",
-    contactEmail: "",
+    name: "",
+    email: "",
     phone: "",
     address: {
       street: "",
@@ -99,8 +67,6 @@ function SuppliersPageContent() {
     productsSupplied: [],
     isActive: false,
   },)
-
-
   // Edit form states (only editable fields)
   const [editFormData, setEditFormData] = useState({
     supplierId: "",
@@ -123,8 +89,8 @@ function SuppliersPageContent() {
     setFormData({
       supplierId: "",
       companyName: "",
-      contactName: "",
-      contactEmail: "",
+      name: "",
+      email: "",
       phone: "",
       address: {
         street: "",
@@ -140,13 +106,41 @@ function SuppliersPageContent() {
     setShowCreateModal(true)
   }
 
-  const filterSuppliers = suppliers.filter(
+  const filterSuppliers = suppliers?.filter(
     (s) =>
-      s.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      s.contactName.toLowerCase().includes(search.toLowerCase()) ||
-      s.supplierId.toLowerCase().includes(search.toLowerCase())
+      s.companyName?.toLowerCase().includes(search?.toLowerCase()) ||
+      s.contactName?.toLowerCase().includes(search?.toLowerCase()) ||
+      s.supplierId?.toLowerCase().includes(search?.toLowerCase())
   )
 
+  const handleCreateSupplier = async (supplierData) => {
+
+    try {
+      setCreatingSupplier(true);
+
+      const response = await api.createSuppliers(supplierData);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to create supplier");
+      }
+
+      const createdSupplier = await response.json();
+
+      // 🔁 Reset pagination & refetch first page
+      supplierCurrentPageRef.current = 0;
+      supplierPageCacheRef.current = {};
+      setSupplierLastKey(null);
+
+      await fetchSuppliers(null);
+
+    } catch (error) {
+      console.error("Create supplier error:", error);
+    } finally {
+      setCreatingSupplier(false);
+      setShowCreateModal(false)
+    }
+  };
 
   const closeCreateModal = () => {
     setShowCreateModal(false)
@@ -166,11 +160,46 @@ function SuppliersPageContent() {
     setCreateError("")
   }
 
-  const openEditModal = (supplier) => {
-    setSelectedSupplier(supplier)
+  const openEditSupplierModal = (supplier) => {
+    setSelectedSupplier(supplier);
     setEditFormData({ ...supplier })
     setShowEditModal(true)
   }
+
+  const handleUpdateSupplier = async (supplierId, updatedData) => {
+    try {
+      setUpdatingSupplier(true);
+
+      // Optimistic update
+      const previousSuppliers = [...suppliers];
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.supplierId === supplierId ? { ...s, ...updatedData } : s
+        )
+      );
+
+      const response = await api.updateSuppliers({
+        supplierId,
+        ...updatedData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update supplier");
+      }
+
+      await response.json();
+
+      setSelectedSupplier(null);
+
+    } catch (error) {
+      console.error("Update supplier error:", error);
+
+      // rollback
+      setSuppliers(previousSuppliers);
+    } finally {
+      setUpdatingSupplier(false);
+    }
+  };
 
   const closeEditModal = () => {
     setShowEditModal(false)
@@ -186,14 +215,43 @@ function SuppliersPageContent() {
     setEditError("")
   }
 
-  const openDeleteModal = (supplier) => {
-    setSelectedSupplier(supplier)
+  const openDeleteSupplierModal = (supplier) => {
+    setSelectedSupplier(supplier);
     setShowDeleteModal(true)
-  }
-  const openProductsModal = (supplier) => {
-    setSelectedSupplier(supplier)
-     setIsProductModalOpen(true)
-  }
+  };
+
+  const handleDeleteSupplier = async () => {
+    if (!selectedSupplier) return;
+
+    try {
+      setDeletingSupplier(true);
+
+      const response = await api.deleteSupplier({
+        supplierId: selectedSupplier.supplierId,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete supplier");
+      }
+
+      // Remove from UI
+      setSuppliers((prev) =>
+        prev.filter((s) => s.supplierId !== selectedSupplier.supplierId)
+      );
+
+      // Clear cache & reload page
+      supplierPageCacheRef.current = {};
+      supplierCurrentPageRef.current = 0;
+      await fetchSuppliers(null);
+
+      setSelectedSupplier(null);
+
+    } catch (error) {
+      console.error("Delete supplier error:", error);
+    } finally {
+      setDeletingSupplier(false);
+    }
+  };
 
   const closeDeleteModal = () => {
     setShowDeleteModal(false)
@@ -215,36 +273,107 @@ function SuppliersPageContent() {
   }
 
   const handleAddressChange = (field, value) => {
-  setFormData(prev => ({
-    ...prev,
-    address: {
-      ...prev.address,
-      [field]: value,
-    },
-  }));
-};
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value,
+      },
+    }));
+  };
+
   const handleEditAddressChange = (field, value) => {
-  setEditFormData(prev => ({
-    ...prev,
-    address: {
-      ...prev.address,
-      [field]: value,
-    },
-  }));
-};
-
-
-  const handleCreateSupplier = () => {
-    if (!formData.supplierId) formData.supplierId = `SUP${(suppliers.length + 1).toString().padStart(3, "0")}`
-    setSuppliers((prev) => [...prev, formData])
-    closeCreateModal()
-  }
+    setEditFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value,
+      },
+    }));
+  };
 
   const handleNextPage = () => {
-    if (hasNextPage && lastKey) {
-      console.log("as");
+    if (!hasNextPage) return;
+
+    const nextPage = supplierCurrentPageRef.current + 1;
+
+    // serve from cache
+    if (supplierPageCacheRef.current[nextPage]) {
+      supplierCurrentPageRef.current = nextPage;
+
+      const cached = supplierPageCacheRef.current[nextPage];
+      setSuppliers(cached.items);
+      setSupplierLastKey(cached.lastKey);
+
+      setHasPrevPage(true);
+      setHasNextPage(cached.items.length === pageSize);
+      return;
     }
-  }
+
+    // API call
+    supplierCurrentPageRef.current = nextPage;
+    fetchSuppliers(supplierLastKey);
+  };
+
+  const handlePrevPage = () => {
+    if (supplierCurrentPageRef.current === 0) return;
+
+    const prevPage = supplierCurrentPageRef.current - 1;
+    const cached = supplierPageCacheRef.current[prevPage];
+    if (!cached) return;
+
+    supplierCurrentPageRef.current = prevPage;
+
+    setSuppliers(cached.items);
+    setSupplierLastKey(cached.lastKey);
+
+    setHasPrevPage(prevPage > 0);
+    setHasNextPage(true);
+  };
+
+  const fetchSuppliers = async (lastKey = null) => {
+    try {
+      setLoading(true);
+
+      const response = await api.getSuppliers({
+        limit: pageSize,
+        lastKey,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const fetchedSuppliers = data.suppliers || [];
+      const newLastKey = data.lastKey || null;
+
+      // cache current page
+      supplierPageCacheRef.current[supplierCurrentPageRef.current] = {
+        items: fetchedSuppliers,
+        lastKey: newLastKey,
+      };
+
+      setSuppliers(fetchedSuppliers);
+      setSupplierLastKey(newLastKey);
+
+      // pagination flags
+      setHasNextPage(fetchedSuppliers.length === pageSize);
+      setHasPrevPage(supplierCurrentPageRef.current > 0);
+
+    } catch (error) {
+      console.error("Failed to load suppliers", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    supplierCurrentPageRef.current = 0;
+    supplierPageCacheRef.current = {};
+    fetchSuppliers(null);
+  }, []);
 
   if (loading) {
     return (
@@ -382,7 +511,7 @@ function SuppliersPageContent() {
                       <div className="text-sm font-medium text-gray-900">{supplier.companyName || "N/A"}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{supplier.contactName || "N/A"}</div>
+                      <div className="text-sm font-medium text-gray-900">{supplier.name || "N/A"}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{supplier.contactEmail || "N/A"}</div>
@@ -414,16 +543,16 @@ function SuppliersPageContent() {
                       <div className="flex text-xs items-center gap-3">
 
                         {/* Product Management */}
-                        <button
+                        {/* <button
                           onClick={() => openProductsModal(supplier)}
                           className="text-green-600 hover:underline"
                         >
                           Product Management
-                        </button>
+                        </button> */}
 
                         {/* Edit */}
                         <button
-                          onClick={() => openEditModal(supplier)}
+                          onClick={() => openEditSupplierModal(supplier)}
                           className="text-blue-600 hover:underline"
                         >
                           Edit
@@ -431,7 +560,7 @@ function SuppliersPageContent() {
 
                         {/* Delete */}
                         <button
-                          onClick={() => openDeleteModal(supplier)}
+                          onClick={() => openDeleteSupplierModal(supplier)}
                           className="text-red-600 hover:underline"
                         >
                           Delete
@@ -450,25 +579,31 @@ function SuppliersPageContent() {
       </div>
 
       {/* Pagination Controls */}
-      {(hasNextPage || suppliers?.length > 0) && !search && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
-            <span>
-              Showing {suppliers?.length} suppliers {hasNextPage ? "(more available)" : ""}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
+      {(
+        <div className="mt-6 flex items-center justify-between bg-white p-4 rounded-lg shadow">
+          <span className="text-sm text-gray-600">
+            Showing {suppliers?.length} suppliers
+          </span>
+
+          <div className="flex gap-2">
             <button
-              // onClick={handlePrevPage}
-              className="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              onClick={handlePrevPage}
+              disabled={!hasPrevPage}
+              className={`px-3 flex py-2 rounded ${hasPrevPage
+                ? "bg-gray-100 hover:bg-gray-200"
+                : "bg-gray-50 text-gray-400 cursor-not-allowed"
+                }`}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Refresh
+              Prev
             </button>
+
             <button
               onClick={handleNextPage}
               disabled={!hasNextPage}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasNextPage ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`px-3 py-2 flex rounded ${hasNextPage
+                ? "bg-gray-100 hover:bg-gray-200"
+                : "bg-gray-50 text-gray-400 cursor-not-allowed"
                 }`}
             >
               Next
@@ -477,6 +612,8 @@ function SuppliersPageContent() {
           </div>
         </div>
       )}
+
+
 
       {/* Create User Modal */}
       {showCreateModal && (
@@ -515,23 +652,23 @@ function SuppliersPageContent() {
                 {/* Contact Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
                     <input
                       type="text"
-                      value={formData.contactName}
-                      onChange={(e) => handleInputChange("contactName", e.target.value)}
-                      placeholder="Enter contact name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      placeholder="Enter  name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                     <input
                       type="email"
-                      value={formData.contactEmail}
-                      onChange={(e) => handleInputChange("contactEmail", e.target.value)}
-                      placeholder="Enter contact email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="Enter email"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -633,7 +770,7 @@ function SuppliersPageContent() {
                 Cancel
               </button>
               <button
-                onClick={handleCreateSupplier}
+                onClick={() => handleCreateSupplier(formData)}
                 disabled={creatingSupplier}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
@@ -685,9 +822,9 @@ function SuppliersPageContent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
                     <input
                       type="text"
-                      value={editFormData?.contactName}
-                      onChange={(e) => handleEditInputChange("contactName", e.target.value)}
-                      placeholder="Enter contact name"
+                      value={editFormData?.name}
+                      onChange={(e) => handleEditInputChange("name", e.target.value)}
+                      placeholder="Enter name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -696,9 +833,9 @@ function SuppliersPageContent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
                     <input
                       type="email"
-                      value={editFormData?.contactEmail}
-                      onChange={(e) => handleEditInputChange("contactEmail", e.target.value)}
-                      placeholder="Enter contact email"
+                      value={editFormData?.email}
+                      onChange={(e) => handleEditInputChange("email", e.target.value)}
+                      placeholder="Enter  email"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -799,7 +936,7 @@ function SuppliersPageContent() {
                 Cancel
               </button>
               <button
-                // onClick={handleUpdateUser}
+                onClick={() => handleUpdateSupplier(selectedSupplier.supplierId, editFormData)}
                 disabled={updatingSupplier}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
@@ -832,7 +969,7 @@ function SuppliersPageContent() {
                   Cancel
                 </button>
                 <button
-                  // onClick={handleDeleteUser}
+                  onClick={handleDeleteSupplier}
                   disabled={deletingUser}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
@@ -1092,7 +1229,7 @@ function ProductModal({ isOpen, onClose, onSave, editingProduct }) {
 
             <button
               type="submit"
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
             >
               {editingProduct ? "Update Product" : "Add Product"}
             </button>
@@ -1103,24 +1240,6 @@ function ProductModal({ isOpen, onClose, onSave, editingProduct }) {
 
 
   )
-}
-
-const mockSuppliers = [
-  { id: "1", name: "Supplier A" },
-  { id: "2", name: "Supplier B" },
-  { id: "3", name: "Supplier C" },
-]
-
-const mockProducts = {
-  "1": [
-    { id: "p1", name: "Product 1A", sku: "SKU001", price: 100, quantity: 50 },
-    { id: "p2", name: "Product 1B", sku: "SKU002", price: 150, quantity: 30 },
-  ],
-  "2": [
-    { id: "p3", name: "Product 2A", sku: "SKU003", price: 200, quantity: 20 },
-    { id: "p4", name: "Product 2B", sku: "SKU004", price: 250, quantity: 40 },
-  ],
-  "3": [{ id: "p5", name: "Product 3A", sku: "SKU005", price: 300, quantity: 10 }],
 }
 
 function ProductsPage({ onClose }) {
@@ -1216,7 +1335,7 @@ function ProductsPage({ onClose }) {
               {/* Add Product Button */}
               <button
                 onClick={handleAddProduct}
-               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />

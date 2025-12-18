@@ -894,12 +894,12 @@ export const api = {
     }
 
     // Add productId if provided
-    if (params.userId) {
+    if (params.productId) {
       queryParams.append('productId', params.productId);
     }
 
     // Add supplierId if provided
-    if (params.userId) {
+    if (params.supplierId) {
       queryParams.append('supplierId', params.supplierId);
     }
 
@@ -913,6 +913,8 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+
+  // get Suppliers
 
   getSuppliers: (params = {}) => {
     const queryParams = new URLSearchParams();
@@ -935,6 +937,29 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/suppliers?${queryString}`);
   },
+
+  // Create Suppliers
+  createSuppliers: (data) => {
+    return ApiService.awsRequest('/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateSuppliers: (data) => {
+    return ApiService.awsRequest('/suppliers', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSupplier: (data) => {
+    return ApiService.awsRequest('/suppliers', {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    });
+  },
+
   getProductsCategories: (params = {}) => {
     const queryParams = new URLSearchParams();
 
@@ -1027,6 +1052,12 @@ export const api = {
     console.log(payload);
     return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure`, {
       method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+  finalizePlangoramVersionStructure: (planogramId, payload) => {
+    return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:finalize`, {
+      method: 'POST',
       body: JSON.stringify(payload),
     });
   },

@@ -61,11 +61,12 @@ export default function PlanogramDetails() {
     //         </div>
     //     )
     // }
-    const navigate = (machineId) => {
+    const navigate = (action,machineId) => {
         router.push(
-            `/dashboard/planogram-structure?machineId=${machineId}`
+            `/dashboard/planogram-structure?machineId=${machineId}&action=${action}`
         );
     }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -203,15 +204,22 @@ export default function PlanogramDetails() {
 
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
+                                            {machine.primePlanogram && <button
+                                                onClick={() => navigate("finalize",machine.machineId)}
+                                                className="text-blue-600 hover:underline"
+                                            >
+                                                Finalize
+                                            </button>}
+
                                             {!machine.error && <button
-                                                onClick={() => navigate(machine.machineId)}
+                                                onClick={() => navigate("structure",machine.machineId)}
                                                 className="text-green-600 hover:underline"
                                             >
                                                 View Structure
                                             </button>}
-                                            {/* <button
-                      onClick={() => handleEdit(machine)}
-                      className="rounded-md bg-yellow-100 p-2 text-yellow-800 hover:bg-yellow-200"
+                                            {/* <button 
+                                              onClick={() => handleEdit(machine)}
+                                             className="rounded-md bg-yellow-100 p-2 text-yellow-800 hover:bg-yellow-200"
                       title="Edit"
                     >
                       <svg

@@ -73,7 +73,7 @@ const CreatePlanogramModal = ({
 
   const handleDelete = (index) => {
     setFormData((prev) => {
-      if (prev.versionDetails.length === 1) return prev;
+      if (prev.versionDetails.length === 0) return prev;
       return {
         ...prev,
         versionDetails: prev.versionDetails.filter((_, i) => i !== index),
@@ -82,12 +82,6 @@ const CreatePlanogramModal = ({
   };
 
 
-
-  const handleEdit = (index) => {
-    // optional – you can enable inline editing or modal later
-    console.log("Edit row", index);
-  };
-  console.log(formData);
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
