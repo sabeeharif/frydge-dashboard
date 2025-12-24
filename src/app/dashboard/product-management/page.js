@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useRef, useState } from "react";
-import { PackageSearch, RefreshCw, Plus } from "lucide-react";
+import { PackageSearch, RefreshCw, Plus, Search, Loader2 } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import ManageProductsModal from "@/app/components/products/ManageProductsModal";
 import ProductTable from "@/app/components/products/ProductTable";
@@ -10,6 +10,8 @@ import CreateProductModal from "@/app/components/products/CreateProductModal";
 import EditProductModal from "@/app/components/products/EditProductModal";
 import DeleteModal from "@/app/components/products/DeleteModal";
 import { AuthService, api } from "@/app/lib/auth"
+import CategoryTable from "../../components/products/CategoryTable";
+import DeleteCategoryModal from "../../components/products/DeleteCategoryModal";
 
 const ProductManagement = () => {
   // States
@@ -21,29 +23,36 @@ const ProductManagement = () => {
     externalId: "",
     costPrice: "",
   });
-  const [limit, setLimit] = useState(10); // dynamic limit
   const [suppliers, setSuppliers] = useState([]);
   const [supplierLastKey, setSupplierLastKey] = useState(null);
   const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false);
-    const [isRotating, setIsRotating] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [isRefreshRotating, setIsRefreshRotating] = useState(false);
   const [supplierPageSize, setSupplierPageSize] = useState(10);
-  const [productLastKey, setProductLastKey] = useState(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPrevPage, setHasPrevPage] = useState(false);
-  const pageHistoryRef = useRef([]);
-
+  const [allProducts, setAllProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState()
+  const [loading, setLoading] = useState()
+  0
   // Modal State
   const categoryTimeoutRef = useRef(null)
   const isFetchingAllCategoriesRef = useRef(false)
 
   const [allCategories, setAllCategories] = useState([])
+  const [deleteCategoryModal, setDeleteCategoryModal] = useState(false)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState()
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [deleteCategoryLoading, setDeleteCategoryLoading] = useState(false);
+
   const [categorySearchLoading, setCategorySearchLoading] = useState(false)
   const [categoryFetchProgress, setCategoryFetchProgress] = useState({
     current: 0,
     total: 0
   })
-
-  const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
@@ -53,9 +62,9 @@ const ProductManagement = () => {
   const [updatingProduct, setUpdatingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const pageSize = 10
-const pageCacheRef = useRef({});
-const currentPageRef = useRef(0);
-
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  // Pagination states
+  const [categoryPage, setCategoryPage] = useState(1);
 
   const fetchAllCategoriesProgressively = async () => {
     if (isFetchingAllCategoriesRef.current) return;
@@ -114,65 +123,9 @@ const currentPageRef = useRef(0);
     };
   }, []);
 
-
-  // Handle next page
-const handleNextPage = async () => {
-  const nextPage = currentPageRef.current + 1;
-
-  // ❌ No next page
-  if (!hasNextPage) return;
-
-  // ✅ Serve from cache
-  if (pageCacheRef.current[nextPage]) {
-    currentPageRef.current = nextPage;
-    const cached = pageCacheRef.current[nextPage];
-
-    setProducts(cached.products);
-    setProductLastKey(cached.lastKey);
-
-    setHasPrevPage(true);
-    setHasNextPage(!!cached.lastKey);
-    return;
-  }
-
-  // ✅ API call only once
-  currentPageRef.current = nextPage;
-  await fetchProducts(productLastKey, nextPage);
-};
-
-const handlePrevPage = () => {
-  const prevPage = currentPageRef.current - 1;
-
-  // ❌ Already on first page → disable
-  if (prevPage < 0) return;
-
-  const cached = pageCacheRef.current[prevPage];
-  if (!cached) return;
-
-  currentPageRef.current = prevPage;
-
-  setProducts(cached.products);
-  setProductLastKey(cached.lastKey);
-
-  // 🔒 Disable prev on first page
-  setHasPrevPage(prevPage > 0);
-  setHasNextPage(true);
-};
-
-
-useEffect(() => {
-  const init = async () => {
-    currentPageRef.current = 0;
-    await fetchProducts(null, 0);
-  };
-
-  init();
-}, []);
-
-
   const handleRefresh = async () => {
-    setIsRotating(true);
-    setTimeout(() => setIsRotating(false), 600); // stop after animation};
+    setIsRefreshRotating(true);
+    fetchAllProducts()
   }
 
   // Update suppliers
@@ -207,56 +160,13 @@ useEffect(() => {
     }
   };
 
-  // Modal
-  const handleManage = (product) => {
-    setSelectedProduct(product);
-    setIsManageModalOpen(true);
-  };
 
   // Input Form
   const handleInputChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Create Product
-  const handleCreateProduct = () => {
-    setCreatingProduct(true);
 
-    const newProduct = {
-      id: products.length + 1,
-      ...formData,
-    };
-
-    setProducts((prev) => [...prev, newProduct]);
-
-    setCreatingProduct(false);
-    setShowCreateProductModal(false);
-
-    // Reset form
-    setFormData({
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      isActive: true,
-      supplierId: "",
-    });
-  };
-
-  // Modal
-  const closeCreateProductModal = () => {
-    setShowCreateProductModal(false);
-
-    // Optional: reset form after closing
-    setFormData({
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      isActive: true,
-      supplierId: "",
-    });
-  };
 
   // Modal
   const openEditModal = (product) => {
@@ -317,57 +227,58 @@ useEffect(() => {
     setShowDeleteProductModal(true); // open modal
   };
 
-  // Function to Perform Deletion
-  const confirmDeleteProduct = () => {
-    setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
-    setShowDeleteProductModal(false);
-    setSelectedProduct(null);
-  };
-  const handelSyncProduct = () => {
-    setIsRotating(true)
-    setTimeout(() => {
-      fetchProducts();
-    }, 60000); // 1 minute = 60,000 ms
-  }
-  // Fetch
-const fetchProducts = async (lastKey = null, pageIndex) => {
-  try {
-    setIsRotating(true);
+  const handelSyncProduct = async () => {
+    try {
+      setIsRotating(true);
 
-    const response = await api.getProducts({
-      limit: pageSize,
-      lastKey,
-    });
+      // 1️⃣ Call sync API
+      const res = await api.syncProducts();
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      if (!res.ok) {
+        throw new Error("Sync failed");
+      }
+
+      // 2️⃣ After API success → wait 1 minute
+      setTimeout(() => {
+        fetchProducts();
+        setIsRotating(false);
+      }, 60000); // 1 minute
+
+    } catch (error) {
+      console.error("Product sync error:", error);
+      setIsRotating(false);
     }
-
-    const data = await response.json();
-
-    const fetchedProducts = data.products || data.results || [];
-    const newLastKey = data.lastKey || null;
-
-    // ✅ Cache page
-    pageCacheRef.current[pageIndex] = {
-      products: fetchedProducts,
-      lastKey: newLastKey,
-    };
-
-    setProducts(fetchedProducts);
-    setProductLastKey(newLastKey);
-
-    setHasNextPage(!!newLastKey);
-    setHasPrevPage(pageIndex > 0);
-
-  } catch (error) {
-    console.error("Failed to load products", error);
-  } finally {
-    setIsRotating(false);
   }
-};
 
+  // Fetch
+  const fetchAllProducts = async () => {
+    if (!isRotating) {
+      setLoading(true)
+    }
+    try {
 
+      setIsRotating(true);
+
+      const response = await api.getProducts({ limit: -1 });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+
+      const data = await response.json();
+      const products = data.products || data.results || [];
+
+      setAllProducts(products);
+      setFilteredProducts(products);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error("Failed to load products", error);
+    } finally {
+      setIsRotating(false);
+      setIsRefreshRotating(false);
+      setLoading(false)
+    }
+  };
 
 
   // Fetch
@@ -399,44 +310,129 @@ const fetchProducts = async (lastKey = null, pageIndex) => {
       console.error("Failed to load suppliers", error);
     }
   };
-  // const fetchProductsCategories = async (useLastKey = null) => {
-  //   try {
-  //     const response = await api.getProductsCategories({
-  //       // dynamic limit
-  //       lastKey: useLastKey        // pagination key
-  //     });
-
-  //     console.log("Category fetch response:", response.status);
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-  //       throw new Error(errorData.error || `HTTP ${response.status}`);
-  //     }
-
-  //     const data = await response.json();
-  //     console.log("Category data received:", data);
-
-  //     const fetchedCategory = data.productCategories || data.results || [];
-
-
-  //     setCategoriesOptions(fetchedCategory);
-
-  //   } catch (error) {
-  //     console.error("Failed to load suppliers", error);
-  //   }
-  // };
 
   useEffect(() => {
-    fetchProducts();
-  }, [limit]); // refetch when limit changes
+    fetchAllProducts();
+  }, []); // refetch when limit changes
 
   useEffect(() => {
-    // fetchProductsCategories()
     fetchSuppliers();
   }, [supplierPageSize]);
 
+  const handleSearch = (value) => {
+    setSearch(value);
+    setCurrentPage(1);
+
+    if (!value) {
+      setFilteredProducts(allProducts);
+      return;
+    }
+
+    const lower = value.toLowerCase();
+
+    const filtered = allProducts.filter((p) =>
+      p.name?.toLowerCase().includes(lower) ||
+      p.externalId?.toLowerCase().includes(lower)
+    );
+
+    setFilteredProducts(filtered);
+  };
+
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!categoryName.trim()) return;
+
+    try {
+      setCategoryLoading(true);
+
+      const res = await api.createProductCategory({
+        name: categoryName
+      });
+
+      if (!res.ok) throw new Error("Create failed");
+
+      await fetchAllCategoriesProgressively();
+      setCategoryName("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+  const handleUpdateCategory = async () => {
+    try {
+      setCategoryLoading(true);
+
+      const res = await api.updateProductCategory({
+        productCategoryId: editingCategory.productCategoryId,
+        name: categoryName
+      });
+
+      if (!res.ok) throw new Error("Update failed");
+
+      await fetchAllCategoriesProgressively();
+      setEditingCategory(null);
+      setCategoryName("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    setDeleteCategoryLoading(true)
+    try {
+      await api.deleteProductCategory({ productCategoryId: selectedCategory });
+      setDeleteCategoryModal(false)
+      await fetchAllCategoriesProgressively();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleteCategoryLoading(false)
+    }
+  };
+
+  const openDeleteModal = (categoryId) => {
+    setSelectedCategory(categoryId)
+    setDeleteCategoryModal(true)
+  }
+
+  const filteredCategories = allCategories.filter(cat =>
+    cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+  const totalCategoryPages = Math.ceil(filteredCategories.length / pageSize);
+  const displayedCategories = filteredCategories.slice(
+    (categoryPage - 1) * pageSize,
+    categoryPage * pageSize
+  );
 
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+        <Loader />
+      </div>
+    )
+  }
   return (
     <div className="p-8 space-y-8">
       {/* Head */}
@@ -454,10 +450,18 @@ const fetchProducts = async (lastKey = null, pageIndex) => {
       <div className="">
         <div className="flex justify-end gap-3">
           <button
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Manage Categories
+          </button>
+
+          <button
             onClick={handleRefresh}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshRotating ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
@@ -470,23 +474,51 @@ const fetchProducts = async (lastKey = null, pageIndex) => {
         </div>
       </div>
 
+      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="flex items-center bg-white rounded-full px-3">
+          <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+          <input
+            type="text"
+            placeholder={
+              allProducts?.length > 0 ? `Search through all ${allProducts?.length} products...` : "Search by name"
+            }
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full py-2 bg-transparent outline-none text-gray-900"
+          />
+        </div>
+      </div>
+
+      {search && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-blue-800 text-sm">
+            Found {paginatedProducts.length} product {paginatedProducts.length !== 1 ? "s" : ""} matching "{search}"
+            {allProducts.length > 0
+              ? ` (searching through ${allProducts.length} total products)`
+              : " (searching current page only)"}
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       <ProductTable
-        products={products}
+        products={paginatedProducts}
         suppliers={suppliers}
         onManage={openEditModal}
         onEdit={openEditModal}
         onDelete={handleDelete}
       />
 
+
       {/* Pagination Controls */}
       <PaginationControls
-        paginatedItems={products}
-        hasNextPage={hasNextPage}
-        hasPrevPage={hasPrevPage}
-        onRefresh={handlePrevPage}
+        paginatedItems={paginatedProducts}
+        hasNextPage={currentPage < totalPages}
+        hasPrevPage={currentPage > 1}
         onNextPage={handleNextPage}
+        onRefresh={handlePrevPage}
       />
+
 
       {/* Modal */}
       {isManageModalOpen && (
@@ -509,6 +541,131 @@ const fetchProducts = async (lastKey = null, pageIndex) => {
           allCategories={allCategories}
         />
       )}
+
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] shadow-2xl flex flex-col">
+
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
+              <h3 className="text-2xl font-semibold text-gray-900">Manage Categories</h3>
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Create / Edit Form */}
+            <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
+              <div className="flex gap-3">
+                <input
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  placeholder="Enter category name"
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                />
+
+                {editingCategory ? (
+                  <>
+                    <button
+                      onClick={handleUpdateCategory}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                    >
+                      {categoryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {categoryLoading ? "Updating..." : "Update"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCategory(null);
+                        setCategoryName('');
+                      }}
+                      className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleCreateCategory}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                  >
+                    {categoryLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {categoryLoading ? "Adding..." : "Add Category"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Search + Table + Pagination */}
+            <div className="flex-1 overflow-auto p-6 relative">
+              {/* Loading */}
+              {categorySearchLoading && (
+                <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+                  <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                </div>
+              )}
+
+              {/* Search */}
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search categories..."
+                  value={categorySearchTerm}
+                  onChange={(e) => setCategorySearchTerm(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Table */}
+              <CategoryTable
+                categories={displayedCategories}
+                onEdit={(cat) => {
+                  setEditingCategory(cat);
+                  setCategoryName(cat.name);
+                }}
+                onDelete={openDeleteModal}
+              />
+
+              {/* Pagination */}
+              <div className="mt-4 flex justify-end items-center gap-2">
+                <button
+                  onClick={() => setCategoryPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={categoryPage === 1}
+                  className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <span className="text-sm">
+                  Page {categoryPage} of {totalCategoryPages}
+                </span>
+                <button
+                  onClick={() => setCategoryPage((prev) => Math.min(prev + 1, totalCategoryPages))}
+                  disabled={categoryPage === totalCategoryPages}
+                  className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Delete Modal */}
+              <DeleteCategoryModal
+                open={deleteCategoryModal}
+                onClose={() => setDeleteCategoryModal(false)}
+                onDelete={handleDeleteCategory}
+                isLoading={deleteCategoryLoading}
+                setIsLoading={setDeleteCategoryLoading}
+              />
+            </div>
+
+          </div>
+        </div>
+      )}
+
+
 
     </div>
   );

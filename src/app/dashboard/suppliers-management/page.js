@@ -476,11 +476,11 @@ function SuppliersPageContent() {
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Supplier ID</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Company Name</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Contact Name</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Contct Email</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">isActive</th>
+                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Company Name</th> */}
+                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Name</th>
+                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Contct Email</th> */}
+                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Phone</th> */}
+                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">isActive</th> */}
                 <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -507,24 +507,24 @@ function SuppliersPageContent() {
                         <span className="text-sm font-medium text-gray-900">{supplier.supplierId}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{supplier.companyName || "N/A"}</div>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{supplier.name || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{supplier.contactEmail || "N/A"}</div>
-                    </td>
-                    <td className="px-6 py-4">
+                    </td> */}
+                    {/* <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${supplier.dsbUserRole === "admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
                           }`}
                       >
                         {supplier.phone || "N/A"}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
+                    </td> */}
+                    {/* <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${supplier.isAccountOwner ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                           }`}
@@ -538,7 +538,7 @@ function SuppliersPageContent() {
                           "No"
                         )}
                       </span>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4">
                       <div className="flex text-xs items-center gap-3">
 
@@ -637,32 +637,33 @@ function SuppliersPageContent() {
                   Supplier Information
                 </h3>
 
-                {/* Company Name */}
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
                   <input
                     type="text"
-                    value={formData.companyName}
-                    onChange={(e) => handleInputChange("companyName", e.target.value)}
-                    placeholder="Enter company name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    placeholder="Enter  name"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-
                 {/* Contact Info */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                  {/* Company Name */}
+                  {/* <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                     <input
                       type="text"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
-                      placeholder="Enter  name"
+                      value={formData.companyName}
+                      onChange={(e) => handleInputChange("companyName", e.target.value)}
+                      placeholder="Enter company name"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
+                  </div> */}
 
-                  <div>
+
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                     <input
                       type="email"
@@ -671,9 +672,9 @@ function SuppliersPageContent() {
                       placeholder="Enter email"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                     <input
                       type="text"
@@ -682,9 +683,9 @@ function SuppliersPageContent() {
                       placeholder="Enter phone number"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Active</label>
                     <select
                       value={formData.isActive}
@@ -694,11 +695,11 @@ function SuppliersPageContent() {
                       <option value={true}>Active</option>
                       <option value={false}>Inactive</option>
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Address */}
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 mt-4">
+                {/* <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 mt-4">
                   Address
                 </h3>
 
@@ -757,7 +758,7 @@ function SuppliersPageContent() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -804,20 +805,7 @@ function SuppliersPageContent() {
                   Supplier Information
                 </h3>
 
-                {/* Company Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                  <input
-                    type="text"
-                    value={editFormData?.companyName}
-                    onChange={(e) => handleEditInputChange("companyName", e.target.value)}
-                    placeholder="Enter company name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Contact Info */}
-                <div className="grid grid-cols-2 gap-4">
+                {/*  Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
                     <input
@@ -828,6 +816,20 @@ function SuppliersPageContent() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
+                {/* Contact Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                    <input
+                      type="text"
+                      value={editFormData?.companyName}
+                      onChange={(e) => handleEditInputChange("companyName", e.target.value)}
+                      placeholder="Enter company name"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
@@ -849,9 +851,9 @@ function SuppliersPageContent() {
                       placeholder="Enter phone number"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Active</label>
                     <select
                       value={editFormData?.isActive}
@@ -861,11 +863,11 @@ function SuppliersPageContent() {
                       <option value={true}>Active</option>
                       <option value={false}>Inactive</option>
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Address */}
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 mt-4">
+                {/* <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2 mt-4">
                   Address
                 </h3>
 
@@ -924,7 +926,7 @@ function SuppliersPageContent() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -958,7 +960,7 @@ function SuppliersPageContent() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Supplier</h3>
               <p className="text-gray-600 text-center mb-6">
-                Are you sure you want to delete Supplier "{selectedSupplier.contactName}"? This action
+                Are you sure you want to delete Supplier "{selectedSupplier.name}"? This action
                 cannot be undone.
               </p>
               <div className="flex justify-end gap-3">

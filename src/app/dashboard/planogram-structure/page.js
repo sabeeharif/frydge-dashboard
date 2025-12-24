@@ -5,16 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/app/lib/auth";
 import Loader from "@/app/components/Loader";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { useToast } from "@/app/contexts/ToastContext";
 
 const PlanogramStructure = () => {
   const [editItem, setEditItem] = useState(null)
   const [categories, setCategories] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [maxOrder, setMaxOrder] = useState({})
-  const [supplierOptions, setSupplierOptions] = useState()
-  const [categoryOptions, setCategoriesOptions] = useState()
-  const [supplierPageSize, setSupplierPageSize] = useState(10);
-  const [categoryPageSize, setCategoryPageSize] = useState(10);
   const [updatingPlanogram, setUpdatingPlanogram] = useState()
   const [planogramMeta, setPlanogramMeta] = useState(null)
   const searchParams = useSearchParams()
@@ -22,7 +19,6 @@ const PlanogramStructure = () => {
   const action = searchParams.get("action")
   const [productOptions, setProductOptions] = useState([])
   const [productSearchLoading, setProductSearchLoading] = useState(false)
-  const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 50 })
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [supplierFetchProgress, setSupplierFetchProgress] = useState()
   const [allProducts, setAllProducts] = useState([])
@@ -32,18 +28,24 @@ const PlanogramStructure = () => {
   const [categoryFetchProgress, setCategoryFetchProgress] = useState()
   const [supplierLoading, setSupplierLoading] = useState()
   const [categoryLoading, setCategoryLoading] = useState()
+  const [groupMachines, setGroupMachines] = useState([]) // all machines
+  const [excludeEnabled, setExcludeEnabled] = useState(false)
+  const [excludedMachineIds, setExcludedMachineIds] = useState([])
+  const [includeEnabled, setIncludeEnabled] = useState(false)
+  const [includedMachineIds, setIncludedMachineIds] = useState([])
+  const [applyToGroup, setApplyToGroup] = useState(false)
+  const pageSize = 10
 
 
   const searchTimeoutRef = useRef(null)
-  const searchCategoryTimeoutRef = useRef(null)
-  const searchSupplierTimeoutRef = useRef(null)
-  const isFetchingAllProductsRef = useRef(false)
+  const hasFetchedPlanogramRef = useRef(false)
   const isFetchingCategoriesRef = useRef(false)
   const isFetchingSuppliersRef = useRef(false)
   const router = useRouter()
   const shelfRefs = useRef({});
   const [structure, setStructure] = useState({})
   const [loading, setLoading] = useState(false)
+  const { success: toastSuccess } = useToast()
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -52,11 +54,11 @@ const PlanogramStructure = () => {
     setCategories(item.categoryIds || [])
     setSuppliers(item.supplierIds || [])
     setMaxOrder(item.maxOrderCapacity || {})
+    fetchProducts(item)
   }
 
   const handleSave = async () => {
     try {
-      console.log(editItem);
       // Simulated API call
       console.log("Saving:", {
         channelNumber: editItem.channelNumber,
@@ -94,15 +96,15 @@ const PlanogramStructure = () => {
   }
 
   const handleUpdatePlanogram = async () => {
-
+    setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
-    console.log(channelDetails);
     const payload = {
       machineStructureId: planogramMeta.machineStructureId,
       planogramVersionId: planogramMeta.planogramVersionId,
       primeMachine: planogramMeta?.primeMachine,
       machineId: planogramMeta.machineId,
-      channelDetails: channelDetails
+      channelDetails: channelDetails,
+
     }
 
     console.log("Sending full payload:", payload)
@@ -116,24 +118,31 @@ const PlanogramStructure = () => {
       }
 
       const result = await response.json()
-      console.log("Planogram updated successfully:", result)
+      toastSuccess("Successfully Update Planogram Structure")
 
       setEditItem(null)
+      fetchPlanogramStructure()
     } catch (err) {
       console.error("Update failed:", err)
 
       alert("Update failed. Please try again.")
+    } finally {
+      setUpdatingPlanogram(false)
     }
   }
 
   const handleFinalizePlanogram = async () => {
-
+    setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
-    console.log(channelDetails);
+    const paylod = {
+      excludedMachineIds: excludedMachineIds,
+      includedMachineIds: includedMachineIds,
+      productAssignments: channelDetails
+    }
 
     try {
       // // 🔹 API call
-      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, channelDetails)
+      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, paylod)
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -141,14 +150,18 @@ const PlanogramStructure = () => {
 
       const result = await response.json()
       console.log("Planogram updated successfully:", result)
-
+      toastSuccess(`${result?.message}`)
+      fetchPlanogramStructure()
       setEditItem(null)
     } catch (err) {
       console.error("Update failed:", err)
 
       alert("Update failed. Please try again.")
+    } finally {
+      setUpdatingPlanogram(false)
     }
   }
+
   const fetchProgressively = async ({
     fetchFn,
     onData,
@@ -262,8 +275,6 @@ const PlanogramStructure = () => {
   //     isFetchingRef: isFetchingAllProductsRef,
   //     setProgress: setFetchProgress,
   //     label: "products",
-  //   })
-
   const fetchAllSuppliersProgressively = () =>
     fetchProgressively({
       fetchFn: api.getSuppliers,
@@ -309,42 +320,12 @@ const PlanogramStructure = () => {
     }
   }, [])
 
-  // Fetch
-  // const fetchSuppliers = async (useLastKey = null) => {
-  //   try {
-  //     const response = await api.getSuppliers({
-  //       limit: supplierPageSize,   // dynamic limit
-  //       lastKey: useLastKey        // pagination key
-  //     });
-
-  //     console.log("Supplier fetch response:", response.status);
-
-  //     if (!response.ok) {
-  //       const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-  //       throw new Error(errorData.error || `HTTP ${response.status}`);
-  //     }
-
-  //     const data = await response.json();
-  //     console.log("Supplier data received:", data);
-
-  //     const fetchedSuppliers = data.suppliers || data.results || [];
-  //     const newLastKey = data.lastKey || null;
-
-  //     setSupplierOptions(fetchedSuppliers);
-  //     // setSupplierLastKey(newLastKey);
-  //     // setHasMoreSuppliers(!!newLastKey);
-
-  //   } catch (error) {
-  //     console.error("Failed to load suppliers", error);
-  //   }
-  // };
-
-  const fetchProducts = async (useLastKey = null) => {
+  const fetchProducts = async (item) => {
     try {
-      const response = await api.getProducts({
-        limit: -1,   // dynamic limit
-        lastKey: useLastKey        // pagination key
-      });
+      const response = await api.getProductsByCategoryAndSupplier(
+        item.categoryIds,   // dynamic limit
+        item?.supplierIds        // pagination key
+      );
 
       console.log("products fetch response:", response.status);
 
@@ -366,14 +347,6 @@ const PlanogramStructure = () => {
     }
   };
 
-  // useEffect(() => {
-  //   fetchSuppliers();
-  //   fetchProductsCategories()
-  // }, []);
-  useEffect(() => {
-    fetchProducts()
-  }, []);
-
   const handleCategorySelect = (e) => {
     const value = e.target.value
     if (value && !categories.includes(value)) {
@@ -385,6 +358,20 @@ const PlanogramStructure = () => {
     const value = e.target.value
     if (value && !suppliers.includes(value)) {
       setSuppliers([...suppliers, value])
+    }
+  }
+
+  const handleExcludeMachinesSelect = (e) => {
+    const value = e.target.value
+    if (value && !excludedMachineIds.includes(value)) {
+      setExcludedMachineIds([...excludedMachineIds, value])
+    }
+  }
+
+  const handleIncludeMachinesSelect = (e) => {
+    const value = e.target.value
+    if (value && !includedMachineIds.includes(value)) {
+      setIncludedMachineIds([...includedMachineIds, value])
     }
   }
 
@@ -444,6 +431,10 @@ const PlanogramStructure = () => {
   };
 
   useEffect(() => {
+    if (!machineId) return
+    if (hasFetchedPlanogramRef.current) return
+
+    hasFetchedPlanogramRef.current = true
     fetchPlanogramStructure()
   }, [machineId])
 
@@ -458,6 +449,43 @@ const PlanogramStructure = () => {
     });
   }, [structure]);
 
+  const fetchPlanogramVersions = async (useLastKey = null) => {
+    try {
+      let apiUrl = `/api/planogram_versions?limit=${pageSize}`
+      if (useLastKey) {
+        apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
+      }
+
+      const response = await api.getPlanogramVersions({
+        limit: pageSize,
+        lastKey: useLastKey,
+        planogramVersionId: planogramMeta?.planogramVersionId
+      })
+      console.log("Client fetch response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Handle different response structures
+      const fetchedProducts = data?.planogramVersions[0] || data.results || []
+      console.log(fetchedProducts.versionDetails)
+      setGroupMachines(fetchedProducts.versionDetails)
+    } catch (error) {
+      console.error("Failed to load products", error);
+    } finally {
+      setLoading(false)
+    }
+  };
+
+  useEffect(() => {
+    if (planogramMeta?.planogramVersionId) {
+      fetchPlanogramVersions()
+    }
+  }, [planogramMeta])
 
   if (loading) {
     return (
@@ -493,7 +521,9 @@ const PlanogramStructure = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="mb-8">
-            <h3 className="text-4xl font-bold text-gray-900 mb-2">Planogram Structure</h3>
+            <h3 className="text-4xl font-bold text-gray-900 mb-2 gap-3 flex">Planogram Structure
+              {planogramMeta?.primeMachine && <span className=" px-3 bg-green-500 text-white rounded-lg text-sm font-semibold
+            flex items-center">{planogramMeta?.primeMachine ? "Prime" : ""}</span>} </h3>
             <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
           </div>
           <div>
@@ -505,10 +535,182 @@ const PlanogramStructure = () => {
             transition-colors flex items-center gap-2"
             >
               {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Finalize Structure" : "Update Structure"}
+              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Apply Structure" : "Update Structure"}
             </button>
           </div>
         </div>
+
+        {/* actions exclude ,include and apply meachines */}
+        {action === "finalize" && (
+          <div className="mb-6">
+            {/* Exclude Machines Checkbox */}
+            <div className="mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={excludeEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setExcludeEnabled(checked)
+
+                    if (!checked) {
+                      setExcludedMachineIds([]) // clear selection
+                    }
+                  }}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Exclude machines
+                </span>
+              </label>
+            </div>
+            {excludeEnabled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select machines to exclude
+                </label>
+
+                <select
+                  multiple
+                  value={excludedMachineIds}
+                  onChange={handleExcludeMachinesSelect}
+                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                >
+                  {groupMachines.filter((mac) => !groupMachines.includes(mac.machineId)).map(machine => (
+                    <option
+                      key={machine.machineId}
+                      value={String(machine.machineId)}
+                      className="py-2 flex  gap-5 px-2 hover:bg-blue-50 cursor-pointer"
+                    >
+                      {machine.friendlyName}  {machine.primePlanogram ? " (Prime)" : ""}
+                    </option>
+
+                  ))}
+                </select>
+
+                {/* Selected Preview */}
+                {excludedMachineIds.length > 0 && (
+                  <div className="my-3 flex flex-wrap gap-2">
+                    {excludedMachineIds.map(id => (
+                      <span
+                        key={id}
+                        className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
+                      >
+                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExcludedMachineIds(
+                              excludedMachineIds.filter(m => m !== id)
+                            )
+                          }
+                          className="font-bold hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Include Machines Checkbox */}
+            <div className="mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setIncludeEnabled(checked)
+
+                    if (!checked) {
+                      setIncludedMachineIds([]) // clear selection
+                    }
+                  }}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Include machines
+                </span>
+              </label>
+            </div>
+
+            {/* Multi Select */}
+            {includeEnabled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select machines to exclude
+                </label>
+
+                <select
+                  multiple
+                  value={includedMachineIds}
+                  onChange={handleIncludeMachinesSelect}
+                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                >
+                  {groupMachines.filter((mac) => !groupMachines.includes(mac.machineId)).map(machine => (
+                    <option
+                      key={machine.machineId}
+                      value={String(machine.machineId)}
+                      className="py-2 flex  gap-5 px-2 hover:bg-blue-50 cursor-pointer"
+                    >
+                      {machine.friendlyName}  {machine.primePlanogram ? " (Prime)" : ""}
+                    </option>
+
+                  ))}
+                </select>
+
+                {/* Selected Preview */}
+                {includedMachineIds.length > 0 && (
+                  <div className="my-3 flex flex-wrap gap-2">
+                    {includedMachineIds.map(id => (
+                      <span
+                        key={id}
+                        className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
+                      >
+                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIncludedMachineIds(
+                              includedMachineIds.filter(m => m !== id)
+                            )
+                          }
+                          className="font-bold hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+
+
+            {/* Apply to Group */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="applyToGroup"
+                checked={applyToGroup}
+                onChange={(e) => setApplyToGroup(e.target.checked)}
+                className="h-4 w-4 rounded text-blue-600"
+              />
+              <label
+                htmlFor="applyToGroup"
+                className="text-sm font-medium text-gray-700"
+              >
+                Apply to all machines in this group
+              </label>
+            </div>
+          </div>
+        )}
+
+
 
         <div className="">
           {Object.entries(structure)
@@ -531,12 +733,6 @@ const PlanogramStructure = () => {
                   }}
                 >
                   {shelves.map((item, shelfIndex) => {
-                    const selectedCategories = categoryOptions?.filter((cat) =>
-                      item.categoryIds?.includes(cat.productCategoryId)
-                    );
-                    const selectedSuppliers = supplierOptions?.filter((sup) =>
-                      item.supplierIds?.includes(sup.supplierId)
-                    );
 
                     return (
                       <div
@@ -579,60 +775,119 @@ const PlanogramStructure = () => {
                             <img
                               // src={`/products/${item.image}`}
                               src={item?.productImage?.file}
-                              className="h-24 w-full object-contain rounded"
+                              className="h-24 w-auto object-contain rounded"
                               onError={(e) => {
                                 e.currentTarget.src = "/placeholder.png";
                               }}
                             />
-                            <div className="text-sm font-semibold text-gray-700 text-center">
+                            <div className="text-xs font-semibold text-gray-700 text-center">
                               {item.productName}
                             </div>
                           </div>
                         )}
 
-                        {/* Categories */}
-                        {/* {selectedCategories?.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Categories
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {selectedCategories.map((cat) => (
-                                <span
-                                  key={cat.productCategoryId}
-                                  className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded border border-gray-300"
-                                >
-                                  {cat.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )} */}
+                        <div className="flex flex-col justify-center items-center ">
+                          <div className="flex  items-center gap-4">
 
-                        {/* Suppliers */}
-                        {/* {selectedSuppliers?.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                              Suppliers
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {selectedSuppliers.map((sup) => (
-                                <span
-                                  key={sup.supplierId}
-                                  className="bg-blue-100 text-blue-700 border border-blue-300 rounded pl-1 pr-1 text-xs inline-flex items-center"
-                                >
-                                  {sup?.name}
-                                  <button
-                                    onClick={() => removeSupplier(sup.supplierId)}
-                                    className="ml-2 hover:text-red-600 font-bold text-lg"
-                                  >
-                                    ×
-                                  </button>
+                            {/* Categories */}
+                            {item?.categoryIds?.length > 0 && (
+                              <div
+                                className="relative inline-block group bg-green-500 text-white px-2 py-0.5 rounded-lg"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                {/* Trigger */}
+                                <span className="text-xs font-semibold cursor-pointer">
+                                  Categories
                                 </span>
-                              ))}
+
+                                {/* Tooltip */}
+                                <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                                  <div className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto">
+                                    {allCategories
+                                      ?.filter((cat) =>
+                                        item.categoryIds.includes(cat.productCategoryId)
+                                      )
+                                      .map((cat) => (
+                                        <div
+                                          key={cat.productCategoryId}
+                                          className="py-0.5 whitespace-nowrap"
+                                        >
+                                          {cat.name}
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+
+
+                            {/* Suppliers */}
+                            {item?.supplierIds?.length > 0 && (
+                              <div
+                                className="relative px-2 py-0.5 bg-blue-600 text-white  rounded-lg inline-block group "
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                {/* Trigger */}
+                                <span className=" text-xs font-semibold cursor-pointer">
+                                  Suppliers
+                                </span>
+
+                                {/* Tooltip */}
+                                <div className="absolute left-0 top-full hidden group-hover:block z-50">
+                                  <div
+                                    className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {allSuppliers
+                                      ?.filter((sup) =>
+                                        item.supplierIds.includes(sup.supplierId)
+                                      )
+                                      .map((sup) => (
+                                        <div
+                                          key={sup.supplierId}
+                                          className="py-0.5 whitespace-nowrap"
+                                        >
+                                          {sup.name}
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+
+                          </div>
+                          {/* Max Order */}
+                          <div
+                            className="relative inline-block group mt-2 bg-gray-500 text-white px-2 py-0.5 rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Trigger */}
+                            <span className="text-xs font-semibold cursor-pointer">
+                              Max Orders
+                            </span>
+
+                            {/* Tooltip */}
+                            <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                              <div className="w-36 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700">
+                                {Object.entries(item.maxOrderCapacity || {}).map(
+                                  ([day, val]) => (
+                                    <div
+                                      key={day}
+                                      className="py-0.5 flex justify-between gap-2"
+                                    >
+                                      <span>{day}</span>
+                                      <span className="font-semibold">{val}</span>
+                                    </div>
+                                  )
+                                )}
+                              </div>
                             </div>
                           </div>
-                        )} */}
+                        </div>
 
                         {/* Configure Button */}
                         {action === "finalize" ? <button
@@ -654,8 +909,6 @@ const PlanogramStructure = () => {
               </div>
             ))}
         </div>
-
-
       </div>
 
       {/* Edit Modal */}
@@ -778,7 +1031,7 @@ const PlanogramStructure = () => {
                 <p className="text-sm text-gray-600">Set categories, suppliers, and capacity limits</p>
               </div>
 
-              {editItem.primeMachine && <div className="mb-6">
+              {planogramMeta?.primeMachine && <div className="mb-6">
                 <label htmlFor="category-select" className="text-base font-semibold mb-3 block text-gray-900">
                   Categories
                 </label>
@@ -786,7 +1039,7 @@ const PlanogramStructure = () => {
                   id="category-select"
                   onChange={handleCategorySelect}
                   value=""
-                  disabled={!editItem.primeMachine}
+                  disabled={!planogramMeta.primeMachine}
                   className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="">Select a category...</option>
@@ -799,10 +1052,10 @@ const PlanogramStructure = () => {
                     ))}
                 </select>
 
-                {categories.length > 0 && (
+                {categories?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {categories.map((productCategoryId) => {
-                      const cat = categoryOptions.find((c) => c.productCategoryId === productCategoryId)
+                    {categories?.map((productCategoryId) => {
+                      const cat = allCategories.find((c) => c.productCategoryId === productCategoryId)
                       return (
                         <span
                           key={productCategoryId}
@@ -822,7 +1075,7 @@ const PlanogramStructure = () => {
                 )}
               </div>}
 
-              {editItem.primeMachine && <div className="mb-6">
+              {planogramMeta?.primeMachine && <div className="mb-6">
                 <label htmlFor="supplier-select" className="text-base font-semibold mb-3 block text-gray-900">
                   Suppliers
                 </label>
@@ -830,7 +1083,7 @@ const PlanogramStructure = () => {
                   id="supplier-select"
                   onChange={handleSupplierSelect}
                   value=""
-                  disabled={!editItem.primeMachine}
+                  disabled={!planogramMeta.primeMachine}
                   className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value="">Select a supplier...</option>
@@ -843,10 +1096,10 @@ const PlanogramStructure = () => {
                     ))}
                 </select>
 
-                {suppliers.length > 0 && (
+                {suppliers?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {suppliers.map((supplierId) => {
-                      const sup = supplierOptions.find((s) => s.supplierId === supplierId)
+                    {suppliers?.map((supplierId) => {
+                      const sup = allSuppliers?.find((s) => s.supplierId === supplierId)
                       return (
                         <span
                           key={supplierId}
@@ -916,6 +1169,7 @@ const PlanogramStructure = () => {
       )}
     </div>
   )
+  
 }
 
 export default function PlanogramStructurePage() {

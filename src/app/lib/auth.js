@@ -906,7 +906,17 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/products?${queryString}`);
   },
+  
+  getProductsByCategoryAndSupplier: (supplierIds,categoryIds) => {
+  
+    return ApiService.awsRequest(`/products?supplierId=${supplierIds}&productCategoryId=${categoryIds}`);
+  },
 
+   syncProducts: () => {
+    return ApiService.awsRequest(`/products/sync`, {
+      method: 'POST',
+    });
+  },
   updateProduct: (payload) => {
     return ApiService.awsRequest(`/products`, {
       method: 'PUT',
@@ -977,6 +987,26 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/product_categories?${queryString}`);
   },
+  // Create Category
+  createProductCategory: (data) => {
+    return ApiService.awsRequest('/product_categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  deleteProductCategory: (data) => {
+    return ApiService.awsRequest('/product_categories', {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    });
+  },
+  updateProductCategory: (data) => {
+    return ApiService.awsRequest('/product_categories', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
 
   // Get Ploanogram Versions
   getPlanogramVersions: (params = {}) => {

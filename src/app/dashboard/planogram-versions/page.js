@@ -139,20 +139,26 @@ const PlanogramManagement = () => {
                 throw new Error(errorData.error);
             }
 
+
             const createdPlanogram = await response.json();
 
             const planogramVersionId = createdPlanogram?.planogramVersionId;
+            // 2️⃣ INIT STRUCTURE API CALL
+            const initRes = await api.initPlanogramStructure(planogramVersionId);
 
+            if (!initRes.ok) {
+                throw new Error("Structure init failed");
+            }
             if (!planogramVersionId) {
                 throw new Error("Planogram version ID not returned from API");
             }
 
             // ✅ Navigate to planogram-structure with ID
             router.push(
-                `/dashboard/planogram-structure?planogramVersionId=${planogramVersionId}`
+                `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
             );
 
-            setShowCreateProductModal(false);
+            // setShowCreateProductModal(false);
 
             // Reset form
             setFormData({
@@ -163,9 +169,10 @@ const PlanogramManagement = () => {
         } catch (error) {
             console.error("Create planogram failed:", error);
             alert(error.message || "Something went wrong");
+            setCreatingProduct(false);
         } finally {
             setCreatingProduct(false);
-            closeCreateProductModal()
+            // closeCreateProductModal()
         }
     };
 
