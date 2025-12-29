@@ -24,6 +24,10 @@ const PlanogramStructure = () => {
   const [allProducts, setAllProducts] = useState([])
   const [allSuppliers, setAllSuppliers] = useState([])
   const [allCategories, setAllCategories] = useState([])
+  const [availableDates, setAvailableDates] = useState(["2025-08-01",
+    "2025-08-05",
+    "2025-08-10"])
+  const [selectedDate, setSelectedDate] = useState("")
 
   const [categoryFetchProgress, setCategoryFetchProgress] = useState()
   const [supplierLoading, setSupplierLoading] = useState()
@@ -36,7 +40,7 @@ const PlanogramStructure = () => {
   const [applyToGroup, setApplyToGroup] = useState(false)
   const pageSize = 10
 
-
+  const [dateLoader, setDateLoader] = useState()
   const searchTimeoutRef = useRef(null)
   const hasFetchedPlanogramRef = useRef(false)
   const isFetchingCategoriesRef = useRef(false)
@@ -46,8 +50,36 @@ const PlanogramStructure = () => {
   const [structure, setStructure] = useState({})
   const [loading, setLoading] = useState(false)
   const { success: toastSuccess } = useToast()
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+
+    return dateString.split("T")[0];
+  };
+
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+  const fetchOrderDates = async () => {
+    setDateLoader(true)
+    try {
+      const res = await api.getInternalOrederDates({ machineId: machineId, planogramVersionId: planogramMeta?.planogramVersionId, limit: 10 })
+      const data = await res.json()
+      setAvailableDates(data?.internalOrderDates || [])
+      if (data?.internalOrderDates?.length > 0) {
+        setDateLoader(false)
+      }
+    } catch (error) {
+      console.error("Failed to fetch dates", error)
+      setDateLoader(false)
+    }
+  }
+
+  useEffect(() => {
+    if (action === "finalize" && planogramMeta?.planogramVersionId) {
+
+      fetchOrderDates()
+    }
+  }, [planogramMeta])
 
   const openEditModal = (item, channelNumber, shelfIndex) => {
     setEditItem({ ...item, channelNumber, shelfIndex })
@@ -151,7 +183,9 @@ const PlanogramStructure = () => {
       const result = await response.json()
       console.log("Planogram updated successfully:", result)
       toastSuccess(`${result?.message}`)
-      fetchPlanogramStructure()
+      router.push(
+        `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
+      )
       setEditItem(null)
     } catch (err) {
       console.error("Update failed:", err)
@@ -709,7 +743,46 @@ const PlanogramStructure = () => {
             </div>
           </div>
         )}
+        {action === "finalize" && <div className="flex flex-wrap gap-2 items-center mb-6">
+          {/* Date Dropdown */}
+          <select
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select date</option>
+            {availableDates?.map((date) => (
+              <option key={date?.createdAt} value={date?.createdAt}>
+                {formatDate(date?.createdAt)}
+              </option>
+            ))}
+          </select>
+          {dateLoader && (
+            <div className="ml-2">
+              <svg
+                className="animate-spin h-5 w-5 text-blue-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+            </div>
+          )}
 
+        </div>}
 
 
         <div className="">
@@ -1169,7 +1242,7 @@ const PlanogramStructure = () => {
       )}
     </div>
   )
-  
+
 }
 
 export default function PlanogramStructurePage() {

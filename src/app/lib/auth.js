@@ -906,13 +906,13 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/products?${queryString}`);
   },
-  
-  getProductsByCategoryAndSupplier: (supplierIds,categoryIds) => {
-  
+
+  getProductsByCategoryAndSupplier: (supplierIds, categoryIds) => {
+
     return ApiService.awsRequest(`/products?supplierId=${supplierIds}&productCategoryId=${categoryIds}`);
   },
 
-   syncProducts: () => {
+  syncProducts: () => {
     return ApiService.awsRequest(`/products/sync`, {
       method: 'POST',
     });
@@ -1091,4 +1091,91 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+  SyncwithVendlive: (planogramVersionId) => {
+    return ApiService.awsRequest(`/planogram_versions/${planogramVersionId}/sync`, {
+      method: 'PATCH',
+    });
+  },
+  SyncwithVendlive: (planogramVersionId) => {
+    return ApiService.awsRequest(`/planogram_versions/${planogramVersionId}/sync`, {
+      method: 'PATCH',
+    });
+  },
+
+  // Get Internal Orders Dates
+  getInternalOrederDates: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
+
+    // Add lastKey only if it's valid
+    if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
+      queryParams.append("lastKey", params.lastKey);
+    }
+
+    // ✅ Add planogramVersionId only if provided
+    if (
+      params.planogramVersionId &&
+      params.planogramVersionId !== "null" &&
+      params.planogramVersionId !== null
+    ) {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
+    // ✅ Add machineId only if provided
+    if (
+      params.machineId &&
+      params.machineId !== "null" &&
+      params.machineId !== null
+    ) {
+      queryParams.append("machineId", params.machineId);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/internal_orders/dates${queryString ? `?${queryString}` : ""}`
+    );
+  },
+
+  // Get Internal Orders
+  getInternalOreders: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
+
+    // Add lastKey only if it's valid
+    if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
+      queryParams.append("lastKey", params.lastKey);
+    }
+
+    // ✅ Add planogramVersionId only if provided
+    if (
+      params.planogramVersionId &&
+      params.planogramVersionId !== "null" &&
+      params.planogramVersionId !== null
+    ) {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
+    // ✅ Add machineId only if provided
+    if (
+      params.machineId &&
+      params.machineId !== "null" &&
+      params.machineId !== null
+    ) {
+      queryParams.append("machineId", params.machineId);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/internal_orders${queryString ? `?${queryString}` : ""}`
+    );
+  },
+
 };

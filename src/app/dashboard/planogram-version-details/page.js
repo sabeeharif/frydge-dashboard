@@ -4,16 +4,20 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
-
+import { RefreshCw } from "lucide-react"
+import { useToast } from "@/app/contexts/ToastContext";
+import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 
 export default function PlanogramDetails() {
     const [loading, setLoading] = useState()
+    const [isRotating, setIsRotating] = useState()
     const searchParams = useSearchParams()
     const params = searchParams.get("planogramVersionId")
     const router = useRouter()
     const [planogram, setPlanogram] = useState(null)
+    const [isOpenOrder, setIsOpenOrder] = useState()
     const pageSize = 10
-
+    const { success: toastSuccess } = useToast()
 
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
@@ -53,18 +57,55 @@ export default function PlanogramDetails() {
         fetchPlanogramVersions()
     }, [])
 
-
-    // if (!planogram) {
-    //     return (
-    //         <div style={{ padding: "2rem", textAlign: "center" }}>
-    //             <p style={{ fontSize: "1.125rem", color: "#6b7280" }}>Planogram not found</p>
-    //         </div>
-    //     )
-    // }
-    const navigate = (action,machineId) => {
+    const navigate = (action, machineId) => {
         router.push(
             `/dashboard/planogram-structure?machineId=${machineId}&action=${action}`
         );
+    }
+    const handelSyncVendlive = async () => {
+        try {
+            setIsRotating(true);
+
+            // 1️⃣ Call sync API
+            const res = await api.SyncwithVendlive(params);
+
+            if (!res.ok) {
+                throw new Error("Sync failed");
+            }
+            const result = await res.json()
+            toastSuccess(`${result?.message}`)
+            // 2️⃣ After API success → wait 1 minute
+            fetchPlanogramVersions();
+            setIsRotating(false);
+
+
+        } catch (error) {
+            console.error("Product sync error:", error);
+            setIsRotating(false);
+        }
+    }
+
+    const handelOrders = () => {
+        setIsOpenOrder(true)
+        router.push(
+            `/dashboard/planogram-version-details?planogramVersionId=${planogram?.planogramVersionId}&orders`
+        )
+    }
+
+    useEffect(() => {
+        // Get query params
+        const planogramVersionId = searchParams.get("planogramVersionId");
+        const orders = searchParams.get("orders");
+        // Check if both exist
+        if (planogramVersionId && orders !== null) {
+            setIsOpenOrder(true);
+        } else {
+            setIsOpenOrder(false);
+        }
+    }, [searchParams]); // re-run if query params change
+
+    if (isOpenOrder) {
+        return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
     }
 
     if (loading) {
@@ -137,9 +178,26 @@ export default function PlanogramDetails() {
 
             {/* Machine Table */}
             <div className="mb-8">
-                <h3 className="mb-4 text-xl font-semibold text-gray-800">
-                    Machines
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className=" text-xl font-semibold text-gray-800">
+                        Machines
+                    </h3>
+                    <div className="flex gap-2 items-center justify-center">
+                        <button
+                            onClick={handelOrders}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        >
+                            View Orders
+                        </button>
+                        <button
+                            onClick={() => handelSyncVendlive()}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                            Sync with Vendlive
+                        </button>
+                    </div>
+                </div>
 
                 <div className="overflow-hidden rounded-lg bg-white shadow">
                     <table className="w-full border-collapse">
@@ -205,14 +263,14 @@ export default function PlanogramDetails() {
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
                                             {machine.primePlanogram && <button
-                                                onClick={() => navigate("finalize",machine.machineId)}
+                                                onClick={() => navigate("finalize", machine.machineId)}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 Finalize
                                             </button>}
 
                                             {!machine.error && <button
-                                                onClick={() => navigate("structure",machine.machineId)}
+                                                onClick={() => navigate("structure", machine.machineId)}
                                                 className="text-green-600 hover:underline"
                                             >
                                                 View Structure
