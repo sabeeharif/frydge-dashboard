@@ -41,6 +41,7 @@ const EditProductModal = ({
       // setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchMachines(1);
   }, []);
@@ -54,6 +55,7 @@ const EditProductModal = ({
       ],
     }));
   };
+
   const updateRow = (index, field, value) => {
     setFormData((prev) => {
       const updated = [...prev.versionDetails];
@@ -68,20 +70,20 @@ const EditProductModal = ({
       };
     });
   };
-  const handleDelete = (index) => {
-  setFormData((prev) => {
-    if (prev.versionDetails.length === 1) return prev;
-    return {
-      ...prev,
-      versionDetails: prev.versionDetails.filter((_, i) => i !== index),
-    };
-  });
-};
 
-  console.log(formData);
+  const handleDelete = (index) => {
+    setFormData((prev) => {
+      if (prev.versionDetails.length === 1) return prev;
+      return {
+        ...prev,
+        versionDetails: prev.versionDetails.filter((_, i) => i !== index),
+      };
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -136,7 +138,10 @@ const EditProductModal = ({
                           Machine
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                          Prime Planogram
+                          Vanue Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
+                          Prime
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
                           Actions
@@ -147,6 +152,7 @@ const EditProductModal = ({
                     <tbody>
                       {formData?.versionDetails?.map((row, index) => (
                         <tr key={index} className="border-t border-gray-300">
+
                           {/* Machine Dropdown */}
                           <td className="px-4 py-3 text-center text-gray-500">
                             <select
@@ -179,6 +185,11 @@ const EditProductModal = ({
                                   "friendlyName",
                                   selectedMachine?.friendlyName || ""
                                 );
+                                updateRow(
+                                  index,
+                                  "venueName",
+                                  selectedMachine?.venue?.name || null
+                                );
                               }}
                               className="w-full px-3 py-2 border rounded-lg"
                             >
@@ -192,6 +203,10 @@ const EditProductModal = ({
 
                           </td>
 
+                          {/* venueName */}
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            <h3>{row.venueName || "N/A"}</h3>
+                          </td>
 
                           {/* Prime Planogram Checkbox */}
                           <td className="px-4 py-3">

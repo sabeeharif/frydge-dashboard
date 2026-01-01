@@ -504,6 +504,7 @@ const ProductManagement = () => {
       <ProductTable
         products={paginatedProducts}
         suppliers={suppliers}
+        categories={allCategories}
         onManage={openEditModal}
         onEdit={openEditModal}
         onDelete={handleDelete}

@@ -41,7 +41,7 @@ export function getNavItems() {
     { name: "Driver Routes", path: "/dashboard/driver-routes", icon: Truck },
     { name: "Cleaner Routes", path: "/dashboard/cleaner-routes", icon: Sparkles },
     { name: "Suppliers Management", path: "/dashboard/suppliers-management", icon: Users },
-    { name: "Order Management", path: "/dashboard/order-management", icon: Package },
+    // { name: "Order Management", path: "/dashboard/order-management", icon: Package },
     { name: "Products Management", path: "/dashboard/product-management", icon: PackageSearch },
     { name: "Planogram Versions", path: "/dashboard/planogram-versions", icon: SquareChartGantt },
     // { name: "Location", path: "/dashboard/locations", icon: MapPin },

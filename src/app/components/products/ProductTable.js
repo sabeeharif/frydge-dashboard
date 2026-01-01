@@ -5,6 +5,7 @@ import { Boxes, Package, DollarSign } from "lucide-react";
 const ProductTable = ({
   products = [],
   suppliers = [],
+  categories = [],
   onManage,
   onEdit,
   onDelete,
@@ -53,6 +54,9 @@ const ProductTable = ({
                 const supplier = suppliers.find(
                   (s) => s.supplierId === product?.supplierId
                 );
+                const category = categories.find(
+                  (s) => s.productCategoryId === product?.productCategoryId
+                );
 
                 return (
                   <tr
@@ -72,7 +76,7 @@ const ProductTable = ({
 
                     {/* Category */}
                     <td className="px-6 py-4 text-gray-700">
-                      {product.productCategoryId || "No Category"}
+                     {category ? category.name : "None Assigned"}
                     </td>
 
                     {/* Price */}

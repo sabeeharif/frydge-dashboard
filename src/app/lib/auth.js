@@ -1067,8 +1067,11 @@ export const api = {
     const queryParams = new URLSearchParams();
 
     // Add machineId
-    if (params.machineId && params.machineId !== "null") {
-      queryParams.append("machineId", params.machineId);
+    if (params.machineStructureId && params.machineStructureId !== "null") {
+      queryParams.append("machineStructureId", params.machineStructureId);
+    }
+    if (params.planogramVersionId && params.planogramVersionId !== "null") {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
     }
 
     const queryString = queryParams.toString();
@@ -1169,6 +1172,13 @@ export const api = {
       params.machineId !== null
     ) {
       queryParams.append("machineId", params.machineId);
+    }
+    if (
+      params.internalOrderId &&
+      params.internalOrderId !== "null" &&
+      params.internalOrderId !== null
+    ) {
+      queryParams.append("internalOrderId", params.internalOrderId);
     }
 
     const queryString = queryParams.toString();

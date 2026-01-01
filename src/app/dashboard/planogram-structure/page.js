@@ -15,7 +15,8 @@ const PlanogramStructure = () => {
   const [updatingPlanogram, setUpdatingPlanogram] = useState()
   const [planogramMeta, setPlanogramMeta] = useState(null)
   const searchParams = useSearchParams()
-  const machineId = searchParams.get("machineId")
+  const machineStructureId = searchParams.get("machineStructureId")
+  const planogramVersionId = searchParams.get("planogramVersionId")
   const action = searchParams.get("action")
   const [productOptions, setProductOptions] = useState([])
   const [productSearchLoading, setProductSearchLoading] = useState(false)
@@ -51,18 +52,25 @@ const PlanogramStructure = () => {
   const [loading, setLoading] = useState(false)
   const { success: toastSuccess } = useToast()
   const formatDate = (dateString) => {
-    if (!dateString) return "";
-
-    return dateString.split("T")[0];
-  };
-
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return dateString
+    }
+  }
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
   const fetchOrderDates = async () => {
     setDateLoader(true)
     try {
-      const res = await api.getInternalOrederDates({ machineId: machineId, planogramVersionId: planogramMeta?.planogramVersionId, limit: 10 })
+      const res = await api.getInternalOrederDates({ machineStructureId: machineStructureId, planogramVersionId: planogramVersionId, limit: 10 })
       const data = await res.json()
       setAvailableDates(data?.internalOrderDates || [])
       if (data?.internalOrderDates?.length > 0) {
@@ -75,11 +83,11 @@ const PlanogramStructure = () => {
   }
 
   useEffect(() => {
-    if (action === "finalize" && planogramMeta?.planogramVersionId) {
+    if (action === "finalize" && planogramVersionId) {
 
       fetchOrderDates()
     }
-  }, [planogramMeta])
+  }, [planogramVersionId])
 
   const openEditModal = (item, channelNumber, shelfIndex) => {
     setEditItem({ ...item, channelNumber, shelfIndex })
@@ -139,8 +147,6 @@ const PlanogramStructure = () => {
 
     }
 
-    console.log("Sending full payload:", payload)
-
     try {
       // // 🔹 API call
       const response = await api.updatePlangoramVersionStructure(payload.planogramVersionId, payload)
@@ -175,21 +181,21 @@ const PlanogramStructure = () => {
     try {
       // // 🔹 API call
       const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, paylod)
-
-      if (!response.ok) {
+      console.log(response);
+      console.log(response.status);
+      if (!response.ok || !response.status === 200) {
         throw new Error(`HTTP ${response.status}`)
       }
 
-      const result = await response.json()
-      console.log("Planogram updated successfully:", result)
-      toastSuccess(`${result?.message}`)
+      // const result = await response.json()
+      toastSuccess(`Structure Finalize Successfully`)
       router.push(
         `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
       )
       setEditItem(null)
     } catch (err) {
       console.error("Update failed:", err)
-
+      console.log("erer", err);
       alert("Update failed. Please try again.")
     } finally {
       setUpdatingPlanogram(false)
@@ -210,7 +216,7 @@ const PlanogramStructure = () => {
     if (isFetchingRef.current) return
 
     isFetchingRef.current = true
-    setLoading(true)
+    // setLoading(true)
 
     try {
       let allItems = []
@@ -240,11 +246,10 @@ const PlanogramStructure = () => {
         }
       } while (lastKey && pageCount < maxPages)
 
-      console.log(`Fetched ${allItems.length} ${label}`)
     } catch (err) {
       console.error(`Error fetching ${label}:`, err)
     } finally {
-      setLoading(false)
+      // setLoading(false)
       isFetchingRef.current = false
     }
   }
@@ -290,7 +295,6 @@ const PlanogramStructure = () => {
   //       }
   //     } while (currentLastKey && pageCount < maxPages)
 
-  //     console.log(`Fetched ${allFetchedProducts.length} products progressively`)
   //   } catch (err) {
   //     console.error("Error fetching products:", err)
   //   } finally {
@@ -313,7 +317,6 @@ const PlanogramStructure = () => {
     fetchProgressively({
       fetchFn: api.getSuppliers,
       onData: setAllSuppliers,
-      setLoading: setSupplierLoading,
       isFetchingRef: isFetchingSuppliersRef,
       setProgress: setSupplierFetchProgress,
       label: "suppliers",
@@ -334,17 +337,14 @@ const PlanogramStructure = () => {
 
     searchTimeoutRef.current = setTimeout(() => {
       // if (!isFetchingAllProductsRef.current && allProducts.length === 0) {
-      //   console.log("Fetching all products progressively...")
       //   fetchAllProductsProgressively()
       // }
 
       if (!isFetchingSuppliersRef.current && allSuppliers.length === 0) {
-        console.log("Fetching all suppliers progressively...")
         fetchAllSuppliersProgressively()
       }
 
       if (!isFetchingCategoriesRef.current && allCategories.length === 0) {
-        console.log("Fetching all categories progressively...")
         fetchAllCategoriesProgressively()
       }
     }, 500)
@@ -361,7 +361,6 @@ const PlanogramStructure = () => {
         item?.supplierIds        // pagination key
       );
 
-      console.log("products fetch response:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
@@ -369,7 +368,6 @@ const PlanogramStructure = () => {
       }
 
       const data = await response.json();
-      console.log("products data received:", data);
 
       const fetchedCategory = data.products || data.results || [];
 
@@ -421,7 +419,8 @@ const PlanogramStructure = () => {
     setLoading(true)
     try {
       const response = await api.getPlanogramStructure({
-        machineId: machineId,
+        machineStructureId: machineStructureId,
+        planogramVersionId: planogramVersionId
       });
 
       if (!response.ok) {
@@ -429,7 +428,6 @@ const PlanogramStructure = () => {
       }
 
       const result = await response.json();
-      console.log("Structure initialized:", result);
 
       if (result.planogramStructure?.length > 0) {
         setPlanogramMeta({
@@ -454,34 +452,111 @@ const PlanogramStructure = () => {
             (a, b) => a.channel - b.channel
           );
         });
-        console.log(grouped);
         setStructure(grouped);
       }
     } catch (error) {
       console.error("Failed to fetch planogram structure", error);
     } finally {
       setLoading(false)
+      setSelectedDate("")
+      setExcludedMachineIds([])
+      setExcludeEnabled(false)
+      setIncludedMachineIds([])
+      setIncludeEnabled(false)
     }
   };
 
   useEffect(() => {
-    if (!machineId) return
+    if (!machineStructureId) return
     if (hasFetchedPlanogramRef.current) return
 
     hasFetchedPlanogramRef.current = true
     fetchPlanogramStructure()
-  }, [machineId])
+  }, [machineStructureId])
 
   // 🔹 Sync all cards height in each shelf row
   useEffect(() => {
     Object.values(shelfRefs.current).forEach((cards) => {
       if (!cards || cards.length === 0) return;
-      const maxHeight = Math.max(...cards.map((el) => el.offsetHeight));
-      cards.forEach((el) => {
+      const maxHeight = Math?.max(...cards?.map((el) => el?.offsetHeight));
+      cards?.forEach((el) => {
         if (el) el.style.height = `${maxHeight}px`;
       });
     });
   }, [structure]);
+
+  const fetchInteranalOrdersStructure = async (item) => {
+    const internalOrderId = item?.internalOrderId;
+    if (!internalOrderId) return;
+
+    setLoading(true);
+    console.log(planogramMeta?.machineId, "sads");
+    try {
+      const response = await api.getInternalOreders({
+        internalOrderId: internalOrderId,
+        machineId: planogramMeta?.machineId,
+        limit: 10,
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const result = await response.json();
+
+      if (result.internalOrders?.length > 0) {
+        const order = result.internalOrders[0]; // assuming only one internal order
+        const channels = Object.values(order.orderSnapshot[0]?.orderDetails || {}).flat();
+
+        // 🔹 Group by shelf
+        const grouped = channels.reduce((acc, item) => {
+          if (!acc[item.shelf]) acc[item.shelf] = [];
+          acc[item.shelf].push(item);
+          return acc;
+        }, {});
+
+        // 🔹 Sort channels inside each shelf
+        Object.keys(grouped).forEach((shelf) => {
+          grouped[shelf].sort((a, b) => a.channel - b.channel);
+        });
+
+        // Set meta like your planogram structure function
+        setPlanogramMeta({
+          internalOrderId: order.internalOrderId,
+          planogramVersionId: order.planogramVersionId,
+          includedMachineIds: order.includedMachineIds || [],
+          excludedMachineIds: order.excludedMachineIds || [],
+          machineId: order?.orderSnapshot[0]?.machineId,
+          createdAt: order.createdAt,
+        });
+
+        if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
+          setExcludedMachineIds(order?.excludedMachineIds)
+          setExcludeEnabled(true)
+          setIncludedMachineIds(order.includedMachineIds)
+          setIncludeEnabled(true)
+        } else if (order?.includedMachineIds?.length > 0) {
+          setIncludedMachineIds(order?.includedMachineIds)
+          setIncludeEnabled(true)
+        } else if (order?.excludedMachineIds.length > 0) {
+          setExcludedMachineIds(order.excludedMachineIds)
+          setExcludeEnabled(true)
+        } else {
+          setIncludedMachineIds([])
+          setIncludeEnabled(false)
+          setIncludedMachineIds([])
+          setExcludeEnabled(false)
+        }
+
+        setStructure(grouped); // flat grouped structure
+      } else {
+        setStructure(result?.internalOrders)
+      }
+    } catch (error) {
+      console.error("Failed to fetch internal order structure", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const fetchPlanogramVersions = async (useLastKey = null) => {
     try {
@@ -495,7 +570,6 @@ const PlanogramStructure = () => {
         lastKey: useLastKey,
         planogramVersionId: planogramMeta?.planogramVersionId
       })
-      console.log("Client fetch response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -506,7 +580,6 @@ const PlanogramStructure = () => {
 
       // Handle different response structures
       const fetchedProducts = data?.planogramVersions[0] || data.results || []
-      console.log(fetchedProducts.versionDetails)
       setGroupMachines(fetchedProducts.versionDetails)
     } catch (error) {
       console.error("Failed to load products", error);
@@ -610,27 +683,33 @@ const PlanogramStructure = () => {
                   onChange={handleExcludeMachinesSelect}
                   className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                 >
-                  {groupMachines.filter((mac) => !groupMachines.includes(mac.machineId)).map(machine => (
-                    <option
-                      key={machine.machineId}
-                      value={String(machine.machineId)}
-                      className="py-2 flex  gap-5 px-2 hover:bg-blue-50 cursor-pointer"
-                    >
-                      {machine.friendlyName}  {machine.primePlanogram ? " (Prime)" : ""}
-                    </option>
 
-                  ))}
+                  {groupMachines
+                    .filter(
+                      (machine) =>
+                        !includedMachineIds.includes((machine.machineId))
+                    )
+                    .map((machine) => (
+                      <option
+                        key={machine.machineId}
+                        value={machine.machineId}
+                      >
+                        {machine.friendlyName}
+                        {machine.primePlanogram ? " (Prime)" : ""}
+                      </option>
+                    ))}
+
                 </select>
 
                 {/* Selected Preview */}
                 {excludedMachineIds.length > 0 && (
                   <div className="my-3 flex flex-wrap gap-2">
-                    {excludedMachineIds.map(id => (
+                    {excludedMachineIds?.map(id => (
                       <span
                         key={id}
                         className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
                       >
-                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
+                        {groupMachines.find(m => (m.machineId) === (id))?.friendlyName} ({id})
 
                         <button
                           type="button"
@@ -684,16 +763,21 @@ const PlanogramStructure = () => {
                   onChange={handleIncludeMachinesSelect}
                   className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                 >
-                  {groupMachines.filter((mac) => !groupMachines.includes(mac.machineId)).map(machine => (
-                    <option
-                      key={machine.machineId}
-                      value={String(machine.machineId)}
-                      className="py-2 flex  gap-5 px-2 hover:bg-blue-50 cursor-pointer"
-                    >
-                      {machine.friendlyName}  {machine.primePlanogram ? " (Prime)" : ""}
-                    </option>
+                  {groupMachines
+                    .filter(
+                      (machine) =>
+                        !excludedMachineIds.includes(machine.machineId)
+                    )
+                    .map((machine) => (
+                      <option
+                        key={machine.machineId}
+                        value={(machine.machineId)}
+                      >
+                        {machine.friendlyName}
+                        {machine.primePlanogram ? " (Prime)" : ""}
+                      </option>
+                    ))}
 
-                  ))}
                 </select>
 
                 {/* Selected Preview */}
@@ -743,50 +827,76 @@ const PlanogramStructure = () => {
             </div>
           </div>
         )}
-        {action === "finalize" && <div className="flex flex-wrap gap-2 items-center mb-6">
-          {/* Date Dropdown */}
-          <select
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select date</option>
-            {availableDates?.map((date) => (
-              <option key={date?.createdAt} value={date?.createdAt}>
-                {formatDate(date?.createdAt)}
-              </option>
-            ))}
-          </select>
-          {dateLoader && (
-            <div className="ml-2">
-              <svg
-                className="animate-spin h-5 w-5 text-blue-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-            </div>
-          )}
+        {action === "finalize" &&
+          <div className="flex flex-wrap gap-2 items-center mb-6">
 
-        </div>}
+            {selectedDate && <div className="relative">
+              <button
+                onClick={fetchPlanogramStructure}
+                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+            hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
+            transition-colors flex items-center gap-2"
+              >
+
+                Current Order
+              </button>
+              <div
+                className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
+                title="Modified"
+              />
+            </div>}
+            {/* Date Dropdown */}
+            <select
+              value={selectedDate}
+              onChange={(e) => {
+                const selected = availableDates.find(item => item.createdAt === e.target.value);
+                setSelectedDate(e.target.value); // store the selected createdAt
+                if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
+              }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select date</option>
+              {availableDates?.map((item) => (
+                <option key={item?.createdAt} value={item?.createdAt}>
+                  {formatDate(item?.createdAt)}
+                </option>
+              ))}
+            </select>
+
+            {dateLoader && (
+              <div className="ml-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-blue-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  ></path>
+                </svg>
+              </div>
+            )}
+
+          </div>}
 
 
         <div className="">
-          {Object.entries(structure)
+          {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
+            <p className="text-gray-500 text-lg font-medium">
+              No orders available to display
+            </p>
+          </div> : Object.entries(structure)
             .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
             .map(([shelfNumber, shelves]) => (
               <div key={shelfNumber} className="space-y-3">

@@ -8,6 +8,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
 
 const PlanogramStructure = ({ setIsOpenOrder }) => {
+    const [scrollWidth, setScrollWidth] = useState(0)
+    const [selectedMachineId, setSelectedMachineId] = useState()
     const [editItem, setEditItem] = useState(null)
     const [categories, setCategories] = useState([])
     const [suppliers, setSuppliers] = useState([])
@@ -25,26 +27,15 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [allProducts, setAllProducts] = useState([])
     const [allSuppliers, setAllSuppliers] = useState([])
     const [allCategories, setAllCategories] = useState([])
-    const [availableDates, setAvailableDates] = useState(["2025-08-01",
-        "2025-08-05",
-        "2025-08-10"])
-    const [selectedDate, setSelectedDate] = useState("")
     const topScrollRef = useRef(null);
     const contentScrollRef = useRef(null);
-    const [categoryFetchProgress, setCategoryFetchProgress] = useState()
-    const [supplierLoading, setSupplierLoading] = useState()
-    const [categoryLoading, setCategoryLoading] = useState()
     const [groupMachines, setGroupMachines] = useState([]) // all machines
-    const [excludeEnabled, setExcludeEnabled] = useState(false)
     const [excludedMachineIds, setExcludedMachineIds] = useState([])
-    const [includeEnabled, setIncludeEnabled] = useState(false)
     const [includedMachineIds, setIncludedMachineIds] = useState([])
-    const [applyToGroup, setApplyToGroup] = useState(false)
     const pageSize = 10
 
 
     const searchTimeoutRef = useRef(null)
-    const hasFetchedPlanogramRef = useRef(false)
     const isFetchingCategoriesRef = useRef(false)
     const isFetchingSuppliersRef = useRef(false)
     const router = useRouter()
@@ -55,6 +46,19 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+    const formatDate = (dateString) => {
+        try {
+            return new Date(dateString).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            })
+        } catch {
+            return dateString
+        }
+    }
     const openEditModal = (item, channelNumber, shelfIndex) => {
         setEditItem({ ...item, channelNumber, shelfIndex })
         setCategories(item.categoryIds || [])
@@ -327,18 +331,74 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         setSuppliers(suppliers.filter((s) => s !== supId))
     }
 
-    const fetchInteranalOrdersStructure = async () => {
+    const fetchInteranalOrdersStructure = async (e) => {
+        const machineId = e.target.value;
+        if (!machineId) return;
+        setSelectedMachineId(machineId)
         setLoading(true)
         try {
             const response = await api.getInternalOreders({
                 planogramVersionId: planogramVersionId,
-                // machineId: machineId,
+                machineId: machineId,
                 limit: 10
             });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
+            const result = await response.json()
+            if (result.internalOrders?.length > 0) {
+                const planograms = {};
+
+                result.internalOrders.forEach((order) => {
+                    const {
+                        internalOrderId,
+                        planogramVersionId,
+                        includedMachineIds = [],
+                        excludedMachineIds = [],
+                        orderSnapshot = {},
+                        createdAt,
+                    } = order;
+
+                    // extract snapshot array (if exists)
+                    const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
+
+                    let grouped = {};
+                    console.log(orderSnapshot, "a");
+                    console.log(snapshotArray, "b");
+                    if (snapshotArray.length > 0) {
+                        grouped = snapshotArray.reduce((acc, item) => {
+                            if (!acc[item.shelf]) acc[item.shelf] = [];
+                            acc[item.shelf].push(item);
+                            return acc;
+                        }, {});
+
+                        Object.keys(grouped).forEach((shelf) => {
+                            grouped[shelf].sort((a, b) => a.channel - b.channel);
+                        });
+                    }
+
+                    planograms[createdAt] = {
+                        meta: {
+                            internalOrderId,
+                            planogramVersionId,
+                            includedMachineIds,
+                            excludedMachineIds,
+                            createdAt,
+                        },
+                        structure: grouped, // empty object if no snapshot
+                        hasSnapshot: snapshotArray[0]?.orderDetails?.length > 0,
+                    };
+                });
+
+                console.log(planograms);
+                setPlanogramMeta(planograms);
+                setStructure(planograms);
+            } else {
+                setStructure(result?.internalOrders)
+            }
+
+
             console.log("response", response);
         } catch (error) {
             console.error("Failed to fetch planogram structure", error);
@@ -347,13 +407,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
-    useEffect(() => {
-        if (!planogramVersionId) return
-        if (hasFetchedPlanogramRef.current) return
-
-        hasFetchedPlanogramRef.current = true
-        fetchInteranalOrdersStructure()
-    }, [planogramVersionId])
 
     useEffect(() => {
         Object.values(shelfRefs.current).forEach((planogram) => {
@@ -376,7 +429,9 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     }, [structure]);
 
 
+
     const fetchPlanogramVersions = async (useLastKey = null) => {
+        setLoading(true)
         try {
             let apiUrl = `/api/planogram_versions?limit=${pageSize}`
             if (useLastKey) {
@@ -386,7 +441,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             const response = await api.getPlanogramVersions({
                 limit: pageSize,
                 lastKey: useLastKey,
-                planogramVersionId: planogramMeta?.planogramVersionId
+                planogramVersionId: planogramVersionId
             })
             console.log("Client fetch response status:", response.status)
 
@@ -399,7 +454,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
             // Handle different response structures
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
-            console.log(fetchedProducts.versionDetails)
+            setLoading(false)
             setGroupMachines(fetchedProducts.versionDetails)
         } catch (error) {
             console.error("Failed to load products", error);
@@ -408,19 +463,32 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
+
     useEffect(() => {
-        if (planogramMeta?.planogramVersionId) {
+        if (planogramVersionId) {
             fetchPlanogramVersions()
         }
-    }, [planogramMeta])
+    }, [planogramVersionId])
 
-    const maxColumns = Math.max(
-        ...Object.values(structure).flatMap((p) =>
-            Object.values(p.structure).map((s) => s.length)
+
+    useEffect(() => {
+        if (contentScrollRef.current) {
+            setScrollWidth(contentScrollRef.current.scrollWidth)
+        }
+    }, [structure])
+
+
+    const hasValidSnapshot = (shelvesByNumber) => {
+        if (!shelvesByNumber?.structure) return false
+
+        return Object.values(shelvesByNumber.structure).some(
+            (shelves) => Array.isArray(shelves) && shelves.length > 0
         )
-    );
+    }
 
-    const scrollWidth = maxColumns * 280; // card width + gap
+    const validEntries = Object.entries(structure).filter(
+        ([, shelvesByNumber]) => hasValidSnapshot(shelvesByNumber)
+    );
 
     if (loading) {
         return (
@@ -464,53 +532,37 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             flex items-center">{planogramMeta?.primeMachine ? "Prime" : ""}</span>} </h3>
                         <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
                     </div>
-                    {/* <div>
-                        <button
-                            onClick={action === "finalize" ? handleFinalizePlanogram : handleUpdatePlanogram}
-                            disabled={updatingPlanogram}
-                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
-            hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
-            transition-colors flex items-center gap-2"
-                        >
-                            {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-                            {updatingPlanogram ? "Updating..." : action === "finalize" ? "Apply Structure" : "Update Structure"}
-                        </button>
-                    </div> */}
                 </div>
 
 
-                <div className="flex flex-wrap gap-4 items-center mb-6">
-                    {/* Date Dropdown */}
-                    {/* <select
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Select date</option>
-                        {availableDates.map((date) => (
-                            <option key={date} value={date}>
-                                {new Date(date).toLocaleDateString()}
-                            </option>
-                        ))}
-                    </select> */}
-
-                </div>
+                <select
+                    className="w-full px-3 py-2 border rounded-lg"
+                    onChange={fetchInteranalOrdersStructure}
+                    value={selectedMachineId}
+                >
+                    <option value="">Select Machine</option>
+                    {groupMachines?.map((m) => (
+                        <option key={m.machineId} value={m.machineId}>
+                            {m?.friendlyName}
+                        </option>
+                    ))}
+                </select>
 
 
                 {/* 🔹 TOP SCROLLBAR */}
+                {/* 🔹 TOP SCROLLBAR */}
                 <div
                     ref={topScrollRef}
-                    className="overflow-x-scroll overflow-y-hidden h-4 mb-4"
+                    className="overflow-x-scroll overflow-y-hidden mt-10 h-4 mb-4"
                     onScroll={(e) => {
                         if (contentScrollRef.current) {
-                            contentScrollRef.current.scrollLeft = e.target.scrollLeft;
+                            contentScrollRef.current.scrollLeft = e.target.scrollLeft
                         }
                     }}
                 >
-                    {/* Dummy width element */}
                     <div style={{ width: `${scrollWidth}px` }} className="h-1" />
-
                 </div>
+
 
                 {/* 🔹 ACTUAL CONTENT (YOUR CODE) */}
                 <div
@@ -518,63 +570,112 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                     className="flex gap-10 overflow-x-scroll hide-scrollbar"
                     onScroll={(e) => {
                         if (topScrollRef.current) {
-                            topScrollRef.current.scrollLeft = e.target.scrollLeft;
+                            topScrollRef.current.scrollLeft = e.target.scrollLeft
                         }
                     }}
                 >
 
-                    {Object.entries(structure).map(([planogramId, shelvesByNumber]) => (
-                        <div key={planogramId} className="mb-10 min-w-max">
-
-                            {/* Planogram Header */}
-                            <div className="text-lg font-bold mb-4">
-                                Planogram Version: {planogramId}
-                            </div>
-
-                            {Object.entries(shelvesByNumber.structure)
-                                .sort(([a], [b]) => Number(b) - Number(a))
-                                .map(([shelfNumber, shelves]) => (
-                                    <div key={shelfNumber} className="space-y-3 mb-6">
-
-                                        <div
-                                            className="grid items-stretch"
-                                            style={{
-                                                gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
-                                            }}
-                                        >
-                                            {shelves.map((item, shelfIndex) => (
-                                                <div
-                                                    key={`${planogramId}-${item.channel}-${item.shelf}`}
-                                                    ref={(el) => {
-                                                        if (!shelfRefs.current[planogramId])
-                                                            shelfRefs.current[planogramId] = {};
-                                                        if (!shelfRefs.current[planogramId][shelfNumber])
-                                                            shelfRefs.current[planogramId][shelfNumber] = [];
-                                                        shelfRefs.current[planogramId][shelfNumber][shelfIndex] = el;
-                                                    }}
-                                                    className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 text-blue-600">
-                                                            {item.shelf} - {item.channel}
-                                                        </div>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() =>
-                                                            openEditModal(item, shelfNumber, shelfIndex, planogramId)
-                                                        }
-                                                        className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
-                                                    >
-                                                        {action === "finalize" ? "Edit Product" : "Configure"}
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
+                    {validEntries.length === 0 ? (
+                        /* 🔹 EMPTY STATE */
+                        <div className="min-w-full flex items-center justify-center py-20">
+                            <p className="text-gray-500 text-lg font-medium">
+                                No orders available to display
+                            </p>
                         </div>
-                    ))}
+                    ) : (
+                        /* 🔹 DATA RENDER */
+                        validEntries.map(([createdAt, shelvesByNumber]) => (
+
+                            <div key={createdAt} className="mb-10 min-w-full border p-4 border-blue-600 rounded-lg">
+
+                                {/* Planogram Header */}
+                                <div className="text-lg font-bold mb-4">
+                                    Date: {formatDate(createdAt)}
+                                </div>
+
+                                {Object.entries(shelvesByNumber.structure)
+                                    .sort(([a], [b]) => Number(b) - Number(a))
+                                    .map(([shelfNumber, shelves]) => (
+                                        <div key={shelfNumber} className="space-y-3 mb-6">
+
+                                            <div
+                                                className="grid items-stretch"
+                                                style={{
+                                                    gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
+                                                }}
+                                            >
+                                                {shelves.map((item, shelfIndex) => (
+                                                    <div
+                                                        key={`${createdAt}-${item.channel}-${item.shelf}`}
+                                                        ref={(el) => {
+                                                            if (!shelfRefs.current[createdAt])
+                                                                shelfRefs.current[createdAt] = {};
+                                                            if (!shelfRefs.current[createdAt][shelfNumber])
+                                                                shelfRefs.current[createdAt][shelfNumber] = [];
+                                                            shelfRefs.current[createdAt][shelfNumber][shelfIndex] = el;
+                                                        }}
+                                                        className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
+                                                    >
+                                                        {/* Top Badge */}
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
+                                                                {item.shelf} - {item.channel}
+                                                            </div>
+                                                            {item.channelModified && (
+                                                                <div
+                                                                    className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                                                                    title="Modified"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        {/* Warning: Missing External ID */}
+                                                        {!item.productExternalId && (
+                                                            <div className="absolute top-2 right-2 group cursor-pointer">
+                                                                <AlertTriangle
+                                                                    className="h-5 w-5 text-yellow-500"
+                                                                    strokeWidth={2}
+                                                                />
+
+                                                                {/* Tooltip */}
+                                                                <div className="absolute right-0 mt-2 w-44 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs rounded px-2 py-1 z-50">
+                                                                    External ID not available
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {item?.productImage?.file && (
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <img
+                                                                    // src={`/products/${item.image}`}
+                                                                    src={item?.productImage?.file}
+                                                                    className="h-24 w-auto object-contain rounded"
+                                                                    onError={(e) => {
+                                                                        e.currentTarget.src = "/placeholder.png";
+                                                                    }}
+                                                                />
+                                                                <div className="text-xs font-semibold text-gray-700 text-center">
+                                                                    {item.productName}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+
+
+                                                        <button
+                                                            onClick={() =>
+                                                                openEditModal(item, shelfNumber, shelfIndex, createdAt)
+                                                            }
+                                                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        ))
+                    )}
                 </div>
 
 

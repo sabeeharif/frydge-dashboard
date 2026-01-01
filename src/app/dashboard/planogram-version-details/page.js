@@ -59,7 +59,7 @@ export default function PlanogramDetails() {
 
     const navigate = (action, machineId) => {
         router.push(
-            `/dashboard/planogram-structure?machineId=${machineId}&action=${action}`
+            `/dashboard/planogram-structure?machineStructureId=${machineId}&action=${action}&planogramVersionId=${params}`
         );
     }
     const handelSyncVendlive = async () => {
@@ -210,6 +210,9 @@ export default function PlanogramDetails() {
                                     Machine Name
                                 </th>
                                 <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
+                                    Venue Name
+                                </th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
                                     Prime Planogram
                                 </th>
                                 <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
@@ -247,6 +250,11 @@ export default function PlanogramDetails() {
                                             </div>
                                         )}
                                     </td>
+                                    <td className="px-4 py-4">
+                                        <div className="text-sm font-medium text-gray-800">
+                                            {machine.venueName === "null"?"_":machine?.venueName}
+                                        </div>
+                                    </td>
 
 
                                     <td className="px-4 py-4">
@@ -263,14 +271,14 @@ export default function PlanogramDetails() {
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
                                             {machine.primePlanogram && <button
-                                                onClick={() => navigate("finalize", machine.machineId)}
+                                                onClick={() => navigate("finalize", machine.machineStructureId)}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 Finalize
                                             </button>}
 
                                             {!machine.error && <button
-                                                onClick={() => navigate("structure", machine.machineId)}
+                                                onClick={() => navigate("structure", machine.machineStructureId)}
                                                 className="text-green-600 hover:underline"
                                             >
                                                 View Structure
