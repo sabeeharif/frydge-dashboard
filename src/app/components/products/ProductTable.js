@@ -69,14 +69,21 @@ const ProductTable = ({
                     {/* Product name */}
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-blue-600" />
+                        <img
+                          // src={`/products/${item.image}`}
+                          src={product?.image?.file}
+                          className="h-10 w-10  object-contain rounded"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.png";
+                          }}
+                        />
                         {product.name}
                       </div>
                     </td>
 
                     {/* Category */}
                     <td className="px-6 py-4 text-gray-700">
-                     {category ? category.name : "None Assigned"}
+                      {category ? category.name : "None Assigned"}
                     </td>
 
                     {/* Price */}

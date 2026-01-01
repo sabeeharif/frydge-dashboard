@@ -90,6 +90,7 @@ const PlanogramStructure = () => {
   }, [planogramVersionId])
 
   const openEditModal = (item, channelNumber, shelfIndex) => {
+    console.log(item);
     setEditItem({ ...item, channelNumber, shelfIndex })
     setCategories(item.categoryIds || [])
     setSuppliers(item.supplierIds || [])
@@ -109,7 +110,8 @@ const PlanogramStructure = () => {
         productName: editItem?.productName,
         productId: editItem?.productId,
         externalProductId: editItem?.externalProductId,
-        price: editItem?.price
+        price: editItem?.price,
+        productImage: editItem?.productImage
       })
 
       setStructure((prev) => {
@@ -123,7 +125,8 @@ const PlanogramStructure = () => {
           productName: editItem?.productName,
           productId: editItem?.productId,
           externalProductId: editItem?.externalProductId,
-          price: editItem?.price
+          price: editItem?.price,
+          productImage: editItem?.productImage
         }
         return updated
       })
@@ -302,17 +305,7 @@ const PlanogramStructure = () => {
   //     isFetchingAllProductsRef.current = false
   //   }
   // }
-  // const fetchAllProductsProgressively = () =>
-  //   fetchProgressively({
-  //     fetchFn: api.getProducts,
-  //     onData: (data) => {
-  //       setAllProducts(data)
-  //       setProductOptions(data)
-  //     },
-  //     setLoading: setProductSearchLoading,
-  //     isFetchingRef: isFetchingAllProductsRef,
-  //     setProgress: setFetchProgress,
-  //     label: "products",
+
   const fetchAllSuppliersProgressively = () =>
     fetchProgressively({
       fetchFn: api.getSuppliers,
@@ -593,6 +586,15 @@ const PlanogramStructure = () => {
       fetchPlanogramVersions()
     }
   }, [planogramMeta])
+  const getMachineNameById = (machineId) => {
+    if (!machineId || !groupMachines?.length) return "N/A";
+
+    const machine = groupMachines?.find(
+      (m) => String(m.machineId) === String(machineId)
+    );
+
+    return machine?.friendlyName || "";
+  };
 
   if (loading) {
     return (
@@ -601,6 +603,7 @@ const PlanogramStructure = () => {
       </div>
     )
   }
+  console.log(editItem);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-4">
@@ -827,6 +830,7 @@ const PlanogramStructure = () => {
             </div>
           </div>
         )}
+
         {action === "finalize" &&
           <div className="flex flex-wrap gap-2 items-center mb-6">
 
@@ -888,13 +892,14 @@ const PlanogramStructure = () => {
               </div>
             )}
 
-          </div>}
+          </div>
+        }
 
 
         <div className="">
           {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
             <p className="text-gray-500 text-lg font-medium">
-              No orders available to display
+              No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
             </p>
           </div> : Object.entries(structure)
             .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
@@ -1143,6 +1148,7 @@ const PlanogramStructure = () => {
                       const filtered = allProducts.filter((p) =>
                         p.name.toLowerCase().includes(search.toLowerCase())
                       )
+                      console.log(filtered);
                       setProductOptions(filtered)
                     } else {
                       setProductOptions(allProducts) // show all when input is cleared
@@ -1173,7 +1179,8 @@ const PlanogramStructure = () => {
                             productName: p.name,
                             productId: p.productId,
                             externalProductId: p.externalId,
-                            price: p.costPrice
+                            price: p.costPrice,
+                            productImage: p.image,
                           })
                           setProductOptions([]) // close dropdown after selection
                           setIsProductModalOpen(false)
