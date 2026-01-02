@@ -586,6 +586,7 @@ const PlanogramStructure = () => {
       fetchPlanogramVersions()
     }
   }, [planogramMeta])
+
   const getMachineNameById = (machineId) => {
     if (!machineId || !groupMachines?.length) return "N/A";
 
@@ -832,7 +833,7 @@ const PlanogramStructure = () => {
         )}
 
         {action === "finalize" &&
-          <div className="flex flex-wrap gap-2 items-center mb-6">
+          <div className="flex flex-wrap gap-2 items-end mb-6">
 
             {selectedDate && <div className="relative">
               <button
@@ -850,22 +851,28 @@ const PlanogramStructure = () => {
               />
             </div>}
             {/* Date Dropdown */}
-            <select
-              value={selectedDate}
-              onChange={(e) => {
-                const selected = availableDates.find(item => item.createdAt === e.target.value);
-                setSelectedDate(e.target.value); // store the selected createdAt
-                if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
-              }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select date</option>
-              {availableDates?.map((item) => (
-                <option key={item?.createdAt} value={item?.createdAt}>
-                  {formatDate(item?.createdAt)}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-1 ml-2">
+              <label className="text-sm font-semibold  block text-gray-900">
+                Past Orders
+              </label>
+              <select
+                value={selectedDate}
+                onChange={(e) => {
+                  const selected = availableDates.find(item => item.createdAt === e.target.value);
+                  setSelectedDate(e.target.value); // store the selected createdAt
+                  if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
+                }}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select date</option>
+                {availableDates?.map((item) => (
+                  <option key={item?.createdAt} value={item?.createdAt}>
+                    {formatDate(item?.createdAt)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
 
             {dateLoader && (
               <div className="ml-2">
@@ -897,6 +904,8 @@ const PlanogramStructure = () => {
 
 
         <div className="">
+          <label className="text-2xl mb-2 font-semibold  block text-gray-900">
+            {selectedDate ? <>Past Order ({formatDate(selectedDate)})</> : <></>} </label>
           {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
             <p className="text-gray-500 text-lg font-medium">
               No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
@@ -932,6 +941,7 @@ const PlanogramStructure = () => {
                         }}
                         className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
                       >
+
                         {/* Top Badge */}
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
@@ -944,6 +954,7 @@ const PlanogramStructure = () => {
                             />
                           )}
                         </div>
+
                         {/* Warning: Missing External ID */}
                         {!item.productExternalId && (
                           <div className="absolute top-2 right-2 group cursor-pointer">
@@ -958,6 +969,7 @@ const PlanogramStructure = () => {
                             </div>
                           </div>
                         )}
+
                         {item?.productImage?.file && (
                           <div className="flex flex-col items-center gap-2">
                             <img
@@ -1078,18 +1090,20 @@ const PlanogramStructure = () => {
                         </div>
 
                         {/* Configure Button */}
-                        {action === "finalize" ? <button
-                          onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
-                          className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Edit Product
-                        </button> :
+                        {action === "finalize" ?
+                          <button
+                            onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
+                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Edit Product
+                          </button> :
                           <button
                             onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
                             className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                           >
                             Configure
-                          </button>}
+                          </button>
+                        }
                       </div>
                     );
                   })}
@@ -1154,6 +1168,7 @@ const PlanogramStructure = () => {
                       setProductOptions(allProducts) // show all when input is cleared
                     }
                   }}
+
                   onBlur={() => {
                     // Delay closing so clicks on dropdown work
                     setTimeout(() => setIsProductModalOpen(false), 150)
@@ -1311,9 +1326,14 @@ const PlanogramStructure = () => {
 
               {/* Max Order Capacity Section */}
               <div className="mb-6">
-                <label className="text-base font-semibold mb-3 block text-gray-900">
-                  Max Order Capacity <span className="text-gray-600 font-normal">(per day)</span>
-                </label>
+                <div className="flex justify-between">
+                  <label className="text-base font-semibold mb-3 block text-gray-900">
+                    Max Order Capacity <span className="text-gray-600 font-normal">(per day)</span>
+                  </label>
+                  <label className="text-base font-semibold mb-3 block text-gray-900">
+                    Max Channel Capacity <span className="text-gray-600 font-normal">({editItem?.idealCapacity})</span>
+                  </label>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {daysOfWeek.map((day) => (
                     <div key={day} className="flex items-center gap-3">

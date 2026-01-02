@@ -41,7 +41,7 @@ export default function ManageProductsModal({
           </p>
           <p className="text-gray-700">
             <span className="font-semibold">Current Supplier:</span>{" "}
-            {assignedSupplier ? assignedSupplier?.name : "None Assigned"}
+            {assignedSupplier ? assignedSupplier?.name : "N/A"}
           </p>
         </div>
 

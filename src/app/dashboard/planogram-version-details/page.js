@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
@@ -8,7 +8,7 @@ import { RefreshCw } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext";
 import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 
-export default function PlanogramDetails() {
+const PlanogramDetails = () => {
     const [loading, setLoading] = useState()
     const [isRotating, setIsRotating] = useState()
     const searchParams = useSearchParams()
@@ -252,7 +252,7 @@ export default function PlanogramDetails() {
                                     </td>
                                     <td className="px-4 py-4">
                                         <div className="text-sm font-medium text-gray-800">
-                                            {machine.venueName === "null"?"_":machine?.venueName}
+                                            {machine.venueName === "null" ? "_" : machine?.venueName}
                                         </div>
                                     </td>
 
@@ -335,3 +335,16 @@ export default function PlanogramDetails() {
 
 }
 
+export default function PlanogramVersionDetailsPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex items-center justify-center h-screen w-full bg-gray-50">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                </div>
+            }
+        >
+            <PlanogramDetails />
+        </Suspense>
+    )
+}

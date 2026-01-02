@@ -83,7 +83,7 @@ const ProductTable = ({
 
                     {/* Category */}
                     <td className="px-6 py-4 text-gray-700">
-                      {category ? category.name : "None Assigned"}
+                      {category ? category.name : "N/A"}
                     </td>
 
                     {/* Price */}
@@ -94,7 +94,7 @@ const ProductTable = ({
 
                     {/* Supplier */}
                     <td className="px-6 py-4 text-gray-700">
-                      {supplier ? supplier.name : "None Assigned"}
+                      {supplier ? supplier.name : "N/A"}
                     </td>
 
                     {/* Actions */}

@@ -621,12 +621,12 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                                             <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
                                                                 {item.shelf} - {item.channel}
                                                             </div>
-                                                            {item.channelModified && (
+                                                            {/* {item.channelModified && (
                                                                 <div
                                                                     className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
                                                                     title="Modified"
                                                                 />
-                                                            )}
+                                                            )} */}
                                                         </div>
                                                         {/* Warning: Missing External ID */}
                                                         {!item.productExternalId && (
@@ -643,7 +643,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                                             </div>
                                                         )}
                                                         {item?.productImage?.file && (
-                                                            <div className="flex flex-col items-center gap-2">
+                                                            <div className="flex flex-col justify-center h-full items-center gap-2">
                                                                 <img
                                                                     // src={`/products/${item.image}`}
                                                                     src={item?.productImage?.file}
@@ -660,14 +660,14 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
 
 
-                                                        <button
+                                                        {/* <button
                                                             onClick={() =>
                                                                 openEditModal(item, shelfNumber, shelfIndex, createdAt)
                                                             }
                                                             className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
                                                         >
                                                             Edit
-                                                        </button>
+                                                        </button> */}
                                                     </div>
                                                 ))}
                                             </div>
