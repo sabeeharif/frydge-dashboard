@@ -146,8 +146,9 @@ const PlanogramStructure = () => {
       planogramVersionId: planogramMeta.planogramVersionId,
       primeMachine: planogramMeta?.primeMachine,
       machineId: planogramMeta.machineId,
+      friendlyName: planogramMeta?.friendlyName,
+      venueName: planogramMeta?.venueName,
       channelDetails: channelDetails,
-
     }
 
     try {
@@ -427,7 +428,9 @@ const PlanogramStructure = () => {
           machineStructureId: result?.planogramStructure[0].machineStructureId,
           planogramVersionId: result?.planogramStructure[0].planogramVersionId,
           machineId: result?.planogramStructure[0].machineId,
-          primeMachine: result?.planogramStructure[0].primeMachine
+          primeMachine: result?.planogramStructure[0].primeMachine,
+          friendlyName: result?.planogramStructure[0].friendlyName,
+          venueName: result?.planogramStructure[0].venueName
         })
         const channels =
           result.planogramStructure[0].channelDetails || [];
@@ -519,6 +522,8 @@ const PlanogramStructure = () => {
           excludedMachineIds: order.excludedMachineIds || [],
           machineId: order?.orderSnapshot[0]?.machineId,
           createdAt: order.createdAt,
+          friendlyName: order?.orderSnapshot[0].friendlyName,
+          venueName: order?.orderSnapshot[0].venueName
         });
 
         if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
@@ -604,7 +609,7 @@ const PlanogramStructure = () => {
       </div>
     )
   }
-  console.log(editItem);
+
 
   return (
     <div className="min-h-screen bg-gray-50 pt-4">

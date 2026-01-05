@@ -83,7 +83,6 @@ const CreatePlanogramModal = ({
     });
   };
 
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -160,8 +159,6 @@ const CreatePlanogramModal = ({
                       {formData?.versionDetails?.map((row, index) => (
                         <tr key={index} className="border-t border-gray-300">
 
-
-
                           {/* Machine Dropdown */}
                           <td className="px-4 py-3 text-center text-gray-500">
                             <select
@@ -198,6 +195,11 @@ const CreatePlanogramModal = ({
                                   index,
                                   "venueName",
                                   selectedMachine?.venue?.name || null
+                                );
+                                updateRow(
+                                  index,
+                                  "deviceId",
+                                  selectedMachine?.maxItemsPerDevice[0]?.deviceId || null
                                 );
                               }}
                               className="w-full px-3 py-2 border rounded-lg"
