@@ -1,6 +1,6 @@
 // ProductTable.jsx
 import React from "react";
-import { Boxes, Package, DollarSign } from "lucide-react";
+import { Boxes, Package, DollarSign, Euro } from "lucide-react";
 
 const ProductTable = ({
   products = [],
@@ -96,7 +96,7 @@ const ProductTable = ({
 
                     {/* Price */}
                     <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
-                      <h3 className="h-4 w-4 text-green-600">€</h3> 
+                      <Euro className="h-4 w-4 text-green-600"/>
                       {product.costPrice ? product.costPrice : "N/A"}
                     </td>
 

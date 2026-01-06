@@ -17,8 +17,10 @@ const PlanogramStructure = () => {
   const searchParams = useSearchParams()
   const machineStructureId = searchParams.get("machineStructureId")
   const planogramVersionId = searchParams.get("planogramVersionId")
-  const action = searchParams.get("action")
+  const [productSearch, setProductSearch] = useState("")
   const [productOptions, setProductOptions] = useState([])
+
+  const action = searchParams.get("action")
   const [productSearchLoading, setProductSearchLoading] = useState(false)
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [supplierFetchProgress, setSupplierFetchProgress] = useState()
@@ -29,6 +31,8 @@ const PlanogramStructure = () => {
     "2025-08-05",
     "2025-08-10"])
   const [selectedDate, setSelectedDate] = useState("")
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const [selectedPlanDate, setSelectedPlanDate] = useState("")
 
   const [categoryFetchProgress, setCategoryFetchProgress] = useState()
   const [supplierLoading, setSupplierLoading] = useState()
@@ -79,6 +83,8 @@ const PlanogramStructure = () => {
     } catch (error) {
       console.error("Failed to fetch dates", error)
       setDateLoader(false)
+    } finally {
+      setDateLoader(false)
     }
   }
 
@@ -92,6 +98,7 @@ const PlanogramStructure = () => {
   const openEditModal = (item, channelNumber, shelfIndex) => {
     console.log(item);
     setEditItem({ ...item, channelNumber, shelfIndex })
+    setProductSearch(item?.productName)
     setCategories(item.categoryIds || [])
     setSuppliers(item.supplierIds || [])
     setMaxOrder(item.maxOrderCapacity || {})
@@ -176,7 +183,9 @@ const PlanogramStructure = () => {
   const handleFinalizePlanogram = async () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
-    const paylod = {
+    const payload = {
+      internalOrderId: planogramMeta?.internalOrderId,
+      plannedPlanogramDate: selectedPlanDate,
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
       productAssignments: channelDetails
@@ -184,7 +193,7 @@ const PlanogramStructure = () => {
 
     try {
       // // 🔹 API call
-      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, paylod)
+      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
       console.log(response);
       console.log(response.status);
       if (!response.ok || !response.status === 200) {
@@ -602,6 +611,32 @@ const PlanogramStructure = () => {
     return machine?.friendlyName || "";
   };
 
+  const handelSelectDate = (date) => {
+    console.log(date);
+    if (!date) return ""
+    const timestamp = new Date(date).toISOString()
+    console.log(timestamp);
+    setSelectedPlanDate(timestamp)
+  }
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (!productSearch.trim()) {
+        setProductOptions(allProducts)
+      } else {
+        setProductOptions(
+          allProducts.filter(p =>
+            p.name.toLowerCase().includes(productSearch.toLowerCase())
+          )
+        )
+      }
+    }, 150)
+
+    return () => clearTimeout(id)
+  }, [productSearch, allProducts])
+
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -659,6 +694,7 @@ const PlanogramStructure = () => {
         {/* actions exclude ,include and apply meachines */}
         {action === "finalize" && (
           <div className="mb-6">
+
             {/* Exclude Machines Checkbox */}
             <div className="mb-4">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -680,6 +716,7 @@ const PlanogramStructure = () => {
                 </span>
               </label>
             </div>
+
             {excludeEnabled && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -737,6 +774,7 @@ const PlanogramStructure = () => {
                 )}
               </div>
             )}
+
             {/* Include Machines Checkbox */}
             <div className="mb-4">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -847,18 +885,18 @@ const PlanogramStructure = () => {
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
             transition-colors flex items-center gap-2"
               >
-
-                Current Order
+                Latest Order
               </button>
               <div
                 className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
                 title="Modified"
               />
             </div>}
+
             {/* Date Dropdown */}
             <div className="flex flex-col gap-1 ml-2">
               <label className="text-sm font-semibold  block text-gray-900">
-                Past Orders
+                Select Order
               </label>
               <select
                 value={selectedDate}
@@ -872,7 +910,7 @@ const PlanogramStructure = () => {
                 <option value="">Select date</option>
                 {availableDates?.map((item) => (
                   <option key={item?.createdAt} value={item?.createdAt}>
-                    {formatDate(item?.createdAt)}
+                    {formatDate(item?.createdAt)} {item?.draft && "(Draft)"}
                   </option>
                 ))}
               </select>
@@ -904,13 +942,38 @@ const PlanogramStructure = () => {
               </div>
             )}
 
+            {!selectedPlanDate && (
+              <button
+                onClick={() => setIsPlanModalOpen(true)}
+                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
+               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
+              >
+                {selectedDate ? "Re-Apply Date" : "New Plan"}
+              </button>
+            )}
+
+
+            {selectedPlanDate && (
+              <div className="px-3 relative py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                Plan Date: {formatDate(selectedPlanDate)}
+
+                <button
+                  onClick={() => setSelectedPlanDate("")}
+                  className="text-sm cursor-pointer absolute top-[-9px] right-0 text-red-500 "
+                >
+                  X
+                </button>
+
+              </div>
+            )}
+
           </div>
         }
 
 
         <div className="">
           <label className="text-2xl mb-2 font-semibold  block text-gray-900">
-            {selectedDate ? <>Past Order ({formatDate(selectedDate)})</> : <></>} </label>
+            {selectedDate ? <>Selected Order ({formatDate(selectedDate)})</> : <></>} </label>
           {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
             <p className="text-gray-500 text-lg font-medium">
               No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
@@ -1119,270 +1182,296 @@ const PlanogramStructure = () => {
       </div>
 
       {/* Edit Modal */}
-      {editItem && (
-        action === "finalize" ?
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
-              {/* Modal Header */}
-              <div className="mb-6 pb-4 border-b border-gray-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
-                </h3>
-                <p className="text-sm text-gray-600">Edit product details, categories, suppliers, and capacity limits</p>
-              </div>
-
-
-
-              {/* Product Image */}
-              {editItem?.productImage?.file && (
-                <div className="flex flex-col items-center gap-2 mb-4">
-                  <img
-                    src={editItem.productImage.file}
-                    className="h-32 w-full object-contain rounded"
-                    onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
-                  />
+      {
+        editItem && (
+          action === "finalize" ?
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+                {/* Modal Header */}
+                <div className="mb-6 pb-4 border-b border-gray-200">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                    Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
+                  </h3>
+                  <p className="text-sm text-gray-600">Edit product details, categories, suppliers, and capacity limits</p>
                 </div>
-              )}
 
 
-              {/* Product Name Input */}
-              <div className="mb-6 relative">
-                <label htmlFor="product-search" className="text-base font-semibold mb-2 block text-gray-900">
-                  Product
-                </label>
-                <input
-                  id="product-search"
-                  type="text"
-                  placeholder="Search product..."
-                  value={editItem.productName || ""}
-                  onFocus={() => {
-                    setIsProductModalOpen(true)
-                    setProductOptions(allProducts) // show all products on focus
-                  }}
-                  onChange={(e) => {
-                    const search = e.target.value
-                    setEditItem({ ...editItem, productName: search })
 
-                    if (search.trim() !== "") {
-                      const filtered = allProducts.filter((p) =>
-                        p.name.toLowerCase().includes(search.toLowerCase())
-                      )
-                      console.log(filtered);
-                      setProductOptions(filtered)
-                    } else {
-                      setProductOptions(allProducts) // show all when input is cleared
-                    }
-                  }}
-
-                  onBlur={() => {
-                    // Delay closing so clicks on dropdown work
-                    setTimeout(() => setIsProductModalOpen(false), 150)
-                  }}
-                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-
-                {productSearchLoading && (
-                  <div className="absolute right-2 top-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                {/* Product Image */}
+                {editItem?.productImage?.file && (
+                  <div className="flex flex-col items-center gap-2 mb-4">
+                    <img
+                      src={editItem.productImage.file}
+                      className="h-32 w-full object-contain rounded"
+                      onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
+                    />
                   </div>
                 )}
 
-                {productOptions?.length > 0 && isProductModalOpen && (
-                  <ul className="absolute z-50 w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded mt-1 shadow-lg">
-                    {productOptions.map((p) => (
-                      <li
-                        key={p.productId}
-                        onMouseDown={() => {
-                          // use onMouseDown to select before input loses focus
-                          setEditItem({
-                            ...editItem,
-                            productName: p.name,
-                            productId: p.productId,
-                            externalProductId: p.externalId,
-                            price: p.costPrice,
-                            productImage: p.image,
-                          })
-                          setProductOptions([]) // close dropdown after selection
-                          setIsProductModalOpen(false)
-                        }}
-                        className="px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm"
-                      >
-                        {p.name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+
+                {/* Product Name Input */}
+                <div className="mb-6 relative">
+                  <label htmlFor="product-search" className="text-base font-semibold mb-2 block text-gray-900">
+                    Product
+                  </label>
+                  <input
+                    id="product-search"
+                    type="text"
+                    placeholder="Search product..."
+                    value={productSearch || ""}
+                    onFocus={() => {
+                      setIsProductModalOpen(true)
+                      setProductOptions(allProducts) // show all products on focus
+                    }}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setProductSearch(value) // 🔥 instant UI update
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setIsProductModalOpen(false), 150)
+                    }}
+                    className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+
+                  {productSearchLoading && (
+                    <div className="absolute right-2 top-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                    </div>
+                  )}
+
+                  {productOptions?.length > 0 && isProductModalOpen && (
+                    <ul className="absolute z-50 w-full max-h-60 overflow-y-auto bg-white border border-gray-300 rounded mt-1 shadow-lg">
+                      {productOptions.map((p) => (
+                        <li
+                          key={p.productId}
+                          onMouseDown={() => {
+                            // use onMouseDown to select before input loses focus
+                            setEditItem({
+                              ...editItem,
+                              productName: p.name,
+                              productId: p.productId,
+                              externalProductId: p.externalId,
+                              price: p.costPrice,
+                              productImage: p.image,
+                            })
+                            setProductSearch(p.name)
+
+                            setIsProductModalOpen(false)
+                          }}
+                          className="px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm"
+                        >
+                          {p.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setEditItem(null)}
+                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setEditItem(null)}
-                  className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Save Changes
-                </button>
+            </div> :
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+                {/* Modal Header */}
+                <div className="mb-6 pb-4 border-b border-gray-200">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                    Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
+                  </h3>
+                  <p className="text-sm text-gray-600">Set categories, suppliers, and capacity limits</p>
+                </div>
+
+                {planogramMeta?.primeMachine && <div className="mb-6">
+                  <label htmlFor="category-select" className="text-base font-semibold mb-3 block text-gray-900">
+                    Categories
+                  </label>
+                  <select
+                    id="category-select"
+                    onChange={handleCategorySelect}
+                    value=""
+                    disabled={!planogramMeta.primeMachine}
+                    className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Select a category...</option>
+                    {allCategories
+                      .filter((cat) => !categories.includes(cat.productCategoryId))
+                      .map((cat) => (
+                        <option key={cat.productCategoryId} value={cat.productCategoryId}>
+                          {cat.name}
+                        </option>
+                      ))}
+                  </select>
+
+                  {categories?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {categories?.map((productCategoryId) => {
+                        const cat = allCategories.find((c) => c.productCategoryId === productCategoryId)
+                        return (
+                          <span
+                            key={productCategoryId}
+                            className="bg-gray-100 text-gray-700 border border-gray-300 rounded pl-3 pr-2 py-1.5 text-sm inline-flex items-center"
+                          >
+                            {cat?.name}
+                            <button
+                              onClick={() => removeCategory(productCategoryId)}
+                              className="ml-2 hover:text-red-600 font-bold text-lg"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>}
+
+                {planogramMeta?.primeMachine && <div className="mb-6">
+                  <label htmlFor="supplier-select" className="text-base font-semibold mb-3 block text-gray-900">
+                    Suppliers
+                  </label>
+                  <select
+                    id="supplier-select"
+                    onChange={handleSupplierSelect}
+                    value=""
+                    disabled={!planogramMeta.primeMachine}
+                    className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    <option value="">Select a supplier...</option>
+                    {allSuppliers
+                      .filter((sup) => !suppliers.includes(sup.supplierId))
+                      .map((sup) => (
+                        <option key={sup.supplierId} value={sup.supplierId}>
+                          {sup.name}
+                        </option>
+                      ))}
+                  </select>
+
+                  {suppliers?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {suppliers?.map((supplierId) => {
+                        const sup = allSuppliers?.find((s) => s.supplierId === supplierId)
+                        return (
+                          <span
+                            key={supplierId}
+                            className="bg-blue-100 text-blue-700 border border-blue-300 rounded pl-3 pr-2 py-1.5 text-sm inline-flex items-center"
+                          >
+                            {sup?.name}
+                            <button
+                              onClick={() => removeSupplier(supplierId)}
+                              className="ml-2 hover:text-red-600 font-bold text-lg"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>}
+
+                {/* Max Order Capacity Section */}
+                <div className="mb-6">
+                  <div className="flex justify-between">
+                    <label className="text-base font-semibold mb-3 block text-gray-900">
+                      Max Order Capacity <span className="text-gray-600 font-normal">(per day)</span>
+                    </label>
+                    <label className="text-base font-semibold mb-3 block text-gray-900">
+                      Max Channel Capacity <span className="text-gray-600 font-normal">({editItem?.idealCapacity})</span>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {daysOfWeek.map((day) => (
+                      <div key={day} className="flex items-center gap-3">
+                        <label htmlFor={day} className="min-w-[100px] text-sm text-gray-700">
+                          {day}
+                        </label>
+                        <input
+                          id={day}
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          value={maxOrder[day] || ""}
+                          onChange={(e) =>
+                            setMaxOrder({
+                              ...maxOrder,
+                              [day]: Number(e.target.value),
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setEditItem(null)}
+                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </div>
+        )
+      }
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
 
-          </div> :
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
-              {/* Modal Header */}
-              <div className="mb-6 pb-4 border-b border-gray-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                  Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
-                </h3>
-                <p className="text-sm text-gray-600">Set categories, suppliers, and capacity limits</p>
-              </div>
+            <h2 className="text-lg font-semibold mb-4">Select Plan Date</h2>
 
-              {planogramMeta?.primeMachine && <div className="mb-6">
-                <label htmlFor="category-select" className="text-base font-semibold mb-3 block text-gray-900">
-                  Categories
-                </label>
-                <select
-                  id="category-select"
-                  onChange={handleCategorySelect}
-                  value=""
-                  disabled={!planogramMeta.primeMachine}
-                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="">Select a category...</option>
-                  {allCategories
-                    .filter((cat) => !categories.includes(cat.productCategoryId))
-                    .map((cat) => (
-                      <option key={cat.productCategoryId} value={cat.productCategoryId}>
-                        {cat.name}
-                      </option>
-                    ))}
-                </select>
+            <input
+              type="datetime-local"
+              onChange={(e) => handelSelectDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-4"
+            />
 
-                {categories?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {categories?.map((productCategoryId) => {
-                      const cat = allCategories.find((c) => c.productCategoryId === productCategoryId)
-                      return (
-                        <span
-                          key={productCategoryId}
-                          className="bg-gray-100 text-gray-700 border border-gray-300 rounded pl-3 pr-2 py-1.5 text-sm inline-flex items-center"
-                        >
-                          {cat?.name}
-                          <button
-                            onClick={() => removeCategory(productCategoryId)}
-                            className="ml-2 hover:text-red-600 font-bold text-lg"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsPlanModalOpen(false)}
+                className="px-4 py-2 text-gray-600"
+              >
+                Cancel
+              </button>
 
-              {planogramMeta?.primeMachine && <div className="mb-6">
-                <label htmlFor="supplier-select" className="text-base font-semibold mb-3 block text-gray-900">
-                  Suppliers
-                </label>
-                <select
-                  id="supplier-select"
-                  onChange={handleSupplierSelect}
-                  value=""
-                  disabled={!planogramMeta.primeMachine}
-                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                >
-                  <option value="">Select a supplier...</option>
-                  {allSuppliers
-                    .filter((sup) => !suppliers.includes(sup.supplierId))
-                    .map((sup) => (
-                      <option key={sup.supplierId} value={sup.supplierId}>
-                        {sup.name}
-                      </option>
-                    ))}
-                </select>
-
-                {suppliers?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {suppliers?.map((supplierId) => {
-                      const sup = allSuppliers?.find((s) => s.supplierId === supplierId)
-                      return (
-                        <span
-                          key={supplierId}
-                          className="bg-blue-100 text-blue-700 border border-blue-300 rounded pl-3 pr-2 py-1.5 text-sm inline-flex items-center"
-                        >
-                          {sup?.name}
-                          <button
-                            onClick={() => removeSupplier(supplierId)}
-                            className="ml-2 hover:text-red-600 font-bold text-lg"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>}
-
-              {/* Max Order Capacity Section */}
-              <div className="mb-6">
-                <div className="flex justify-between">
-                  <label className="text-base font-semibold mb-3 block text-gray-900">
-                    Max Order Capacity <span className="text-gray-600 font-normal">(per day)</span>
-                  </label>
-                  <label className="text-base font-semibold mb-3 block text-gray-900">
-                    Max Channel Capacity <span className="text-gray-600 font-normal">({editItem?.idealCapacity})</span>
-                  </label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {daysOfWeek.map((day) => (
-                    <div key={day} className="flex items-center gap-3">
-                      <label htmlFor={day} className="min-w-[100px] text-sm text-gray-700">
-                        {day}
-                      </label>
-                      <input
-                        id={day}
-                        type="number"
-                        min={0}
-                        placeholder="0"
-                        className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        value={maxOrder[day] || ""}
-                        onChange={(e) =>
-                          setMaxOrder({
-                            ...maxOrder,
-                            [day]: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setEditItem(null)}
-                  className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
+              <button
+                disabled={!selectedPlanDate}
+                onClick={() => {
+                  setIsPlanModalOpen(false)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                Confirm
+              </button>
             </div>
           </div>
+        </div>
       )}
-    </div>
+
+    </div >
+
   )
 
 }
