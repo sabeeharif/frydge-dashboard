@@ -1,15 +1,13 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { PackageSearch, RefreshCw, Plus, SquareChartGantt } from "lucide-react";
+import {  RefreshCw, Plus, SquareChartGantt } from "lucide-react";
 import Loader from "@/app/components/Loader";
-import ManageProductsModal from "@/app/components/products/ManageProductsModal";
 import PlanogramTable from "@/app/components/planogram/PlanogramTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
 import CreatePlanogramModal from "@/app/components/planogram/CreatePlanogramModal";
 import EditPlanogramModal from "@/app/components/planogram/EditPlanogramModal";
-import DeleteModal from "@/app/components/products/DeleteModal";
-import { AuthService, api } from "@/app/lib/auth"
+import { api } from "@/app/lib/auth"
 import { useRouter } from "next/navigation";
 
 
@@ -22,21 +20,15 @@ const PlanogramManagement = () => {
         versionDetails: []
     });
     const [limit, setLimit] = useState(10); // dynamic limit
-    const [suppliers, setSuppliers] = useState([]);
-    const [supplierLastKey, setSupplierLastKey] = useState(null);
-    const [hasMoreSuppliers, setHasMoreSuppliers] = useState(false);
-    const [supplierPageSize, setSupplierPageSize] = useState(10);
     const [isRotating, setIsRotating] = useState(false);
     // Modal State
-    const [showCreateProductModal, setShowCreateProductModal] = useState(false);
-    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-    const [showEditProductModal, setShowEditProductModal] = useState(false);
-    const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
-    // Products State
-    const [creatingProduct, setCreatingProduct] = useState(false);
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [updatingProduct, setUpdatingProduct] = useState(false);
-    const [editingProductId, setEditingProductId] = useState(null);
+    const [showCreatePlanogramModal, setShowCreatePlanogramModal] = useState(false);
+    const [showEditPlanogramModal, setShowEditPlanogramModal] = useState(false);
+    
+    // planogram State
+    const [creatingPlanogram, setCreatingPlanogram] = useState(false);
+    const [updatingPlanogram, setUpdatingPlanogram] = useState(false);
+    const [editingPlanogramId, setEditingPlanogramId] = useState(null);
     const router = useRouter();
 
     const pageSize = 10;
@@ -75,7 +67,6 @@ const PlanogramManagement = () => {
     };
 
 
-
     const handlePrevPage = () => {
         if (currentPageRef.current === 0) return;
 
@@ -97,18 +88,12 @@ const PlanogramManagement = () => {
         setTimeout(() => setIsRotating(false), 600); // stop after animation};
     }
 
-    // Modal
-    const handleManage = (product) => {
-        setSelectedProduct(product);
-        setIsManageModalOpen(true);
-    };
-
     // Input Form
     const handleInputChange = (key, value) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };
 
-    // Create Product
+    // Create planogram
     const handleCreatePlanogram = async () => {
         // Basic validation
         if (!formData.name) {
@@ -128,7 +113,7 @@ const PlanogramManagement = () => {
         }
 
         try {
-            setCreatingProduct(true);
+            setCreatingPlanogram(true);
 
             const response = await api.createPlanogramVersion(formData)
 
@@ -158,7 +143,7 @@ const PlanogramManagement = () => {
                 `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
             );
 
-            // setShowCreateProductModal(false);
+            // setShowCreatePlanogramModal(false);
 
             // Reset form
             setFormData({
@@ -169,17 +154,14 @@ const PlanogramManagement = () => {
         } catch (error) {
             console.error("Create planogram failed:", error);
             alert(error.message || "Something went wrong");
-            setCreatingProduct(false);
+            setCreatingPlanogram(false);
         } finally {
-            setCreatingProduct(false);
-            // closeCreateProductModal()
+            setCreatingPlanogram(false);
         }
     };
 
-
-    // Modal
-    const closeCreateProductModal = () => {
-        setShowCreateProductModal(false);
+    const closeCreatePlanogramModal = () => {
+        setShowCreatePlanogramModal(false);
 
         // Optional: reset form after closing
         setFormData({
@@ -189,66 +171,53 @@ const PlanogramManagement = () => {
     };
 
     // Modal
-    const openEditModal = (product) => {
-        setEditingProductId(product.planogramVersionId);
+    const openEditModal = (planogram) => {
+        setEditingPlanogramId(planogram.planogramVersionId);
 
         setFormData({
-            name: product.name || "",
-            versionDetails: product.versionDetails
+            name: planogram.name || "",
+            versionDetails: planogram.versionDetails
         });
 
-        setShowEditProductModal(true);
+        setShowEditPlanogramModal(true);
     };
 
     // Update Product
-    const handleUpdateProduct = async () => {
-        setUpdatingProduct(true);
+    const handleUpdatePlanogram = async () => {
+        setUpdatingPlanogram(true);
 
         // Backup previous state in case API fails
-        const previousProducts = [...planograms];
+        const previousPlanogram = [...planograms];
         // Optimistic UI update
         setPlanograms((prev) =>
-            prev.map((p) => (p.planogramVersionId === editingProductId ? { ...p, ...formData } : p))
+            prev.map((p) => (p.planogramVersionId === editingPlanogramId ? { ...p, ...formData } : p))
         );
 
         try {
             // Call the API
-            const response = await api.updatePlangoramVersion({ planogramVersionId: editingProductId, ...formData });
+            const response = await api.updatePlangoramVersion({ planogramVersionId: editingPlanogramId, ...formData });
 
             if (!response.ok) {
-                throw new Error("Failed to update product");
+                throw new Error("Failed to update planogram");
             }
 
             const updated = await response.json();
             console.log("Product updated successfully:", updated);
 
             // Close modal on success
-            setShowEditProductModal(false);
+            setShowEditPlanogramModal(false);
 
         } catch (error) {
             console.error("Update failed:", error);
 
             // Rollback on API error
-            setPlanograms(previousProducts);
+            setPlanograms(previousPlanogram);
 
-            alert("Failed to update product. Please try again.");
+            alert("Failed to update planogram. Please try again.");
         } finally {
-            setUpdatingProduct(false);
+            setUpdatingPlanogram(false);
         }
     };
-
-    // Remove Product
-    const handleDelete = (product) => {
-        setSelectedProduct(product); // store the product to delete
-        setShowDeleteProductModal(true); // open modal
-    };
-
-    // Function to Perform Deletion
-    //   const confirmDeleteProduct = () => {
-    //     setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
-    //     setShowDeleteProductModal(false);
-    //     setSelectedProduct(null);
-    //   };
 
     // Fetch
     const fetchPlanogramVersions = async (lastKey = null) => {
@@ -287,36 +256,6 @@ const PlanogramManagement = () => {
     };
 
 
-    // Fetch
-    //   const fetchSuppliers = async (useLastKey = null) => {
-    //     try {
-    //       const response = await api.getSuppliers({
-    //         limit: supplierPageSize,   // dynamic limit
-    //         lastKey: useLastKey        // pagination key
-    //       });
-
-    //       console.log("Supplier fetch response:", response.status);
-
-    //       if (!response.ok) {
-    //         const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-    //         throw new Error(errorData.error || `HTTP ${response.status}`);
-    //       }
-
-    //       const data = await response.json();
-    //       console.log("Supplier data received:", data);
-
-    //       const fetchedSuppliers = data.suppliers || data.results || [];
-    //       const newLastKey = data.lastKey || null;
-
-    //       setSuppliers(fetchedSuppliers);
-    //       setSupplierLastKey(newLastKey);
-    //       setHasMoreSuppliers(!!newLastKey);
-
-    //     } catch (error) {
-    //       console.error("Failed to load suppliers", error);
-    //     }
-    //   };
-
     useEffect(() => {
         currentPageRef.current = 0;
         pageCacheRef.current = {};
@@ -332,7 +271,6 @@ const PlanogramManagement = () => {
             </div>
         )
     }
-
 
     return (
         <div className="p-8 space-y-8">
@@ -360,7 +298,7 @@ const PlanogramManagement = () => {
                     </button>
                     <button
                         onClick={() => {
-                            setShowCreateProductModal(true); setFormData({
+                            setShowCreatePlanogramModal(true); setFormData({
                                 name: "",
                                 versionDetails: [],
                             });
@@ -376,9 +314,7 @@ const PlanogramManagement = () => {
             {/* Table */}
             <PlanogramTable
                 planogram={planograms}
-                onManage={handleManage}
                 onEdit={openEditModal}
-                onDelete={handleDelete}
             />
 
             {/* Pagination Controls */}
@@ -390,43 +326,25 @@ const PlanogramManagement = () => {
                 onNextPage={handleNextPage}
             />
 
-            {/* Modal */}
-            {isManageModalOpen && (
-                <ManageProductsModal
-                    product={selectedProduct}
-                    suppliers={suppliers}
-                    onAssign={handleAssignSupplier}
-                    onClose={() => setIsManageModalOpen(false)}
-                />
-            )}
-
-            {showCreateProductModal && (
+            {showCreatePlanogramModal && (
                 <CreatePlanogramModal
-                    closeModal={closeCreateProductModal}
+                    closeModal={closeCreatePlanogramModal}
                     handleCreatePlanogram={handleCreatePlanogram}
-                    creatingProduct={creatingProduct}
+                    creatingPlanogram={creatingPlanogram}
                     formData={formData}
                     handleInputChange={handleInputChange}
                     setFormData={setFormData}
                 />
             )}
 
-            {showEditProductModal && (
+            {showEditPlanogramModal && (
                 <EditPlanogramModal
-                    closeModal={() => setShowEditProductModal(false)}
-                    updatingProduct={updatingProduct}
-                    handleUpdateProduct={handleUpdateProduct}
+                    closeModal={() => setShowEditPlanogramModal(false)}
+                    updatingPlanogram={updatingPlanogram}
+                    handleUpdatePlanogram={handleUpdatePlanogram}
                     formData={formData}
                     handleInputChange={handleInputChange}
                     setFormData={setFormData}
-                />
-            )}
-
-            {showDeleteProductModal && (
-                <DeleteModal
-                    open={showDeleteProductModal}
-                    onClose={() => setShowDeleteProductModal(false)}
-                    onDelete={confirmDeleteProduct}
                 />
             )}
         </div>

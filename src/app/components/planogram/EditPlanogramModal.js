@@ -3,8 +3,8 @@ import { AuthService, api } from "@/app/lib/auth";
 import { useEffect, useState } from "react";
 const EditProductModal = ({
   closeModal,
-  updatingProduct,
-  handleUpdateProduct,
+  updatingPlanogram,
+  handleUpdatePlanogram,
   formData,
   handleInputChange,
   setFormData
@@ -290,14 +290,14 @@ const EditProductModal = ({
           </button>
 
           <button
-            onClick={handleUpdateProduct}
-            disabled={updatingProduct}
+            onClick={handleUpdatePlanogram}
+            disabled={updatingPlanogram}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
             transition-colors flex items-center gap-2"
           >
-            {updatingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
-            {updatingProduct ? "Updating..." : "Update Planogram"}
+            {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
+            {updatingPlanogram ? "Updating..." : "Update Planogram"}
           </button>
         </div>
       </div>

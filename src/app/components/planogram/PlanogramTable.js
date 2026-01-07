@@ -1,13 +1,10 @@
 // ProductTable.jsx
 import React from "react";
-import { Boxes, Package, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const PlanogramTable = ({
   planogram = [],
-  onManage,
   onEdit,
-  onDelete,
 }) => {
   const router = useRouter()
   const navigate = (planogramVersionId) => {
@@ -95,12 +92,6 @@ const PlanogramTable = ({
                         >
                           Edit
                         </button>
-                        {/* <button
-                          onClick={() => onDelete(product)}
-                          className="text-red-600 hover:underline"
-                        >
-                          Delete
-                        </button> */}
                       </div>
                     </td>
                   </tr>

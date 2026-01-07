@@ -11,13 +11,13 @@ import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 const PlanogramDetails = () => {
     const [loading, setLoading] = useState()
     const [isRotating, setIsRotating] = useState()
-    const searchParams = useSearchParams()
-    const params = searchParams.get("planogramVersionId")
-    const router = useRouter()
     const [planogram, setPlanogram] = useState(null)
     const [isOpenOrder, setIsOpenOrder] = useState()
-    const pageSize = 10
+    const searchParams = useSearchParams()
     const { success: toastSuccess } = useToast()
+    const router = useRouter()
+    const params = searchParams.get("planogramVersionId")
+    const pageSize = 10
 
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
@@ -51,11 +51,6 @@ const PlanogramDetails = () => {
             setLoading(false)
         }
     };
-
-    useEffect(() => {
-
-        fetchPlanogramVersions()
-    }, [])
 
     const navigate = (action, machineId) => {
         router.push(
@@ -103,6 +98,10 @@ const PlanogramDetails = () => {
             setIsOpenOrder(false);
         }
     }, [searchParams]); // re-run if query params change
+
+    useEffect(() => {
+        fetchPlanogramVersions()
+    }, [])
 
     if (isOpenOrder) {
         return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
@@ -283,45 +282,6 @@ const PlanogramDetails = () => {
                                             >
                                                 View Structure
                                             </button>}
-                                            {/* <button 
-                                              onClick={() => handleEdit(machine)}
-                                             className="rounded-md bg-yellow-100 p-2 text-yellow-800 hover:bg-yellow-200"
-                      title="Edit"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                      </svg>
-                    </button> */}
-
-                                            {/* <button
-                      onClick={() => handleDelete(machine)}
-                      className="rounded-md bg-red-100 p-2 text-red-800 hover:bg-red-200"
-                      title="Delete"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                      </svg>
-                    </button> */}
                                         </div>
                                     </td>
                                 </tr>

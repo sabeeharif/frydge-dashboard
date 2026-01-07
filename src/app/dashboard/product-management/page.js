@@ -666,8 +666,6 @@ const ProductManagement = () => {
         </div>
       )}
 
-
-
     </div>
   );
 };

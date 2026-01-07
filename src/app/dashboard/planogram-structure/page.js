@@ -8,19 +8,18 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
 
 const PlanogramStructure = () => {
+  const { success: toastSuccess } = useToast()
+  const [structure, setStructure] = useState({})
+  const [loading, setLoading] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [categories, setCategories] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [maxOrder, setMaxOrder] = useState({})
   const [updatingPlanogram, setUpdatingPlanogram] = useState()
   const [planogramMeta, setPlanogramMeta] = useState(null)
-  const searchParams = useSearchParams()
-  const machineStructureId = searchParams.get("machineStructureId")
-  const planogramVersionId = searchParams.get("planogramVersionId")
   const [productSearch, setProductSearch] = useState("")
   const [productOptions, setProductOptions] = useState([])
 
-  const action = searchParams.get("action")
   const [productSearchLoading, setProductSearchLoading] = useState(false)
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [supplierFetchProgress, setSupplierFetchProgress] = useState()
@@ -33,7 +32,6 @@ const PlanogramStructure = () => {
   const [selectedDate, setSelectedDate] = useState("")
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [selectedPlanDate, setSelectedPlanDate] = useState("")
-
   const [categoryFetchProgress, setCategoryFetchProgress] = useState()
   const [supplierLoading, setSupplierLoading] = useState()
   const [categoryLoading, setCategoryLoading] = useState()
@@ -43,18 +41,24 @@ const PlanogramStructure = () => {
   const [includeEnabled, setIncludeEnabled] = useState(false)
   const [includedMachineIds, setIncludedMachineIds] = useState([])
   const [applyToGroup, setApplyToGroup] = useState(false)
-  const pageSize = 10
-
   const [dateLoader, setDateLoader] = useState()
   const searchTimeoutRef = useRef(null)
   const hasFetchedPlanogramRef = useRef(false)
   const isFetchingCategoriesRef = useRef(false)
   const isFetchingSuppliersRef = useRef(false)
-  const router = useRouter()
   const shelfRefs = useRef({});
-  const [structure, setStructure] = useState({})
-  const [loading, setLoading] = useState(false)
-  const { success: toastSuccess } = useToast()
+  const searchParams = useSearchParams()
+  const machineStructureId = searchParams.get("machineStructureId")
+  const planogramVersionId = searchParams.get("planogramVersionId")
+  const action = searchParams.get("action")
+  const pageSize = 10
+  const router = useRouter()
+
+
+
+  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+  // Date format Func
   const formatDate = (dateString) => {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
@@ -69,8 +73,7 @@ const PlanogramStructure = () => {
     }
   }
 
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
+  // fetch orders Dates 
   const fetchOrderDates = async () => {
     setDateLoader(true)
     try {
@@ -88,13 +91,7 @@ const PlanogramStructure = () => {
     }
   }
 
-  useEffect(() => {
-    if (action === "finalize" && planogramVersionId) {
-
-      fetchOrderDates()
-    }
-  }, [planogramVersionId])
-
+  // Open edit modal funtion
   const openEditModal = (item, channelNumber, shelfIndex) => {
     console.log(item);
     setEditItem({ ...item, channelNumber, shelfIndex })
@@ -105,6 +102,7 @@ const PlanogramStructure = () => {
     fetchProducts(item)
   }
 
+  // shelf data save function
   const handleSave = async () => {
     try {
       // Simulated API call
@@ -145,6 +143,7 @@ const PlanogramStructure = () => {
     }
   }
 
+  // update planogram fucntion
   const handleUpdatePlanogram = async () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
@@ -180,6 +179,7 @@ const PlanogramStructure = () => {
     }
   }
 
+  // finalize planogram function
   const handleFinalizePlanogram = async () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
@@ -215,6 +215,7 @@ const PlanogramStructure = () => {
     }
   }
 
+  // Progressively function to return the multiply data
   const fetchProgressively = async ({
     fetchFn,
     onData,
@@ -267,7 +268,6 @@ const PlanogramStructure = () => {
     }
   }
 
-
   // const fetchAllProductsProgressively = async () => {
   //   if (isFetchingAllProductsRef.current) return
 
@@ -316,6 +316,9 @@ const PlanogramStructure = () => {
   //   }
   // }
 
+
+
+  //  fetch suppliers to use the progressively function
   const fetchAllSuppliersProgressively = () =>
     fetchProgressively({
       fetchFn: api.getSuppliers,
@@ -325,6 +328,7 @@ const PlanogramStructure = () => {
       label: "suppliers",
     })
 
+  //  fetch categories to use the progressively function
   const fetchAllCategoriesProgressively = () =>
     fetchProgressively({
       fetchFn: api.getProductsCategories,
@@ -335,29 +339,9 @@ const PlanogramStructure = () => {
       label: "categories",
     })
 
-  useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-
-    searchTimeoutRef.current = setTimeout(() => {
-      // if (!isFetchingAllProductsRef.current && allProducts.length === 0) {
-      //   fetchAllProductsProgressively()
-      // }
-
-      if (!isFetchingSuppliersRef.current && allSuppliers.length === 0) {
-        fetchAllSuppliersProgressively()
-      }
-
-      if (!isFetchingCategoriesRef.current && allCategories.length === 0) {
-        fetchAllCategoriesProgressively()
-      }
-    }, 500)
-
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    }
-  }, [])
-
+  // fetch all products
   const fetchProducts = async (item) => {
+    setProductSearchLoading(true)
     try {
       const response = await api.getProductsByCategoryAndSupplier(
         item.categoryIds,   // dynamic limit
@@ -376,19 +360,24 @@ const PlanogramStructure = () => {
 
 
       setAllProducts(fetchedCategory);
+      setProductSearchLoading(false)
 
     } catch (error) {
+      setProductSearchLoading(false)
       console.error("Failed to load suppliers", error);
+    } finally {
+      setProductSearchLoading(false)
     }
   };
 
+  // category selector
   const handleCategorySelect = (e) => {
     const value = e.target.value
     if (value && !categories.includes(value)) {
       setCategories([...categories, value])
     }
   }
-
+  // supplier Selector
   const handleSupplierSelect = (e) => {
     const value = e.target.value
     if (value && !suppliers.includes(value)) {
@@ -396,6 +385,7 @@ const PlanogramStructure = () => {
     }
   }
 
+  //  exclude Machine selector fun
   const handleExcludeMachinesSelect = (e) => {
     const value = e.target.value
     if (value && !excludedMachineIds.includes(value)) {
@@ -403,6 +393,7 @@ const PlanogramStructure = () => {
     }
   }
 
+  //  include Machine selector fun
   const handleIncludeMachinesSelect = (e) => {
     const value = e.target.value
     if (value && !includedMachineIds.includes(value)) {
@@ -410,14 +401,17 @@ const PlanogramStructure = () => {
     }
   }
 
+  //  remove category fun
   const removeCategory = (catId) => {
     setCategories(categories.filter((c) => c !== catId))
   }
 
+  // remove supplier func
   const removeSupplier = (supId) => {
     setSuppliers(suppliers.filter((s) => s !== supId))
   }
 
+  // fetch planogram structure 
   const fetchPlanogramStructure = async () => {
     setLoading(true)
     try {
@@ -471,31 +465,12 @@ const PlanogramStructure = () => {
     }
   };
 
-  useEffect(() => {
-    if (!machineStructureId) return
-    if (hasFetchedPlanogramRef.current) return
-
-    hasFetchedPlanogramRef.current = true
-    fetchPlanogramStructure()
-  }, [machineStructureId])
-
-  // 🔹 Sync all cards height in each shelf row
-  useEffect(() => {
-    Object.values(shelfRefs.current).forEach((cards) => {
-      if (!cards || cards.length === 0) return;
-      const maxHeight = Math?.max(...cards?.map((el) => el?.offsetHeight));
-      cards?.forEach((el) => {
-        if (el) el.style.height = `${maxHeight}px`;
-      });
-    });
-  }, [structure]);
-
+  // fetch internalOrder structure
   const fetchInteranalOrdersStructure = async (item) => {
     const internalOrderId = item?.internalOrderId;
     if (!internalOrderId) return;
 
     setLoading(true);
-    console.log(planogramMeta?.machineId, "sads");
     try {
       const response = await api.getInternalOreders({
         internalOrderId: internalOrderId,
@@ -532,7 +507,8 @@ const PlanogramStructure = () => {
           machineId: order?.orderSnapshot[0]?.machineId,
           createdAt: order.createdAt,
           friendlyName: order?.orderSnapshot[0].friendlyName,
-          venueName: order?.orderSnapshot[0].venueName
+          venueName: order?.orderSnapshot[0].venueName,
+          draft: order?.draft
         });
 
         if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
@@ -564,7 +540,7 @@ const PlanogramStructure = () => {
     }
   };
 
-
+  // fetch planogram Version
   const fetchPlanogramVersions = async (useLastKey = null) => {
     try {
       let apiUrl = `/api/planogram_versions?limit=${pageSize}`
@@ -595,12 +571,7 @@ const PlanogramStructure = () => {
     }
   };
 
-  useEffect(() => {
-    if (planogramMeta?.planogramVersionId) {
-      fetchPlanogramVersions()
-    }
-  }, [planogramMeta])
-
+  // get machine by id 
   const getMachineNameById = (machineId) => {
     if (!machineId || !groupMachines?.length) return "N/A";
 
@@ -611,13 +582,14 @@ const PlanogramStructure = () => {
     return machine?.friendlyName || "";
   };
 
+  // date selector
   const handelSelectDate = (date) => {
-    console.log(date);
     if (!date) return ""
     const timestamp = new Date(date).toISOString()
     console.log(timestamp);
     setSelectedPlanDate(timestamp)
   }
+
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -635,6 +607,60 @@ const PlanogramStructure = () => {
     return () => clearTimeout(id)
   }, [productSearch, allProducts])
 
+
+  useEffect(() => {
+    if (planogramMeta?.planogramVersionId) {
+      fetchPlanogramVersions()
+    }
+  }, [planogramMeta])
+
+  useEffect(() => {
+    if (!machineStructureId) return
+    if (hasFetchedPlanogramRef.current) return
+
+    hasFetchedPlanogramRef.current = true
+    fetchPlanogramStructure()
+  }, [machineStructureId])
+
+  // 🔹 Sync all cards height in each shelf row
+  useEffect(() => {
+    Object.values(shelfRefs.current).forEach((cards) => {
+      if (!cards || cards.length === 0) return;
+      const maxHeight = Math?.max(...cards?.map((el) => el?.offsetHeight));
+      cards?.forEach((el) => {
+        if (el) el.style.height = `${maxHeight}px`;
+      });
+    });
+  }, [structure]);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+
+    searchTimeoutRef.current = setTimeout(() => {
+      // if (!isFetchingAllProductsRef.current && allProducts.length === 0) {
+      //   fetchAllProductsProgressively()
+      // }
+
+      if (!isFetchingSuppliersRef.current && allSuppliers.length === 0) {
+        fetchAllSuppliersProgressively()
+      }
+
+      if (!isFetchingCategoriesRef.current && allCategories.length === 0) {
+        fetchAllCategoriesProgressively()
+      }
+    }, 500)
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (action === "finalize" && planogramVersionId) {
+
+      fetchOrderDates()
+    }
+  }, [planogramVersionId])
 
 
   if (loading) {
@@ -668,8 +694,12 @@ const PlanogramStructure = () => {
         </svg>
         Back to Planogram Details
       </button>
+
+
       <div className="mx-auto flex-1">
+
         {/* Header */}
+
         <div className="flex justify-between items-center">
           <div className="mb-8">
             <h3 className="text-4xl font-bold text-gray-900 mb-2 gap-3 flex">Planogram Structure
@@ -973,7 +1003,7 @@ const PlanogramStructure = () => {
 
         <div className="">
           <label className="text-2xl mb-2 font-semibold  block text-gray-900">
-            {selectedDate ? <>Selected Order ({formatDate(selectedDate)})</> : <></>} </label>
+            {selectedDate ? <>Selected Order ({formatDate(selectedDate)}) <span> ({planogramMeta?.draft && "Draft"}) </span>  </> : <></>} </label>
           {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
             <p className="text-gray-500 text-lg font-medium">
               No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
@@ -982,13 +1012,6 @@ const PlanogramStructure = () => {
             .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
             .map(([shelfNumber, shelves]) => (
               <div key={shelfNumber} className="space-y-3">
-                {/* Shelf header */}
-                {/* <div className="flex items-center gap-3">
-                  <div className="text-lg font-bold px-4 py-1.5 border-2 border-blue-600 rounded-md bg-white text-blue-600">
-                    Channel {shelfNumber}
-                  </div>
-                  <div className="flex-1 h-px bg-gray-300" />
-                </div> */}
 
                 {/* Shelves Grid */}
                 <div
@@ -1125,8 +1148,6 @@ const PlanogramStructure = () => {
                                 </div>
                               </div>
                             )}
-
-
                           </div>
                           {/* Max Order */}
                           <div
@@ -1158,6 +1179,7 @@ const PlanogramStructure = () => {
                         </div>
 
                         {/* Configure Button */}
+
                         {action === "finalize" ?
                           <button
                             onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
@@ -1167,7 +1189,7 @@ const PlanogramStructure = () => {
                           </button> :
                           <button
                             onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
-                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                           >
                             Configure
                           </button>
@@ -1179,6 +1201,7 @@ const PlanogramStructure = () => {
               </div>
             ))}
         </div>
+
       </div>
 
       {/* Edit Modal */}
@@ -1217,6 +1240,7 @@ const PlanogramStructure = () => {
                   <input
                     id="product-search"
                     type="text"
+                    disabled={productSearchLoading}
                     placeholder="Search product..."
                     value={productSearch || ""}
                     onFocus={() => {
