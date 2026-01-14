@@ -29,9 +29,7 @@ const PlanogramStructure = () => {
   const [allProducts, setAllProducts] = useState([])
   const [allSuppliers, setAllSuppliers] = useState([])
   const [allCategories, setAllCategories] = useState([])
-  const [availableDates, setAvailableDates] = useState(["2025-08-01",
-    "2025-08-05",
-    "2025-08-10"])
+  const [availableDates, setAvailableDates] = useState([])
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedReApplyDate, setSelectedReApplyDate] = useState("")
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
@@ -624,7 +622,6 @@ const PlanogramStructure = () => {
   const handelReapplySelectDate = (date) => {
     if (!date) return ""
     setSelectedReApplyDate(date)
-    setSelectedDate("")
     setDate("")
     setTime("")
   }
@@ -717,7 +714,14 @@ const PlanogramStructure = () => {
     return `${day}-${month}-${year}T${time}:00`;
   };
 
-
+  const handelAppplyAllMachines = (check) => {
+    setApplyToGroup(check)
+    console.log(check);
+    if (check === true) {
+      setIncludeEnabled(false)
+      setExcludeEnabled(false)
+    }
+  }
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -796,6 +800,7 @@ const PlanogramStructure = () => {
                   onChange={(e) => {
                     const checked = e.target.checked
                     setExcludeEnabled(checked)
+                    setApplyToGroup(false)
 
                     if (!checked) {
                       setExcludedMachineIds([]) // clear selection
@@ -825,7 +830,7 @@ const PlanogramStructure = () => {
                   {groupMachines
                     .filter(
                       (machine) =>
-                        !includedMachineIds.includes((machine.machineId))
+                        !includedMachineIds.includes(String(machine.machineId))
                     )
                     .map((machine) => (
                       <option
@@ -847,7 +852,7 @@ const PlanogramStructure = () => {
                         key={id}
                         className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
                       >
-                        {groupMachines.find(m => (m.machineId) === (id))?.friendlyName} ({id})
+                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
 
                         <button
                           type="button"
@@ -876,6 +881,7 @@ const PlanogramStructure = () => {
                   onChange={(e) => {
                     const checked = e.target.checked
                     setIncludeEnabled(checked)
+                    setApplyToGroup(false)
 
                     if (!checked) {
                       setIncludedMachineIds([]) // clear selection
@@ -893,7 +899,7 @@ const PlanogramStructure = () => {
             {includeEnabled && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select machines to exclude
+                  Select machines to include
                 </label>
 
                 <select
@@ -902,10 +908,11 @@ const PlanogramStructure = () => {
                   onChange={handleIncludeMachinesSelect}
                   className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                 >
+
                   {groupMachines
                     .filter(
                       (machine) =>
-                        !excludedMachineIds.includes(machine.machineId)
+                        !excludedMachineIds.includes(String(machine.machineId))
                     )
                     .map((machine) => (
                       <option
@@ -932,7 +939,7 @@ const PlanogramStructure = () => {
                           type="button"
                           onClick={() =>
                             setIncludedMachineIds(
-                              includedMachineIds.filter(m => m !== id)
+                              includedMachineIds.filter(m => m !== String(id))
                             )
                           }
                           className="font-bold hover:text-red-600"
@@ -954,7 +961,7 @@ const PlanogramStructure = () => {
                 type="checkbox"
                 id="applyToGroup"
                 checked={applyToGroup}
-                onChange={(e) => setApplyToGroup(e.target.checked)}
+                onChange={(e) => handelAppplyAllMachines(e.target.checked)}
                 className="h-4 w-4 rounded text-blue-600"
               />
               <label
@@ -993,7 +1000,7 @@ const PlanogramStructure = () => {
               <select
                 value={selectedDate}
                 onChange={(e) => {
-                  const selected = availableDates.find(item => item.createdAt === e.target.value);
+                  const selected = availableDates.find(item => item.plannedPlanogramDate === e.target.value);
                   setSelectedDate(e.target.value); // store the selected createdAt
                   setSelectedPlanDate("")
                   if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
@@ -1002,8 +1009,8 @@ const PlanogramStructure = () => {
               >
                 <option value="">Select date</option>
                 {availableDates?.map((item) => (
-                  <option key={item?.createdAt} value={item?.createdAt}>
-                    {formatDate(item?.createdAt)} {item?.draft && "(Draft)"}
+                  <option key={item?.plannedPlanogramDate} value={item?.plannedPlanogramDate}>
+                    {formatNewPlanDate(item?.plannedPlanogramDate)} {item?.draft && "(Draft)"}
                   </option>
                 ))}
               </select>
@@ -1066,11 +1073,11 @@ const PlanogramStructure = () => {
 
         <div className="">
           <label className="text-2xl mb-2 font-semibold  block text-gray-900">
-            {selectedDate ? <>Selected Order ({formatDate(selectedDate)}) <span> {planogramMeta?.draft && "(Draft)"} </span>  </> : <></>} </label>
+            {selectedDate ? <>Selected Order ({formatNewPlanDate(selectedDate)}) <span> {planogramMeta?.draft && "(Draft)"} </span>  </> : <></>} </label>
           {structure.length === 0 ?
             <div className="min-w-full flex items-center justify-center py-20">
               <p className="text-gray-500 text-lg font-medium">
-                No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
+                No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatNewPlanDate(selectedDate)}</span>.
               </p>
             </div>
             :
@@ -1558,6 +1565,7 @@ const PlanogramStructure = () => {
           </div>
         </div>
       )} */}
+
       {isPlanModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm">
@@ -1618,7 +1626,7 @@ const PlanogramStructure = () => {
 
             <h3 className="text-base font-semibold mb-4">
               Are you sure you want to re-apply the structure for this plan date:
-              <span className="text-red-600 text-center"> {formatDate(selectedDate)}</span>
+              <span className="text-red-600 text-center"> {formatNewPlanDate(selectedReApplyDate)}</span>
             </h3>
 
 
@@ -1683,6 +1691,7 @@ const PlanogramStructure = () => {
                 onClick={() => {
                   const finalDateTime = combineDateTime(date, time);
                   handelReapplySelectDate(finalDateTime)
+                  setIsNotify(true)
                   setIsReapplyPlanModalDateOpen(false);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
@@ -1690,25 +1699,6 @@ const PlanogramStructure = () => {
                 Confirm
               </button>
             </div>
-            {/* <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsReapplyPlanModalDateOpen(false)}
-                className="px-4 py-2 text-gray-600"
-              >
-                Cancel
-              </button>
-
-              <button
-                disabled={!isReapplyPlanModalDateOpen}
-                onClick={() => {
-                  setIsReapplyPlanModalDateOpen(false);
-                  setIsNotify(true)
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-              >
-                Confirm
-              </button>
-            </div> */}
           </div>
         </div>
       )}
