@@ -8,6 +8,9 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
 
 const PlanogramStructure = () => {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+
   const { success: toastSuccess } = useToast()
   const [structure, setStructure] = useState({})
   const [loading, setLoading] = useState(false)
@@ -30,7 +33,10 @@ const PlanogramStructure = () => {
     "2025-08-05",
     "2025-08-10"])
   const [selectedDate, setSelectedDate] = useState("")
+  const [selectedReApplyDate, setSelectedReApplyDate] = useState("")
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const [isReapplyPlanModalDateOpen, setIsReapplyPlanModalDateOpen] = useState(false)
+  const [isNotify, setIsNotify] = useState(false)
   const [selectedPlanDate, setSelectedPlanDate] = useState("")
   const [categoryFetchProgress, setCategoryFetchProgress] = useState()
   const [supplierLoading, setSupplierLoading] = useState()
@@ -72,6 +78,30 @@ const PlanogramStructure = () => {
       return dateString
     }
   }
+  const formatNewPlanDate = (dateString) => {
+    try {
+      if (!dateString) return "";
+
+      // Split date and time
+      const [datePart, timePart] = dateString.split("T");
+      const [day, month, year] = datePart.split("-");
+      const [hour, minute, second] = timePart.split(":");
+
+      // Create valid Date object (YYYY-MM-DDTHH:mm:ss)
+      const date = new Date(
+        `${year}-${month}-${day}T${hour}:${minute}:${second}`
+      );
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
 
   // fetch orders Dates 
   const fetchOrderDates = async () => {
@@ -185,7 +215,7 @@ const PlanogramStructure = () => {
     const channelDetails = Object.values(structure).flat()
     const payload = {
       internalOrderId: planogramMeta?.internalOrderId,
-      plannedPlanogramDate: selectedPlanDate,
+      plannedPlanogramDate: selectedPlanDate || selectedReApplyDate,
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
       productAssignments: channelDetails
@@ -194,7 +224,6 @@ const PlanogramStructure = () => {
     try {
       // // 🔹 API call
       const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
-      console.log(response);
       console.log(response.status);
       if (!response.ok || !response.status === 200) {
         throw new Error(`HTTP ${response.status}`)
@@ -585,11 +614,20 @@ const PlanogramStructure = () => {
   // date selector
   const handelSelectDate = (date) => {
     if (!date) return ""
-    const timestamp = new Date(date).toISOString()
-    console.log(timestamp);
-    setSelectedPlanDate(timestamp)
+    setSelectedPlanDate(date)
+    setSelectedDate("")
+    setDate("")
+    setTime("")
   }
 
+  // ReApply-date selector
+  const handelReapplySelectDate = (date) => {
+    if (!date) return ""
+    setSelectedReApplyDate(date)
+    setSelectedDate("")
+    setDate("")
+    setTime("")
+  }
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -662,6 +700,23 @@ const PlanogramStructure = () => {
     }
   }, [planogramVersionId])
 
+  const handelReapplyFunc = () => {
+    setIsReapplyPlanModalDateOpen(true)
+  }
+
+  const handleConfirm = () => {
+    setIsNotify(false)
+    handleFinalizePlanogram()
+  }
+  useEffect(() => { console.log(isNotify); }, [isNotify])
+
+  const combineDateTime = (date, time) => {
+    if (!date || !time) return "";
+
+    const [year, month, day] = date.split("-");
+    return `${day}-${month}-${year}T${time}:00`;
+  };
+
 
   if (loading) {
     return (
@@ -670,7 +725,6 @@ const PlanogramStructure = () => {
       </div>
     )
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50 pt-4">
@@ -697,7 +751,6 @@ const PlanogramStructure = () => {
 
 
       <div className="mx-auto flex-1">
-
         {/* Header */}
 
         <div className="flex justify-between items-center">
@@ -708,7 +761,7 @@ const PlanogramStructure = () => {
             <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
           </div>
           <div>
-            <button
+            {!selectedDate ? <button
               onClick={action === "finalize" ? handleFinalizePlanogram : handleUpdatePlanogram}
               disabled={updatingPlanogram}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
@@ -717,7 +770,16 @@ const PlanogramStructure = () => {
             >
               {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
               {updatingPlanogram ? "Updating..." : action === "finalize" ? "Apply Structure" : "Update Structure"}
-            </button>
+            </button> : <button
+              onClick={action === "finalize" && handelReapplyFunc}
+              disabled={updatingPlanogram}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+            hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
+            transition-colors flex items-center gap-2"
+            >
+              {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
+              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Reapply-Structure" : ""}
+            </button>}
           </div>
         </div>
 
@@ -933,6 +995,7 @@ const PlanogramStructure = () => {
                 onChange={(e) => {
                   const selected = availableDates.find(item => item.createdAt === e.target.value);
                   setSelectedDate(e.target.value); // store the selected createdAt
+                  setSelectedPlanDate("")
                   if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
                 }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -978,14 +1041,14 @@ const PlanogramStructure = () => {
                 className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
                hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
               >
-                {selectedDate ? "Re-Apply Date" : "New Plan"}
+                New Plan
               </button>
             )}
 
 
             {selectedPlanDate && (
               <div className="px-3 relative py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
-                Plan Date: {formatDate(selectedPlanDate)}
+                Plan Date: {formatNewPlanDate(selectedPlanDate)}
 
                 <button
                   onClick={() => setSelectedPlanDate("")}
@@ -1003,203 +1066,206 @@ const PlanogramStructure = () => {
 
         <div className="">
           <label className="text-2xl mb-2 font-semibold  block text-gray-900">
-            {selectedDate ? <>Selected Order ({formatDate(selectedDate)}) <span> ({planogramMeta?.draft && "Draft"}) </span>  </> : <></>} </label>
-          {structure.length === 0 ? <div className="min-w-full flex items-center justify-center py-20">
-            <p className="text-gray-500 text-lg font-medium">
-              No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
-            </p>
-          </div> : Object.entries(structure)
-            .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
-            .map(([shelfNumber, shelves]) => (
-              <div key={shelfNumber} className="space-y-3">
+            {selectedDate ? <>Selected Order ({formatDate(selectedDate)}) <span> {planogramMeta?.draft && "(Draft)"} </span>  </> : <></>} </label>
+          {structure.length === 0 ?
+            <div className="min-w-full flex items-center justify-center py-20">
+              <p className="text-gray-500 text-lg font-medium">
+                No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatDate(selectedDate)}</span>.
+              </p>
+            </div>
+            :
+            Object.entries(structure)
+              .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
+              .map(([shelfNumber, shelves]) => (
+                <div key={shelfNumber} className="space-y-3">
 
-                {/* Shelves Grid */}
-                <div
-                  className="grid  items-stretch"
-                  style={{
-                    gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
-                  }}
-                >
-                  {shelves.map((item, shelfIndex) => {
+                  {/* Shelves Grid */}
+                  <div
+                    className="grid  items-stretch"
+                    style={{
+                      gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
+                    }}
+                  >
+                    {shelves.map((item, shelfIndex) => {
 
-                    return (
-                      <div
-                        key={`${item.channel}-${item.shelf}`}
-                        ref={(el) => {
-                          if (!shelfRefs.current[shelfNumber])
-                            shelfRefs.current[shelfNumber] = [];
-                          shelfRefs.current[shelfNumber][shelfIndex] = el;
-                        }}
-                        className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
-                      >
+                      return (
+                        <div
+                          key={`${item.channel}-${item.shelf}`}
+                          ref={(el) => {
+                            if (!shelfRefs.current[shelfNumber])
+                              shelfRefs.current[shelfNumber] = [];
+                            shelfRefs.current[shelfNumber][shelfIndex] = el;
+                          }}
+                          className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
+                        >
 
-                        {/* Top Badge */}
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
-                            {item.shelf} - {item.channel}
+                          {/* Top Badge */}
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
+                              {item.shelf} - {item.channel}
+                            </div>
+                            {item.channelModified && (
+                              <div
+                                className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                                title="Modified"
+                              />
+                            )}
                           </div>
-                          {item.channelModified && (
-                            <div
-                              className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
-                              title="Modified"
-                            />
+
+                          {/* Warning: Missing External ID */}
+                          {!item.productExternalId && (
+                            <div className="absolute top-2 right-2 group cursor-pointer">
+                              <AlertTriangle
+                                className="h-5 w-5 text-yellow-500"
+                                strokeWidth={2}
+                              />
+
+                              {/* Tooltip */}
+                              <div className="absolute right-0 mt-2 w-44 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs rounded px-2 py-1 z-50">
+                                External ID not available
+                              </div>
+                            </div>
                           )}
-                        </div>
 
-                        {/* Warning: Missing External ID */}
-                        {!item.productExternalId && (
-                          <div className="absolute top-2 right-2 group cursor-pointer">
-                            <AlertTriangle
-                              className="h-5 w-5 text-yellow-500"
-                              strokeWidth={2}
-                            />
-
-                            {/* Tooltip */}
-                            <div className="absolute right-0 mt-2 w-44 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs rounded px-2 py-1 z-50">
-                              External ID not available
-                            </div>
-                          </div>
-                        )}
-
-                        {item?.productImage?.file && (
-                          <div className="flex flex-col items-center gap-2">
-                            <img
-                              // src={`/products/${item.image}`}
-                              src={item?.productImage?.file}
-                              className="h-24 w-auto object-contain rounded"
-                              onError={(e) => {
-                                e.currentTarget.src = "/placeholder.png";
-                              }}
-                            />
-                            <div className="text-xs font-semibold text-gray-700 text-center">
-                              {item.productName}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col justify-center items-center ">
-                          <div className="flex  items-center gap-4">
-
-                            {/* Categories */}
-                            {item?.categoryIds?.length > 0 && (
-                              <div
-                                className="relative inline-block group bg-green-500 text-white px-2 py-0.5 rounded-lg"
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                              >
-                                {/* Trigger */}
-                                <span className="text-xs font-semibold cursor-pointer">
-                                  Categories
-                                </span>
-
-                                {/* Tooltip */}
-                                <div className="absolute left-0 top-full  hidden group-hover:block z-50">
-                                  <div className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto">
-                                    {allCategories
-                                      ?.filter((cat) =>
-                                        item.categoryIds.includes(cat.productCategoryId)
-                                      )
-                                      .map((cat) => (
-                                        <div
-                                          key={cat.productCategoryId}
-                                          className="py-0.5 whitespace-nowrap"
-                                        >
-                                          {cat.name}
-                                        </div>
-                                      ))}
-                                  </div>
-                                </div>
+                          {item?.productImage?.file && (
+                            <div className="flex flex-col items-center gap-2">
+                              <img
+                                // src={`/products/${item.image}`}
+                                src={item?.productImage?.file}
+                                className="h-24 w-auto object-contain rounded"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.png";
+                                }}
+                              />
+                              <div className="text-xs font-semibold text-gray-700 text-center">
+                                {item.productName}
                               </div>
-                            )}
+                            </div>
+                          )}
 
+                          <div className="flex flex-col justify-center items-center ">
+                            <div className="flex  items-center gap-4">
 
+                              {/* Categories */}
+                              {item?.categoryIds?.length > 0 && (
+                                <div
+                                  className="relative inline-block group bg-green-500 text-white px-2 py-0.5 rounded-lg"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                >
+                                  {/* Trigger */}
+                                  <span className="text-xs font-semibold cursor-pointer">
+                                    Categories
+                                  </span>
 
-                            {/* Suppliers */}
-                            {item?.supplierIds?.length > 0 && (
-                              <div
-                                className="relative px-2 py-0.5 bg-blue-600 text-white  rounded-lg inline-block group "
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                              >
-                                {/* Trigger */}
-                                <span className=" text-xs font-semibold cursor-pointer">
-                                  Suppliers
-                                </span>
-
-                                {/* Tooltip */}
-                                <div className="absolute left-0 top-full hidden group-hover:block z-50">
-                                  <div
-                                    className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {allSuppliers
-                                      ?.filter((sup) =>
-                                        item.supplierIds.includes(sup.supplierId)
-                                      )
-                                      .map((sup) => (
-                                        <div
-                                          key={sup.supplierId}
-                                          className="py-0.5 whitespace-nowrap"
-                                        >
-                                          {sup.name}
-                                        </div>
-                                      ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Max Order */}
-                          <div
-                            className="relative inline-block group mt-2 bg-gray-500 text-white px-2 py-0.5 rounded-lg"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {/* Trigger */}
-                            <span className="text-xs font-semibold cursor-pointer">
-                              Max Orders
-                            </span>
-
-                            {/* Tooltip */}
-                            <div className="absolute left-0 top-full  hidden group-hover:block z-50">
-                              <div className="w-36 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700">
-                                {Object.entries(item.maxOrderCapacity || {}).map(
-                                  ([day, val]) => (
-                                    <div
-                                      key={day}
-                                      className="py-0.5 flex justify-between gap-2"
-                                    >
-                                      <span>{day}</span>
-                                      <span className="font-semibold">{val}</span>
+                                  {/* Tooltip */}
+                                  <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                                    <div className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto">
+                                      {allCategories
+                                        ?.filter((cat) =>
+                                          item.categoryIds.includes(cat.productCategoryId)
+                                        )
+                                        .map((cat) => (
+                                          <div
+                                            key={cat.productCategoryId}
+                                            className="py-0.5 whitespace-nowrap"
+                                          >
+                                            {cat.name}
+                                          </div>
+                                        ))}
                                     </div>
-                                  )
-                                )}
+                                  </div>
+                                </div>
+                              )}
+
+
+
+                              {/* Suppliers */}
+                              {item?.supplierIds?.length > 0 && (
+                                <div
+                                  className="relative px-2 py-0.5 bg-blue-600 text-white  rounded-lg inline-block group "
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                >
+                                  {/* Trigger */}
+                                  <span className=" text-xs font-semibold cursor-pointer">
+                                    Suppliers
+                                  </span>
+
+                                  {/* Tooltip */}
+                                  <div className="absolute left-0 top-full hidden group-hover:block z-50">
+                                    <div
+                                      className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {allSuppliers
+                                        ?.filter((sup) =>
+                                          item.supplierIds.includes(sup.supplierId)
+                                        )
+                                        .map((sup) => (
+                                          <div
+                                            key={sup.supplierId}
+                                            className="py-0.5 whitespace-nowrap"
+                                          >
+                                            {sup.name}
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            {/* Max Order */}
+                            <div
+                              className="relative inline-block group mt-2 bg-gray-500 text-white px-2 py-0.5 rounded-lg"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Trigger */}
+                              <span className="text-xs font-semibold cursor-pointer">
+                                Max Orders
+                              </span>
+
+                              {/* Tooltip */}
+                              <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                                <div className="w-36 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700">
+                                  {Object.entries(item.maxOrderCapacity || {}).map(
+                                    ([day, val]) => (
+                                      <div
+                                        key={day}
+                                        className="py-0.5 flex justify-between gap-2"
+                                      >
+                                        <span>{day}</span>
+                                        <span className="font-semibold">{val}</span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
+
+                          {/* Configure Button */}
+
+                          {action === "finalize" ?
+                            <button
+                              onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
+                              className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Edit Product
+                            </button> :
+                            <button
+                              onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
+                              className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              Configure
+                            </button>
+                          }
                         </div>
-
-                        {/* Configure Button */}
-
-                        {action === "finalize" ?
-                          <button
-                            onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
-                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            Edit Product
-                          </button> :
-                          <button
-                            onClick={() => openEditModal(item, shelfNumber, shelfIndex)}
-                            className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                          >
-                            Configure
-                          </button>
-                        }
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
         </div>
 
       </div>
@@ -1217,8 +1283,6 @@ const PlanogramStructure = () => {
                   </h3>
                   <p className="text-sm text-gray-600">Edit product details, categories, suppliers, and capacity limits</p>
                 </div>
-
-
 
                 {/* Product Image */}
                 {editItem?.productImage?.file && (
@@ -1460,7 +1524,8 @@ const PlanogramStructure = () => {
             </div>
         )
       }
-      {isPlanModalOpen && (
+
+      {/* {isPlanModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm">
 
@@ -1490,6 +1555,160 @@ const PlanogramStructure = () => {
                 Confirm
               </button>
             </div>
+          </div>
+        </div>
+      )} */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+
+            <h3 className="text-lg font-semibold mb-4">Select Date & Time</h3>
+
+            {/* DATE */}
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-3"
+            />
+
+            {/* TIME */}
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-4"
+            />
+
+            {/* ACTION BUTTONS */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsPlanModalOpen(false);
+                  setDate("")
+                  setTime("")
+                }}
+                className="px-4 py-2 text-gray-600"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!date || !time}
+                onClick={() => {
+                  const finalDateTime = combineDateTime(date, time);
+                  handelSelectDate(finalDateTime)
+                  setIsPlanModalOpen(false);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+
+
+      {isNotify && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
+
+            <h3 className="text-base font-semibold mb-4">
+              Are you sure you want to re-apply the structure for this plan date:
+              <span className="text-red-600 text-center"> {formatDate(selectedDate)}</span>
+            </h3>
+
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsNotify(false)}
+                className="px-4 py-2 text-gray-600"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!selectedReApplyDate}
+                onClick={handleConfirm}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                {updatingPlanogram && isNotify && <Loader2 className="h-4 w-4 animate-spin" />}
+                {updatingPlanogram && isNotify ? "Updating" : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isReapplyPlanModalDateOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+
+            <h3 className="text-lg font-semibold mb-4">Select Reapply Plan Date</h3>
+
+            {/* DATE */}
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-3"
+            />
+
+            {/* TIME */}
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 mb-4"
+            />
+
+            {/* ACTION BUTTONS */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsReapplyPlanModalDateOpen(false);
+                  setDate("")
+                  setTime("")
+                }}
+                className="px-4 py-2 text-gray-600"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!date || !time}
+                onClick={() => {
+                  const finalDateTime = combineDateTime(date, time);
+                  handelReapplySelectDate(finalDateTime)
+                  setIsReapplyPlanModalDateOpen(false);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div>
+            {/* <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsReapplyPlanModalDateOpen(false)}
+                className="px-4 py-2 text-gray-600"
+              >
+                Cancel
+              </button>
+
+              <button
+                disabled={!isReapplyPlanModalDateOpen}
+                onClick={() => {
+                  setIsReapplyPlanModalDateOpen(false);
+                  setIsNotify(true)
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div> */}
           </div>
         </div>
       )}
