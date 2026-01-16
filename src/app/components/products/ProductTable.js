@@ -7,6 +7,8 @@ const ProductTable = ({
   suppliers = [],
   categories = [],
   onManage,
+  currentPage,
+  pageSize,
   onEdit,
   onDelete,
 }) => {
@@ -60,14 +62,14 @@ const ProductTable = ({
                 const category = categories.find(
                   (s) => s.productCategoryId === product?.productCategoryId
                 );
-
+                const rowNumber = (currentPage - 1) * pageSize + index + 1;
                 return (
                   <tr
                     key={product.id}
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       } hover:bg-blue-50 transition-colors duration-200`}
                   >
-                    <td className="px-6 py-4">{index + 1}</td>
+                    <td className="px-6 py-4">{rowNumber}</td>
 
                     {/* Product name */}
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
@@ -96,7 +98,7 @@ const ProductTable = ({
 
                     {/* Price */}
                     <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
-                      <Euro className="h-4 w-4 text-green-600"/>
+                      <Euro className="h-4 w-4 text-green-600" />
                       {product.costPrice ? product.costPrice : "N/A"}
                     </td>
 

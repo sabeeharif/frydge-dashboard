@@ -346,6 +346,8 @@ const ProductManagement = () => {
   );
 
   const handleNextPage = () => {
+    console.log(totalPages);
+    console.log(currentPage);
     if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
     }
@@ -505,6 +507,8 @@ const ProductManagement = () => {
         products={paginatedProducts}
         suppliers={suppliers}
         categories={allCategories}
+        currentPage={currentPage}
+        pageSize={pageSize}
         onManage={openEditModal}
         onEdit={openEditModal}
         onDelete={handleDelete}
@@ -518,6 +522,8 @@ const ProductManagement = () => {
         hasPrevPage={currentPage > 1}
         onNextPage={handleNextPage}
         onRefresh={handlePrevPage}
+        currentPage={currentPage}
+        totalPages={totalPages}
       />
 
 

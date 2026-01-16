@@ -44,7 +44,7 @@ const PlanogramStructure = () => {
   const [excludedMachineIds, setExcludedMachineIds] = useState([])
   const [includeEnabled, setIncludeEnabled] = useState(false)
   const [includedMachineIds, setIncludedMachineIds] = useState([])
-  const [applyToGroup, setApplyToGroup] = useState(false)
+  const [applyToGroup, setApplyToGroup] = useState(true)
   const [dateLoader, setDateLoader] = useState()
   const searchTimeoutRef = useRef(null)
   const hasFetchedPlanogramRef = useRef(false)
@@ -62,20 +62,7 @@ const PlanogramStructure = () => {
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-  // Date format Func
-  const formatDate = (dateString) => {
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    } catch {
-      return dateString
-    }
-  }
+
   const formatNewPlanDate = (dateString) => {
     try {
       if (!dateString) return "";
@@ -83,11 +70,11 @@ const PlanogramStructure = () => {
       // Split date and time
       const [datePart, timePart] = dateString.split("T");
       const [day, month, year] = datePart.split("-");
-      const [hour, minute, second] = timePart.split(":");
+      // const [hour, minute, second] = timePart.split(":");
 
       // Create valid Date object (YYYY-MM-DDTHH:mm:ss)
       const date = new Date(
-        `${year}-${month}-${day}T${hour}:${minute}:${second}`
+        `${year}-${month}-${day}T00:00:01`
       );
       return date.toLocaleString("en-US", {
         year: "numeric",
@@ -212,13 +199,13 @@ const PlanogramStructure = () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
     const payload = {
-      internalOrderId: planogramMeta?.internalOrderId,
-      plannedPlanogramDate: selectedPlanDate || selectedReApplyDate,
+      internalOrderId: selectedReApplyDate ? "" : planogramMeta?.internalOrderId,
+      plannedPlanogramDate: selectedDate && !selectedReApplyDate ? selectedDate : (selectedPlanDate || selectedReApplyDate),
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
       productAssignments: channelDetails
     }
-
+    console.log(payload);
     try {
       // // 🔹 API call
       const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
@@ -611,6 +598,7 @@ const PlanogramStructure = () => {
 
   // date selector
   const handelSelectDate = (date) => {
+    console.log(date);
     if (!date) return ""
     setSelectedPlanDate(date)
     setSelectedDate("")
@@ -707,11 +695,11 @@ const PlanogramStructure = () => {
   }
   useEffect(() => { console.log(isNotify); }, [isNotify])
 
-  const combineDateTime = (date, time) => {
-    if (!date || !time) return "";
+  const combineDateTime = (date) => {
+    if (!date) return "";
 
     const [year, month, day] = date.split("-");
-    return `${day}-${month}-${year}T${time}:00`;
+    return `${day}-${month}-${year}T00:00:01`;
   };
 
   const handelAppplyAllMachines = (check) => {
@@ -720,8 +708,18 @@ const PlanogramStructure = () => {
     if (check === true) {
       setIncludeEnabled(false)
       setExcludeEnabled(false)
+      setIncludedMachineIds([])
+      setExcludedMachineIds([])
     }
   }
+
+  const getTomorrowDate = () => {
+    const today = new Date();
+    today.setDate(today.getDate() + 1);
+    return today.toISOString().split("T")[0];
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -775,14 +773,14 @@ const PlanogramStructure = () => {
               {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
               {updatingPlanogram ? "Updating..." : action === "finalize" ? "Apply Structure" : "Update Structure"}
             </button> : <button
-              onClick={action === "finalize" && handelReapplyFunc}
+              onClick={action === "finalize" && handleFinalizePlanogram}
               disabled={updatingPlanogram}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
             transition-colors flex items-center gap-2"
             >
               {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Reapply-Structure" : ""}
+              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Update Structure" : ""}
             </button>}
           </div>
         </div>
@@ -795,12 +793,14 @@ const PlanogramStructure = () => {
             <div className="mb-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
-                  type="checkbox"
+                  type="radio"
                   checked={excludeEnabled}
                   onChange={(e) => {
                     const checked = e.target.checked
                     setExcludeEnabled(checked)
                     setApplyToGroup(false)
+                    setIncludeEnabled(false)
+                    setIncludedMachineIds([])
 
                     if (!checked) {
                       setExcludedMachineIds([]) // clear selection
@@ -876,12 +876,14 @@ const PlanogramStructure = () => {
             <div className="mb-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
-                  type="checkbox"
+                  type="radio"
                   checked={includeEnabled}
                   onChange={(e) => {
                     const checked = e.target.checked
                     setIncludeEnabled(checked)
                     setApplyToGroup(false)
+                    setExcludeEnabled(false)
+                    setExcludedMachineIds([])
 
                     if (!checked) {
                       setIncludedMachineIds([]) // clear selection
@@ -958,7 +960,7 @@ const PlanogramStructure = () => {
             {/* Apply to Group */}
             <div className="flex items-center gap-3">
               <input
-                type="checkbox"
+                type="radio"
                 id="applyToGroup"
                 checked={applyToGroup}
                 onChange={(e) => handelAppplyAllMachines(e.target.checked)}
@@ -1043,13 +1045,27 @@ const PlanogramStructure = () => {
             )}
 
             {!selectedPlanDate && (
-              <button
-                onClick={() => setIsPlanModalOpen(true)}
-                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
+              <>
+                <button
+                  onClick={() => setIsPlanModalOpen(true)}
+                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
                hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
-              >
-                New Plan
-              </button>
+                >
+                  New Plan
+                </button>
+              </>
+            )}
+
+            {selectedDate && (
+              <>
+                <button
+                  onClick={handelReapplyFunc}
+                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
+               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
+                >
+                  Apply Again
+                </button>
+              </>
             )}
 
 
@@ -1069,7 +1085,6 @@ const PlanogramStructure = () => {
 
           </div>
         }
-
 
         <div className="">
           <label className="text-2xl mb-2 font-semibold  block text-gray-900">
@@ -1576,17 +1591,18 @@ const PlanogramStructure = () => {
             <input
               type="date"
               value={date}
+              min={getTomorrowDate()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-3"
             />
 
             {/* TIME */}
-            <input
+            {/* <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-4"
-            />
+            /> */}
 
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-3">
@@ -1602,9 +1618,9 @@ const PlanogramStructure = () => {
               </button>
 
               <button
-                disabled={!date || !time}
+                disabled={!date}
                 onClick={() => {
-                  const finalDateTime = combineDateTime(date, time);
+                  const finalDateTime = combineDateTime(date);
                   handelSelectDate(finalDateTime)
                   setIsPlanModalOpen(false);
                 }}
@@ -1661,17 +1677,18 @@ const PlanogramStructure = () => {
             <input
               type="date"
               value={date}
+              min={getTomorrowDate()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-3"
             />
 
             {/* TIME */}
-            <input
+            {/* <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-4"
-            />
+            /> */}
 
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-3">
@@ -1687,9 +1704,9 @@ const PlanogramStructure = () => {
               </button>
 
               <button
-                disabled={!date || !time}
+                disabled={!date}
                 onClick={() => {
-                  const finalDateTime = combineDateTime(date, time);
+                  const finalDateTime = combineDateTime(date);
                   handelReapplySelectDate(finalDateTime)
                   setIsNotify(true)
                   setIsReapplyPlanModalDateOpen(false);

@@ -45,20 +45,30 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const { success: toastSuccess } = useToast()
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
     const formatDate = (dateString) => {
         try {
-            return new Date(dateString).toLocaleDateString("en-US", {
+            if (!dateString) return "";
+
+            // Split date and time
+            const [datePart, timePart] = dateString.split("T");
+            const [day, month, year] = datePart.split("-");
+            // const [hour, minute, second] = timePart.split(":");
+
+            // Create valid Date object (YYYY-MM-DDTHH:mm:ss)
+            const date = new Date(
+                `${year}-${month}-${day}T00:00:01`
+            );
+            return date.toLocaleString("en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
-            })
-        } catch {
-            return dateString
+            });
+        } catch (error) {
+            return dateString;
         }
-    }
+    };
     const openEditModal = (item, channelNumber, shelfIndex) => {
         setEditItem({ ...item, channelNumber, shelfIndex })
         setCategories(item.categoryIds || [])
@@ -357,15 +367,15 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         includedMachineIds = [],
                         excludedMachineIds = [],
                         orderSnapshot = {},
-                        createdAt,
+                        plannedPlanogramDate
+                        ,
                     } = order;
+                    console.log(order, "sad");
 
                     // extract snapshot array (if exists)
                     const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
 
                     let grouped = {};
-                    console.log(orderSnapshot, "a");
-                    console.log(snapshotArray, "b");
                     if (snapshotArray.length > 0) {
                         grouped = snapshotArray.reduce((acc, item) => {
                             if (!acc[item.shelf]) acc[item.shelf] = [];
@@ -378,20 +388,21 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         });
                     }
 
-                    planograms[createdAt] = {
+                    planograms[plannedPlanogramDate
+                    ] = {
                         meta: {
                             internalOrderId,
                             planogramVersionId,
                             includedMachineIds,
                             excludedMachineIds,
-                            createdAt,
+                            plannedPlanogramDate
+                            ,
                         },
                         structure: grouped, // empty object if no snapshot
                         hasSnapshot: snapshotArray[0]?.orderDetails?.length > 0,
                     };
                 });
 
-                console.log(planograms);
                 setPlanogramMeta(planograms);
                 setStructure(planograms);
             } else {
@@ -584,13 +595,15 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         </div>
                     ) : (
                         /* 🔹 DATA RENDER */
-                        validEntries.map(([createdAt, shelvesByNumber]) => (
+                        validEntries.map(([plannedPlanogramDate
+                            , shelvesByNumber]) => (
 
-                            <div key={createdAt} className="mb-10 min-w-full border p-4 border-blue-600 rounded-lg">
+                            <div key={plannedPlanogramDate
+                            } className="mb-10 min-w-full border p-4 border-blue-600 rounded-lg">
 
                                 {/* Planogram Header */}
                                 <div className="text-lg font-bold mb-4">
-                                    Date: {formatDate(createdAt)}
+                                    Date: {formatDate(plannedPlanogramDate)}
                                 </div>
 
                                 {Object.entries(shelvesByNumber.structure)
@@ -606,13 +619,19 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                             >
                                                 {shelves.map((item, shelfIndex) => (
                                                     <div
-                                                        key={`${createdAt}-${item.channel}-${item.shelf}`}
+                                                        key={`${plannedPlanogramDate
+                                                            }-${item.channel}-${item.shelf}`}
                                                         ref={(el) => {
-                                                            if (!shelfRefs.current[createdAt])
-                                                                shelfRefs.current[createdAt] = {};
-                                                            if (!shelfRefs.current[createdAt][shelfNumber])
-                                                                shelfRefs.current[createdAt][shelfNumber] = [];
-                                                            shelfRefs.current[createdAt][shelfNumber][shelfIndex] = el;
+                                                            if (!shelfRefs.current[plannedPlanogramDate
+                                                            ])
+                                                                shelfRefs.current[plannedPlanogramDate
+                                                                ] = {};
+                                                            if (!shelfRefs.current[plannedPlanogramDate
+                                                            ][shelfNumber])
+                                                                shelfRefs.current[plannedPlanogramDate
+                                                                ][shelfNumber] = [];
+                                                            shelfRefs.current[plannedPlanogramDate
+                                                            ][shelfNumber][shelfIndex] = el;
                                                         }}
                                                         className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
                                                     >
@@ -662,7 +681,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                                                         {/* <button
                                                             onClick={() =>
-                                                                openEditModal(item, shelfNumber, shelfIndex, createdAt)
+                                                                openEditModal(item, shelfNumber, shelfIndex, plannedPlanogramDate
+)
                                                             }
                                                             className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
                                                         >
