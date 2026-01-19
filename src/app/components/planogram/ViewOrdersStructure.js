@@ -310,7 +310,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         if (value && !categories.includes(value)) {
             setCategories([...categories, value])
         }
-    }
+    };
 
     const handleSupplierSelect = (e) => {
         const value = e.target.value

@@ -6,6 +6,7 @@ import { api } from "@/app/lib/auth";
 import Loader from "@/app/components/Loader";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
+import { OrderFileForSupplier } from "@/app/components/planogram/OrderFileForSupplier"
 
 const PlanogramStructure = () => {
   const [date, setDate] = useState("");
@@ -199,34 +200,34 @@ const PlanogramStructure = () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
     const payload = {
-      internalOrderId: selectedReApplyDate ? "" : planogramMeta?.internalOrderId,
+      internalOrderId: selectedReApplyDate || !selectedDate && planogramMeta?.internalOrderId ? "" : planogramMeta?.internalOrderId,
       plannedPlanogramDate: selectedDate && !selectedReApplyDate ? selectedDate : (selectedPlanDate || selectedReApplyDate),
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
       productAssignments: channelDetails
     }
     console.log(payload);
-    try {
-      // // 🔹 API call
-      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
-      console.log(response.status);
-      if (!response.ok || !response.status === 200) {
-        throw new Error(`HTTP ${response.status}`)
-      }
+    // try {
+    //   // // 🔹 API call
+    //   const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
+    //   console.log(response.status);
+    //   if (!response.ok || !response.status === 200) {
+    //     throw new Error(`HTTP ${response.status}`)
+    //   }
 
-      // const result = await response.json()
-      toastSuccess(`Structure Finalize Successfully`)
-      router.push(
-        `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
-      )
-      setEditItem(null)
-    } catch (err) {
-      console.error("Update failed:", err)
-      console.log("erer", err);
-      alert("Update failed. Please try again.")
-    } finally {
-      setUpdatingPlanogram(false)
-    }
+    //   // const result = await response.json()
+    //   toastSuccess(`Structure Finalize Successfully`)
+    //   router.push(
+    //     `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
+    //   )
+    //   setEditItem(null)
+    // } catch (err) {
+    //   console.error("Update failed:", err)
+    //   console.log("erer", err);
+    //   alert("Update failed. Please try again.")
+    // } finally {
+    //   setUpdatingPlanogram(false)
+    // }
   }
 
   // Progressively function to return the multiply data
@@ -340,7 +341,7 @@ const PlanogramStructure = () => {
       isFetchingRef: isFetchingSuppliersRef,
       setProgress: setSupplierFetchProgress,
       label: "suppliers",
-    })
+  })
 
   //  fetch categories to use the progressively function
   const fetchAllCategoriesProgressively = () =>
@@ -391,6 +392,7 @@ const PlanogramStructure = () => {
       setCategories([...categories, value])
     }
   }
+
   // supplier Selector
   const handleSupplierSelect = (e) => {
     const value = e.target.value
@@ -522,7 +524,8 @@ const PlanogramStructure = () => {
           createdAt: order.createdAt,
           friendlyName: order?.orderSnapshot[0].friendlyName,
           venueName: order?.orderSnapshot[0].venueName,
-          draft: order?.draft
+          draft: order?.draft,
+          supplierOrderFiles: order?.supplierOrderFiles
         });
 
         if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
@@ -637,6 +640,7 @@ const PlanogramStructure = () => {
     }
   }, [planogramMeta])
 
+
   useEffect(() => {
     if (!machineStructureId) return
     if (hasFetchedPlanogramRef.current) return
@@ -644,6 +648,7 @@ const PlanogramStructure = () => {
     hasFetchedPlanogramRef.current = true
     fetchPlanogramStructure()
   }, [machineStructureId])
+
 
   // 🔹 Sync all cards height in each shelf row
   useEffect(() => {
@@ -655,6 +660,7 @@ const PlanogramStructure = () => {
       });
     });
   }, [structure]);
+
 
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
@@ -678,12 +684,14 @@ const PlanogramStructure = () => {
     }
   }, [])
 
+
   useEffect(() => {
     if (action === "finalize" && planogramVersionId) {
 
       fetchOrderDates()
     }
   }, [planogramVersionId])
+
 
   const handelReapplyFunc = () => {
     setIsReapplyPlanModalDateOpen(true)
@@ -693,7 +701,9 @@ const PlanogramStructure = () => {
     setIsNotify(false)
     handleFinalizePlanogram()
   }
+
   useEffect(() => { console.log(isNotify); }, [isNotify])
+
 
   const combineDateTime = (date) => {
     if (!date) return "";
@@ -787,192 +797,200 @@ const PlanogramStructure = () => {
 
         {/* actions exclude ,include and apply meachines */}
         {action === "finalize" && (
-          <div className="mb-6">
+          <div className="flex  ">
+            <div className="mb-6 w-[55%]">
 
-            {/* Exclude Machines Checkbox */}
-            <div className="mb-4">
-              <label className="flex items-center gap-3 cursor-pointer">
+              {/* Exclude Machines Checkbox */}
+              <div className="mb-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={excludeEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setExcludeEnabled(checked)
+                      setApplyToGroup(false)
+                      setIncludeEnabled(false)
+                      setIncludedMachineIds([])
+
+                      if (!checked) {
+                        setExcludedMachineIds([]) // clear selection
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Exclude machines
+                  </span>
+                </label>
+              </div>
+
+              {excludeEnabled && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select machines to exclude
+                  </label>
+
+                  <select
+                    multiple
+                    value={excludedMachineIds}
+                    onChange={handleExcludeMachinesSelect}
+                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  >
+
+                    {groupMachines
+                      .filter(
+                        (machine) =>
+                          !includedMachineIds.includes(String(machine.machineId))
+                      )
+                      .map((machine) => (
+                        <option
+                          key={machine.machineId}
+                          value={machine.machineId}
+                        >
+                          {machine.friendlyName}
+                          {machine.primePlanogram ? " (Prime)" : ""}
+                        </option>
+                      ))}
+
+                  </select>
+
+                  {/* Selected Preview */}
+                  {excludedMachineIds.length > 0 && (
+                    <div className="my-3 flex flex-wrap gap-2">
+                      {excludedMachineIds?.map(id => (
+                        <span
+                          key={id}
+                          className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
+                        >
+                          {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExcludedMachineIds(
+                                excludedMachineIds.filter(m => m !== id)
+                              )
+                            }
+                            className="font-bold hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Include Machines Checkbox */}
+              <div className="mb-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={includeEnabled}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setIncludeEnabled(checked)
+                      setApplyToGroup(false)
+                      setExcludeEnabled(false)
+                      setExcludedMachineIds([])
+
+                      if (!checked) {
+                        setIncludedMachineIds([]) // clear selection
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Include machines
+                  </span>
+                </label>
+              </div>
+
+              {/* Multi Select */}
+              {includeEnabled && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select machines to include
+                  </label>
+
+                  <select
+                    multiple
+                    value={includedMachineIds}
+                    onChange={handleIncludeMachinesSelect}
+                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  >
+
+                    {groupMachines
+                      .filter(
+                        (machine) =>
+                          !excludedMachineIds.includes(String(machine.machineId))
+                      )
+                      .map((machine) => (
+                        <option
+                          key={machine.machineId}
+                          value={(machine.machineId)}
+                        >
+                          {machine.friendlyName}
+                          {machine.primePlanogram ? " (Prime)" : ""}
+                        </option>
+                      ))}
+
+                  </select>
+
+                  {/* Selected Preview */}
+                  {includedMachineIds.length > 0 && (
+                    <div className="my-3 flex flex-wrap gap-2">
+                      {includedMachineIds.map(id => (
+                        <span
+                          key={id}
+                          className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
+                        >
+                          {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setIncludedMachineIds(
+                                includedMachineIds.filter(m => m !== String(id))
+                              )
+                            }
+                            className="font-bold hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+
+
+              {/* Apply to Group */}
+              <div className="flex items-center gap-3">
                 <input
                   type="radio"
-                  checked={excludeEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setExcludeEnabled(checked)
-                    setApplyToGroup(false)
-                    setIncludeEnabled(false)
-                    setIncludedMachineIds([])
-
-                    if (!checked) {
-                      setExcludedMachineIds([]) // clear selection
-                    }
-                  }}
-                  className="h-4 w-4 text-blue-600 rounded"
+                  id="applyToGroup"
+                  checked={applyToGroup}
+                  onChange={(e) => handelAppplyAllMachines(e.target.checked)}
+                  className="h-4 w-4 rounded text-blue-600"
                 />
-                <span className="text-sm font-medium text-gray-700">
-                  Exclude machines
-                </span>
-              </label>
-            </div>
-
-            {excludeEnabled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select machines to exclude
-                </label>
-
-                <select
-                  multiple
-                  value={excludedMachineIds}
-                  onChange={handleExcludeMachinesSelect}
-                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                <label
+                  htmlFor="applyToGroup"
+                  className="text-sm font-medium text-gray-700"
                 >
-
-                  {groupMachines
-                    .filter(
-                      (machine) =>
-                        !includedMachineIds.includes(String(machine.machineId))
-                    )
-                    .map((machine) => (
-                      <option
-                        key={machine.machineId}
-                        value={machine.machineId}
-                      >
-                        {machine.friendlyName}
-                        {machine.primePlanogram ? " (Prime)" : ""}
-                      </option>
-                    ))}
-
-                </select>
-
-                {/* Selected Preview */}
-                {excludedMachineIds.length > 0 && (
-                  <div className="my-3 flex flex-wrap gap-2">
-                    {excludedMachineIds?.map(id => (
-                      <span
-                        key={id}
-                        className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
-                      >
-                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExcludedMachineIds(
-                              excludedMachineIds.filter(m => m !== id)
-                            )
-                          }
-                          className="font-bold hover:text-red-600"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Include Machines Checkbox */}
-            <div className="mb-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={includeEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked
-                    setIncludeEnabled(checked)
-                    setApplyToGroup(false)
-                    setExcludeEnabled(false)
-                    setExcludedMachineIds([])
-
-                    if (!checked) {
-                      setIncludedMachineIds([]) // clear selection
-                    }
-                  }}
-                  className="h-4 w-4 text-blue-600 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Include machines
-                </span>
-              </label>
-            </div>
-
-            {/* Multi Select */}
-            {includeEnabled && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select machines to include
+                  Apply to all machines in this group
                 </label>
-
-                <select
-                  multiple
-                  value={includedMachineIds}
-                  onChange={handleIncludeMachinesSelect}
-                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                >
-
-                  {groupMachines
-                    .filter(
-                      (machine) =>
-                        !excludedMachineIds.includes(String(machine.machineId))
-                    )
-                    .map((machine) => (
-                      <option
-                        key={machine.machineId}
-                        value={(machine.machineId)}
-                      >
-                        {machine.friendlyName}
-                        {machine.primePlanogram ? " (Prime)" : ""}
-                      </option>
-                    ))}
-
-                </select>
-
-                {/* Selected Preview */}
-                {includedMachineIds.length > 0 && (
-                  <div className="my-3 flex flex-wrap gap-2">
-                    {includedMachineIds.map(id => (
-                      <span
-                        key={id}
-                        className="flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 rounded-full text-xs"
-                      >
-                        {groupMachines.find(m => String(m.machineId) === String(id))?.friendlyName} ({id})
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setIncludedMachineIds(
-                              includedMachineIds.filter(m => m !== String(id))
-                            )
-                          }
-                          className="font-bold hover:text-red-600"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
-            )}
-
-
-
-            {/* Apply to Group */}
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                id="applyToGroup"
-                checked={applyToGroup}
-                onChange={(e) => handelAppplyAllMachines(e.target.checked)}
-                className="h-4 w-4 rounded text-blue-600"
-              />
-              <label
-                htmlFor="applyToGroup"
-                className="text-sm font-medium text-gray-700"
-              >
-                Apply to all machines in this group
-              </label>
             </div>
+            {
+              selectedDate &&
+              <div className="w-[55%] relative">
+                <OrderFileForSupplier supplierOrderFiles={planogramMeta?.supplierOrderFiles} />
+              </div>
+            }
           </div>
         )}
 

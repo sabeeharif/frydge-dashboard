@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import {  RefreshCw, Plus, SquareChartGantt } from "lucide-react";
+import { RefreshCw, Plus, SquareChartGantt } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import PlanogramTable from "@/app/components/planogram/PlanogramTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
@@ -24,7 +24,7 @@ const PlanogramManagement = () => {
     // Modal State
     const [showCreatePlanogramModal, setShowCreatePlanogramModal] = useState(false);
     const [showEditPlanogramModal, setShowEditPlanogramModal] = useState(false);
-    
+
     // planogram State
     const [creatingPlanogram, setCreatingPlanogram] = useState(false);
     const [updatingPlanogram, setUpdatingPlanogram] = useState(false);
@@ -322,6 +322,8 @@ const PlanogramManagement = () => {
                 paginatedItems={planograms}
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
+                totalPages={1}
+                currentPage={1}
                 onRefresh={handlePrevPage}
                 onNextPage={handleNextPage}
             />

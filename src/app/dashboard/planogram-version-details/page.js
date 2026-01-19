@@ -57,6 +57,7 @@ const PlanogramDetails = () => {
             `/dashboard/planogram-structure?machineStructureId=${machineId}&action=${action}&planogramVersionId=${params}`
         );
     }
+
     const handelSyncVendlive = async () => {
         try {
             setIsRotating(true);
@@ -99,6 +100,7 @@ const PlanogramDetails = () => {
         }
     }, [searchParams]); // re-run if query params change
 
+
     useEffect(() => {
         fetchPlanogramVersions()
     }, [])
@@ -114,6 +116,7 @@ const PlanogramDetails = () => {
             </div>
         )
     }
+    
     return (
         <div className="p-8">
             {/* Back Button */}

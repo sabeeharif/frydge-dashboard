@@ -956,6 +956,7 @@ export const api = {
     });
   },
 
+
   updateSuppliers: (data) => {
     return ApiService.awsRequest('/suppliers', {
       method: 'PUT',
@@ -963,12 +964,14 @@ export const api = {
     });
   },
 
+
   deleteSupplier: (data) => {
     return ApiService.awsRequest('/suppliers', {
       method: 'DELETE',
       body: JSON.stringify(data),
     });
   },
+
 
   getProductsCategories: (params = {}) => {
     const queryParams = new URLSearchParams();
@@ -987,6 +990,7 @@ export const api = {
     const queryString = queryParams.toString();
     return ApiService.awsRequest(`/product_categories?${queryString}`);
   },
+
   // Create Category
   createProductCategory: (data) => {
     return ApiService.awsRequest('/product_categories', {
@@ -994,19 +998,21 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+
   deleteProductCategory: (data) => {
     return ApiService.awsRequest('/product_categories', {
       method: 'DELETE',
       body: JSON.stringify(data),
     });
   },
+
   updateProductCategory: (data) => {
     return ApiService.awsRequest('/product_categories', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
-
 
   // Get Ploanogram Versions
   getPlanogramVersions: (params = {}) => {
@@ -1185,6 +1191,22 @@ export const api = {
 
     return ApiService.awsRequest(
       `/internal_orders${queryString ? `?${queryString}` : ""}`
+    );
+  },
+
+  // Get Internal Orders
+  getOrderSupplierFileName: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.filename) {
+      queryParams.append("filename", params.filename);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/internal_orders/file${queryString ? `?${queryString}` : ""}`
     );
   },
 
