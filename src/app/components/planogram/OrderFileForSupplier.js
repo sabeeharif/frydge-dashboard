@@ -9,6 +9,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
     const [error, setError] = useState()
     const [orderFilename, setOrderFilename] = useState("");
     const [supplierSearchLoading, setSupplierSearchLoading] = useState(false);
+    const [fileLoader, setFileLoader] = useState()
     const [supplierFetchProgress, setSupplierFetchProgress] = useState({
         current: 0,
         total: 0,
@@ -76,6 +77,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
                 `Successfully fetched ${allFetchedSuppliers.length} suppliers`
             );
         } catch (error) {
+            setSupplierSearchLoading(false);
             console.error("Error fetching suppliers:", error);
         } finally {
             setSupplierSearchLoading(false);
@@ -83,7 +85,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
         }
     };
 
-    
+
     useEffect(() => {
 
         if (supplierTimeoutRef.current) {
@@ -124,17 +126,24 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
 
     const handleSupplierChange = async (e) => {
         const supplierId = e.target.value;
+        setFileLoader(true)
         setSelectedSupplier(supplierId);
         setError("");
         setImageUrl("");
         setOrderFilename("");
-
+        console.log(supplierId);
+        if (supplierId === "") {
+            setError("")
+            setFileLoader(false)
+            return;
+        }
         const file = getOrderFilenameBySupplierId(
             supplierOrderFiles,
             supplierId
         );
 
         if (!file) {
+            setFileLoader(false)
             setError("No File Found For This Supplier");
             return;
         }
@@ -159,6 +168,8 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
         } catch (err) {
             console.error("Image fetch failed:", err);
             setError("Failed to load order file");
+        } finally {
+            setFileLoader(false)
         }
     };
 
@@ -180,7 +191,28 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
                         backgroundPosition: 'right 12px center'
                     }}
                 >
-                    <option value="">Suppliers Drop Down</option>
+                    <option value="" className="flex gap-2"> {supplierSearchLoading && <div className="ml-2">
+                        <svg
+                            className="animate-spin h-5 w-5 text-blue-500"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            ></circle>
+                            <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v8H4z"
+                            ></path>
+                        </svg>
+                    </div>}Suppliers Drop Down</option>
                     {allSuppliers.map(supplier => (
                         <option key={supplier?.supplierId} value={supplier?.supplierId}>
                             {supplier.name}
@@ -192,14 +224,35 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
             <button
                 onClick={downloadFile}
                 disabled={!imageUrl}
-                className={`w-full px-6 py-3 border-2 rounded-md font-medium transition-all duration-300
-    ${imageUrl
+                className={`w-full flex items-center gap-2 px-6 py-3 border-2 rounded-md font-medium transition-all duration-300
+                 ${imageUrl
                         ? "bg-white border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20"
                         : "bg-gray-300 border-gray-300 text-gray-500 cursor-not-allowed"
                     }
   `}
             >
-                Download File
+                {fileLoader && <div className="ml-2">
+                    <svg
+                        className="animate-spin h-5 w-5 text-blue-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                    >
+                        <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                        ></circle>
+                        <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
+                    </svg>
+                </div>}    Download File
             </button>
 
             {error && (
