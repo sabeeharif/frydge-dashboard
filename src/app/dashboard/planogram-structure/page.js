@@ -207,27 +207,27 @@ const PlanogramStructure = () => {
       productAssignments: channelDetails
     }
     console.log(payload);
-    // try {
-    //   // // 🔹 API call
-    //   const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
-    //   console.log(response.status);
-    //   if (!response.ok || !response.status === 200) {
-    //     throw new Error(`HTTP ${response.status}`)
-    //   }
+    try {
+      // // 🔹 API call
+      const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
+      console.log(response.status);
+      if (!response.ok || !response.status === 200) {
+        throw new Error(`HTTP ${response.status}`)
+      }
 
-    //   // const result = await response.json()
-    //   toastSuccess(`Structure Finalize Successfully`)
-    //   router.push(
-    //     `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
-    //   )
-    //   setEditItem(null)
-    // } catch (err) {
-    //   console.error("Update failed:", err)
-    //   console.log("erer", err);
-    //   alert("Update failed. Please try again.")
-    // } finally {
-    //   setUpdatingPlanogram(false)
-    // }
+      // const result = await response.json()
+      toastSuccess(`Structure Finalize Successfully`)
+      router.push(
+        `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
+      )
+      setEditItem(null)
+    } catch (err) {
+      console.error("Update failed:", err)
+      console.log("erer", err);
+      alert("Update failed. Please try again.")
+    } finally {
+      setUpdatingPlanogram(false)
+    }
   }
 
   // Progressively function to return the multiply data
@@ -341,7 +341,7 @@ const PlanogramStructure = () => {
       isFetchingRef: isFetchingSuppliersRef,
       setProgress: setSupplierFetchProgress,
       label: "suppliers",
-  })
+    })
 
   //  fetch categories to use the progressively function
   const fetchAllCategoriesProgressively = () =>
