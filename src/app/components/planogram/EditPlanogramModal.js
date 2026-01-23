@@ -190,15 +190,25 @@ const EditProductModal = ({
                                   "venueName",
                                   selectedMachine?.venue?.name || null
                                 );
+                                updateRow(
+                                  index,
+                                  "deviceId",
+                                  selectedMachine?.maxItemsPerDevice?.[0]?.deviceId || null
+                                );
                               }}
                               className="w-full px-3 py-2 border rounded-lg"
                             >
                               <option value="">Select Machine</option>
-                              {machines?.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m?.friendlyName}
-                                </option>
-                              ))}
+                              {machines
+                                ?.slice() // prevent mutating original array
+                                .sort((a, b) =>
+                                  (a?.friendlyName || "").localeCompare(b?.friendlyName || "")
+                                )
+                                .map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m?.friendlyName}
+                                  </option>
+                                ))}
                             </select>
 
                           </td>

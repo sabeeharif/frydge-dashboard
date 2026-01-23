@@ -766,12 +766,45 @@ const PlanogramStructure = () => {
         {/* Header */}
 
         <div className="flex justify-between items-center">
-          <div className="mb-8">
-            <h3 className="text-4xl font-bold text-gray-900 mb-2 gap-3 flex">Planogram Structure
-              {planogramMeta?.primeMachine && <span className=" px-3 bg-green-500 text-white rounded-lg text-sm font-semibold
-            flex items-center">{planogramMeta?.primeMachine ? "Prime" : ""}</span>} </h3>
-            <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
+          <div className="mb-8 space-y-2">
+            <h3 className="flex items-center gap-3 text-4xl font-bold text-gray-900">
+              Planogram Structure
+
+              {planogramMeta?.primeMachine && (
+                <span className="flex items-center px-3 py-1 text-sm font-semibold text-white bg-green-500 rounded-full">
+                  Prime
+                </span>
+              )}
+            </h3>
+
+            <div className="flex flex-wrap gap-4 text-lg">
+              <span className="font-semibold text-gray-800">
+                Machine ID: 
+                <span className="ml-2 font-medium text-gray-800">
+                  {planogramMeta?.machineId}
+                </span>
+              </span>
+
+              <span className="font-semibold text-gray-800">
+                Venue: 
+                <span className="ml-2 font-medium text-gray-800">
+                  {planogramMeta?.venueName}
+                </span>
+              </span>
+
+              <span className="font-semibold text-gray-800">
+                Friendly Name: 
+                <span className="ml-2 font-medium text-gray-800">
+                  {planogramMeta?.friendlyName}
+                </span>
+              </span>
+            </div>
+
+            <p className="text-gray-600">
+              Manage channel configurations and shelf assignments
+            </p>
           </div>
+
           <div>
             {!selectedDate ? <button
               onClick={action === "finalize" ? handleFinalizePlanogram : handleUpdatePlanogram}
