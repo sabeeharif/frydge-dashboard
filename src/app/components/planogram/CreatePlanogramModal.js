@@ -5,7 +5,7 @@ import { AuthService, api } from "@/app/lib/auth";
 const CreatePlanogramModal = ({
   closeModal,
   handleCreatePlanogram,
-  creatingProduct,
+  creatingPlanogram,
   formData,
   handleInputChange,
   setFormData
@@ -305,15 +305,15 @@ const CreatePlanogramModal = ({
           <button
             onClick={handleCreatePlanogram}
             disabled={
-              creatingProduct ||
+              creatingPlanogram ||
               !!errors.machine ||
               !!errors.prime
             }
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg disabled:opacity-50"
+            className="px-6 flex gap-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg disabled:opacity-50"
           >
 
-            {creatingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
-            {creatingProduct ? "Creating..." : "Create Planogram"}
+            {creatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
+            {creatingPlanogram ? "Creating..." : "Create Planogram"}
           </button>
         </div>
       </div>

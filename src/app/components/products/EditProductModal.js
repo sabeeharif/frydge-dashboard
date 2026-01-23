@@ -32,23 +32,40 @@ const EditProductModal = ({
               Product Information
             </h3>
 
-            {/* Product Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                disabled
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Enter product name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
 
-            {/* Category + Price */}
             <div className="grid grid-cols-2 gap-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  disabled
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Enter product name"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* External ID */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Type
+                </label>
+                <input
+                  type="text"
+                  value={formData.productType || ""}
+                  onChange={(e) =>
+                    handleInputChange("productType", e.target.value)
+                  }
+                  disabled
+                  placeholder="Enter Product Type"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {/* Category + Price */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category

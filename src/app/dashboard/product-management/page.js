@@ -22,6 +22,7 @@ const ProductManagement = () => {
     productCategoryId: "",
     externalId: "",
     costPrice: "",
+    productType:''
   });
   const [suppliers, setSuppliers] = useState([]);
   const [supplierLastKey, setSupplierLastKey] = useState(null);
@@ -178,6 +179,7 @@ const ProductManagement = () => {
       productCategoryId: product.productCategoryId || "",
       externalId: product.externalId || "",
       costPrice: product.costPrice || "",
+      productType:product.productType
     });
 
     setShowEditProductModal(true);

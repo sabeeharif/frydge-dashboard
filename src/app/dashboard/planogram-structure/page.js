@@ -619,16 +619,21 @@ const PlanogramStructure = () => {
 
   useEffect(() => {
     const id = setTimeout(() => {
-      if (!productSearch.trim()) {
+      const search = productSearch.toLowerCase().trim()
+
+      if (!search) {
         setProductOptions(allProducts)
       } else {
         setProductOptions(
           allProducts.filter(p =>
-            p.name.toLowerCase().includes(productSearch.toLowerCase())
+            p.name?.toLowerCase().includes(search) ||
+            p.productId?.toString().includes(search) ||
+            p.externalId?.toLowerCase().includes(search)
           )
         )
       }
     }, 150)
+
 
     return () => clearTimeout(id)
   }, [productSearch, allProducts])
@@ -696,6 +701,7 @@ const PlanogramStructure = () => {
   const handelReapplyFunc = () => {
     setIsReapplyPlanModalDateOpen(true)
   }
+
 
   const handleConfirm = () => {
     setIsNotify(false)
@@ -779,21 +785,21 @@ const PlanogramStructure = () => {
 
             <div className="flex flex-wrap gap-4 text-lg">
               <span className="font-semibold text-gray-800">
-                Machine ID: 
+                Machine ID:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.machineId}
                 </span>
               </span>
 
               <span className="font-semibold text-gray-800">
-                Venue: 
+                Venue:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.venueName}
                 </span>
               </span>
 
               <span className="font-semibold text-gray-800">
-                Friendly Name: 
+                Friendly Name:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.friendlyName}
                 </span>
@@ -1000,7 +1006,6 @@ const PlanogramStructure = () => {
               )}
 
 
-
               {/* Apply to Group */}
               <div className="flex items-center gap-3">
                 <input
@@ -1030,20 +1035,22 @@ const PlanogramStructure = () => {
         {action === "finalize" &&
           <div className="flex flex-wrap gap-2 items-end mb-6">
 
-            {selectedDate && <div className="relative">
-              <button
-                onClick={fetchPlanogramStructure}
-                className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+            {selectedDate &&
+              <div className="relative">
+                <button
+                  onClick={fetchPlanogramStructure}
+                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
             transition-colors flex items-center gap-2"
-              >
-                Latest Order
-              </button>
-              <div
-                className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
-                title="Modified"
-              />
-            </div>}
+                >
+                  Latest Order
+                </button>
+                <div
+                  className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
+                  title="Modified"
+                />
+              </div>
+            }
 
             {/* Date Dropdown */}
             <div className="flex flex-col gap-1 ml-2">
@@ -1421,7 +1428,7 @@ const PlanogramStructure = () => {
                           }}
                           className="px-4 py-2 hover:bg-blue-100 cursor-pointer text-sm"
                         >
-                          {p.name}
+                          Id:{p.productId}, Exteranal-Id:{p.externalId ? p.externalId : "Null"}, Name:{p.name}
                         </li>
                       ))}
                     </ul>

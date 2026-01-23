@@ -24,6 +24,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [productSearchLoading, setProductSearchLoading] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
     const [supplierFetchProgress, setSupplierFetchProgress] = useState()
+    const [categoryFetchProgress, setCategoryFetchProgress] = useState()
     const [allProducts, setAllProducts] = useState([])
     const [allSuppliers, setAllSuppliers] = useState([])
     const [allCategories, setAllCategories] = useState([])
@@ -42,6 +43,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const shelfRefs = useRef({});
     const [structure, setStructure] = useState({})
     const [loading, setLoading] = useState(false)
+    const [supplierLoading, setSupplierLoading] = useState(false)
+    const [categoryLoading, setCategoryLoading] = useState(false)
     const { success: toastSuccess } = useToast()
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -69,28 +72,21 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             return dateString;
         }
     };
-    const openEditModal = (item, channelNumber, shelfIndex) => {
-        setEditItem({ ...item, channelNumber, shelfIndex })
-        setCategories(item.categoryIds || [])
-        setSuppliers(item.supplierIds || [])
-        setMaxOrder(item.maxOrderCapacity || {})
-        fetchProducts(item)
-    }
 
     const handleSave = async () => {
         try {
             // Simulated API call
-            console.log("Saving:", {
-                channelNumber: editItem.channelNumber,
-                shelfIndex: editItem.shelfIndex,
-                categoryIds: categories,
-                supplierIds: suppliers,
-                maxOrderCapacity: maxOrder,
-                productName: editItem?.productName,
-                productId: editItem?.productId,
-                externalProductId: editItem?.externalProductId,
-                price: editItem?.price
-            })
+            // console.log("Saving:", {
+            //     channelNumber: editItem.channelNumber,
+            //     shelfIndex: editItem.shelfIndex,
+            //     categoryIds: categories,
+            //     supplierIds: suppliers,
+            //     maxOrderCapacity: maxOrder,
+            //     productName: editItem?.productName,
+            //     productId: editItem?.productId,
+            //     externalProductId: editItem?.externalProductId,
+            //     price: editItem?.price
+            // })
 
             setStructure((prev) => {
                 const updated = { ...prev }
@@ -115,74 +111,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
-    const handleUpdatePlanogram = async () => {
-        setUpdatingPlanogram(true)
-        const channelDetails = Object.values(structure).flat()
-        const payload = {
-            machineStructureId: planogramMeta.machineStructureId,
-            planogramVersionId: planogramMeta.planogramVersionId,
-            primeMachine: planogramMeta?.primeMachine,
-            machineId: planogramMeta.machineId,
-            channelDetails: channelDetails,
-
-        }
-
-        console.log("Sending full payload:", payload)
-
-        try {
-            // // 🔹 API call
-            const response = await api.updatePlangoramVersionStructure(payload.planogramVersionId, payload)
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`)
-            }
-
-            const result = await response.json()
-            toastSuccess("Successfully Update Planogram Structure")
-
-            setEditItem(null)
-            fetchPlanogramStructure()
-        } catch (err) {
-            console.error("Update failed:", err)
-
-            alert("Update failed. Please try again.")
-        } finally {
-            setUpdatingPlanogram(false)
-        }
-    }
-
-    const handleFinalizePlanogram = async () => {
-        setUpdatingPlanogram(true)
-        const channelDetails = Object.values(structure).flat()
-        const paylod = {
-            excludedMachineIds: excludedMachineIds,
-            includedMachineIds: includedMachineIds,
-            productAssignments: channelDetails
-        }
-
-        try {
-            // // 🔹 API call
-            const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, paylod)
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`)
-            }
-
-            const result = await response.json()
-            console.log("Planogram updated successfully:", result)
-            toastSuccess(`${result?.message}`)
-            router.push(
-                `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
-            )
-            setEditItem(null)
-        } catch (err) {
-            console.error("Update failed:", err)
-
-            alert("Update failed. Please try again.")
-        } finally {
-            setUpdatingPlanogram(false)
-        }
-    }
 
     const fetchProgressively = async ({
         fetchFn,
@@ -278,33 +206,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }, [])
 
-    const fetchProducts = async (item) => {
-        try {
-            const response = await api.getProductsByCategoryAndSupplier(
-                item.categoryIds,   // dynamic limit
-                item?.supplierIds        // pagination key
-            );
-
-            console.log("products fetch response:", response.status);
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log("products data received:", data);
-
-            const fetchedCategory = data.products || data.results || [];
-
-
-            setAllProducts(fetchedCategory);
-
-        } catch (error) {
-            console.error("Failed to load suppliers", error);
-        }
-    };
-
     const handleCategorySelect = (e) => {
         const value = e.target.value
         if (value && !categories.includes(value)) {
@@ -316,20 +217,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         const value = e.target.value
         if (value && !suppliers.includes(value)) {
             setSuppliers([...suppliers, value])
-        }
-    }
-
-    const handleExcludeMachinesSelect = (e) => {
-        const value = e.target.value
-        if (value && !excludedMachineIds.includes(value)) {
-            setExcludedMachineIds([...excludedMachineIds, value])
-        }
-    }
-
-    const handleIncludeMachinesSelect = (e) => {
-        const value = e.target.value
-        if (value && !includedMachineIds.includes(value)) {
-            setIncludedMachineIds([...includedMachineIds, value])
         }
     }
 
@@ -370,7 +257,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         plannedPlanogramDate
                         ,
                     } = order;
-                    console.log(order, "sad");
 
                     // extract snapshot array (if exists)
                     const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
@@ -409,8 +295,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 setStructure(result?.internalOrders)
             }
 
-
-            console.log("response", response);
         } catch (error) {
             console.error("Failed to fetch planogram structure", error);
         } finally {
@@ -439,8 +323,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         });
     }, [structure]);
 
-
-
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
         try {
@@ -454,8 +336,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 lastKey: useLastKey,
                 planogramVersionId: planogramVersionId
             })
-            console.log("Client fetch response status:", response.status)
-
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
                 throw new Error(errorData.error || `HTTP ${response.status}`)
@@ -473,7 +353,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             setLoading(false)
         }
     };
-
 
     useEffect(() => {
         if (planogramVersionId) {
@@ -508,7 +387,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             </div>
         )
     }
-
     return (
         <div className="min-h-screen bg-gray-50 pt-4">
             <button
@@ -676,7 +554,107 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                                                 </div>
                                                             </div>
                                                         )}
+                                                        <div className="flex flex-col justify-center items-center ">
+                                                            <div className="flex  items-center gap-4">
 
+                                                                {/* Categories */}
+                                                                {item?.categoryIds?.length > 0 && (
+                                                                    <div
+                                                                        className="relative inline-block group bg-green-500 text-white px-2 py-0.5 rounded-lg"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        {/* Trigger */}
+                                                                        <span className="text-xs font-semibold cursor-pointer">
+                                                                            Categories
+                                                                        </span>
+
+                                                                        {/* Tooltip */}
+                                                                        <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                                                                            <div className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto">
+                                                                                {allCategories
+                                                                                    ?.filter((cat) =>
+                                                                                        item.categoryIds.includes(cat.productCategoryId)
+                                                                                    )
+                                                                                    .map((cat) => (
+                                                                                        <div
+                                                                                            key={cat.productCategoryId}
+                                                                                            className="py-0.5 whitespace-nowrap"
+                                                                                        >
+                                                                                            {cat.name}
+                                                                                        </div>
+                                                                                    ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+
+
+                                                                {/* Suppliers */}
+                                                                {item?.supplierIds?.length > 0 && (
+                                                                    <div
+                                                                        className="relative px-2 py-0.5 bg-blue-600 text-white  rounded-lg inline-block group "
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        {/* Trigger */}
+                                                                        <span className=" text-xs font-semibold cursor-pointer">
+                                                                            Suppliers
+                                                                        </span>
+
+                                                                        {/* Tooltip */}
+                                                                        <div className="absolute left-0 top-full hidden group-hover:block z-50">
+                                                                            <div
+                                                                                className="w-56 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700 max-h-40 overflow-y-auto"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                {allSuppliers
+                                                                                    ?.filter((sup) =>
+                                                                                        item.supplierIds.includes(sup.supplierId)
+                                                                                    )
+                                                                                    .map((sup) => (
+                                                                                        <div
+                                                                                            key={sup.supplierId}
+                                                                                            className="py-0.5 whitespace-nowrap"
+                                                                                        >
+                                                                                            {sup.name}
+                                                                                        </div>
+                                                                                    ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                            </div>
+                                                            {/* Max Order */}
+                                                            <div
+                                                                className="relative inline-block group mt-2 bg-gray-500 text-white px-2 py-0.5 rounded-lg"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {/* Trigger */}
+                                                                <span className="text-xs font-semibold cursor-pointer">
+                                                                    Order Days
+                                                                </span>
+
+                                                                {/* Tooltip */}
+                                                                <div className="absolute left-0 top-full  hidden group-hover:block z-50">
+                                                                    <div className="w-36 bg-white border border-gray-300 shadow-lg rounded p-2 text-xs text-gray-700">
+                                                                        {Object.entries(item.maxOrderCapacity || {}).map(
+                                                                            ([day, val]) => (
+                                                                                <div
+                                                                                    key={day}
+                                                                                    className="py-0.5 flex justify-between gap-2"
+                                                                                >
+                                                                                    <span>{day}</span>
+                                                                                    <span className="font-semibold">{val}</span>
+                                                                                </div>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
 
 
                                                         {/* <button

@@ -37,6 +37,7 @@ const PlanogramManagement = () => {
     const [planogramLastKey, setPlanogramLastKey] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPrevPage, setHasPrevPage] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // cache + page index
     const pageCacheRef = React.useRef({});
@@ -58,6 +59,7 @@ const PlanogramManagement = () => {
             setPlanogramLastKey(cached.lastKey);
             setHasPrevPage(true);
             setHasNextPage(cached.items.length === pageSize);
+            setCurrentPage(currentPage + 1)
             return;
         }
 
@@ -95,26 +97,28 @@ const PlanogramManagement = () => {
 
     // Create planogram
     const handleCreatePlanogram = async () => {
+        setCreatingPlanogram(true);
         // Basic validation
         if (!formData.name) {
+            setCreatingPlanogram(false)
             alert("Version name is required");
             return;
         }
 
         if (!formData.versionDetails.length) {
+            setCreatingPlanogram(false)
             alert("Please add at least one machine");
             return;
         }
 
         const primeCount = formData.versionDetails.filter(v => v.primePlanogram).length;
         if (primeCount !== 1) {
+            setCreatingPlanogram(false)
             alert("Exactly one Prime Planogram is required");
             return;
         }
 
         try {
-            setCreatingPlanogram(true);
-
             const response = await api.createPlanogramVersion(formData)
 
             if (!response.ok) {
@@ -272,6 +276,7 @@ const PlanogramManagement = () => {
         )
     }
 
+
     return (
         <div className="p-8 space-y-8">
 
@@ -323,7 +328,7 @@ const PlanogramManagement = () => {
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
                 totalPages={1}
-                currentPage={1}
+                currentPage={currentPage}
                 onRefresh={handlePrevPage}
                 onNextPage={handleNextPage}
             />

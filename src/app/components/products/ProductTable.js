@@ -29,6 +29,9 @@ const ProductTable = ({
                 Category
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                Type
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                 Shelf Life (Days)
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
@@ -84,6 +87,11 @@ const ProductTable = ({
                         />
                         {product.name}
                       </div>
+                    </td>
+
+                    {/* type */}
+                    <td className="px-6 py-4 text-gray-700">
+                      {product ? product?.productType : "N/A"}
                     </td>
 
                     {/* Category */}
