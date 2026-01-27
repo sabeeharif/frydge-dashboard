@@ -1063,9 +1063,16 @@ export const api = {
 
   // Init Planogram Structure
   initPlanogramStructure: (planogramId, data) => {
-    return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init`, {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (data.force === true) {
+      queryParams.append("force", data.force);
+    }
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:init${queryString ? `?${queryString}` : ""}`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      // body: JSON.stringify(data),
     });
   },
 
@@ -1092,7 +1099,7 @@ export const api = {
 
   // Update Planogram Version 
   updatePlangoramVersionStructure: (planogramId, payload) => {
-    console.log(payload);
+
     return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure`, {
       method: 'PUT',
       body: JSON.stringify(payload),

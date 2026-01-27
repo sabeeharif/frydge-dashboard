@@ -137,7 +137,7 @@ const PlanogramManagement = () => {
 
             const planogramVersionId = createdPlanogram?.planogramVersionId;
             // 2️⃣ INIT STRUCTURE API CALL
-            const initRes = await api.initPlanogramStructure(planogramVersionId);
+            const initRes = await api.initPlanogramStructure(planogramVersionId, { force: false });
 
             if (!initRes.ok) {
                 throw new Error("Structure init failed");
@@ -224,6 +224,11 @@ const PlanogramManagement = () => {
             const updated = await response.json();
             console.log("Product updated successfully:", updated);
 
+            const initRes = await api.initPlanogramStructure(editingPlanogramId, { force: true });
+
+            if (!initRes.ok) {
+                throw new Error("Structure init failed");
+            }
             // Close modal on success
             setShowEditPlanogramModal(false);
 
