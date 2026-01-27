@@ -1069,6 +1069,7 @@ export const api = {
     });
   },
 
+
   getPlanogramStructure: (params = {}) => {
     const queryParams = new URLSearchParams();
 
@@ -1086,6 +1087,9 @@ export const api = {
       `/planogram_versions/structure${queryString ? `?${queryString}` : ""}`
     );
   },
+
+
+
   // Update Planogram Version 
   updatePlangoramVersionStructure: (planogramId, payload) => {
     console.log(payload);
@@ -1094,17 +1098,23 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+
+  deletePlangoramVersion: (payload) => {
+    return ApiService.awsRequest(`/planogram_versions`, {
+      method: 'DELETE',
+      body: JSON.stringify(payload),
+    });
+  },
+
+
   finalizePlangoramVersionStructure: (planogramId, payload) => {
     return ApiService.awsRequest(`/planogram_versions/${planogramId}/structure:finalize`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
-  SyncwithVendlive: (planogramVersionId) => {
-    return ApiService.awsRequest(`/planogram_versions/${planogramVersionId}/sync`, {
-      method: 'PATCH',
-    });
-  },
+
+
   SyncwithVendlive: (planogramVersionId) => {
     return ApiService.awsRequest(`/planogram_versions/${planogramVersionId}/sync`, {
       method: 'PATCH',

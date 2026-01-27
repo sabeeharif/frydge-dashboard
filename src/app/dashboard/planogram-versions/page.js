@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { RefreshCw, Plus, SquareChartGantt } from "lucide-react";
+import { RefreshCw, Plus, SquareChartGantt, Trash2, Loader2 } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import PlanogramTable from "@/app/components/planogram/PlanogramTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
@@ -9,6 +9,7 @@ import CreatePlanogramModal from "@/app/components/planogram/CreatePlanogramModa
 import EditPlanogramModal from "@/app/components/planogram/EditPlanogramModal";
 import { api } from "@/app/lib/auth"
 import { useRouter } from "next/navigation";
+import { useToast } from "@/app/contexts/ToastContext";
 
 
 const PlanogramManagement = () => {
@@ -24,11 +25,14 @@ const PlanogramManagement = () => {
     // Modal State
     const [showCreatePlanogramModal, setShowCreatePlanogramModal] = useState(false);
     const [showEditPlanogramModal, setShowEditPlanogramModal] = useState(false);
+    const [showDeletePlanogramModal, setShowDeletePlanogramModal] = useState(false);
 
     // planogram State
     const [creatingPlanogram, setCreatingPlanogram] = useState(false);
     const [updatingPlanogram, setUpdatingPlanogram] = useState(false);
+    const [deletingPlanogram, setDeletingPalogram] = useState(false);
     const [editingPlanogramId, setEditingPlanogramId] = useState(null);
+    const [deleteingPlanogramId, setDeleteingPlanogramId] = useState(null);
     const router = useRouter();
 
     const pageSize = 10;
@@ -42,7 +46,7 @@ const PlanogramManagement = () => {
     // cache + page index
     const pageCacheRef = React.useRef({});
     const currentPageRef = React.useRef(0);
-
+    const { success: toastSucess } = useToast()
 
     // Handle next page
     const handleNextPage = () => {
@@ -186,6 +190,18 @@ const PlanogramManagement = () => {
         setShowEditPlanogramModal(true);
     };
 
+    // Delte Modal Open Func
+    const openDeleteModal = (planogram) => {
+        setDeleteingPlanogramId(planogram.planogramVersionId);
+
+        setFormData({
+            name: planogram.name || "",
+            versionDetails: planogram.versionDetails
+        });
+
+        setShowDeletePlanogramModal(true);
+    };
+
     // Update Product
     const handleUpdatePlanogram = async () => {
         setUpdatingPlanogram(true);
@@ -259,6 +275,33 @@ const PlanogramManagement = () => {
         }
     };
 
+    const handleDeletePalnogram = async () => {
+
+        if (!deleteingPlanogramId) return;
+
+        try {
+            setDeletingPalogram(true);
+
+            const response = await api.deletePlangoramVersion({
+                planogramVersionId: deleteingPlanogramId,
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete Planogram");
+            }
+            toastSucess("Planogram Delete Sucessfully")
+            await fetchPlanogramVersions(null);
+
+        } catch (error) {
+            console.error("Delete supplier error:", error);
+        } finally {
+            setDeletingPalogram(false);
+            setShowDeletePlanogramModal(false)
+            setDeleteingPlanogramId(null)
+        }
+
+    }
+
 
     useEffect(() => {
         currentPageRef.current = 0;
@@ -320,6 +363,7 @@ const PlanogramManagement = () => {
             <PlanogramTable
                 planogram={planograms}
                 onEdit={openEditModal}
+                onDelete={openDeleteModal}
             />
 
             {/* Pagination Controls */}
@@ -354,6 +398,38 @@ const PlanogramManagement = () => {
                     setFormData={setFormData}
                 />
             )}
+
+            {showDeletePlanogramModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+                                <Trash2 className="h-6 w-6 text-red-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Planogram</h3>
+                            <p className="text-gray-600 text-center mb-6">
+                                Are you sure you want to delete ({formData.name}) and all its data?
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowDeletePlanogramModal(false)}
+                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:cursor-pointer transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeletePalnogram}
+                                    className=" px-4 py-2 flex justify-center items-center gap-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    {deletingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {deletingPlanogram ? "Deleting..." : "Delete"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

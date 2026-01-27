@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 const PlanogramTable = ({
   planogram = [],
   onEdit,
+  onDelete,
 }) => {
   const router = useRouter()
   const navigate = (planogramVersionId) => {
@@ -49,11 +50,11 @@ const PlanogramTable = ({
                 </td>
               </tr>
             ) : (
-              planogram?.map((product, index) => {
+              planogram?.map((planogram, index) => {
 
                 return (
                   <tr
-                    key={product.id}
+                    key={planogram.id}
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       } hover:bg-blue-50 transition-colors duration-200`}
                   >
@@ -63,34 +64,40 @@ const PlanogramTable = ({
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-2">
                         {/* <Package className="h-4 w-4 text-blue-600" /> */}
-                        {product.name}
+                        {planogram.name}
                       </div>
                     </td>
 
                     {/* Category */}
                     <td className="px-6 py-4 text-gray-700">
-                      {product?.versionDetails?.length || "No Machines"}
+                      {planogram?.versionDetails?.length || "No Machines"}
                     </td>
 
                     {/* Price */}
                     <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
-                      {product.costPrice ? product.costPrice : "N/A"}
+                      {planogram.orders ? planogram.orders : "N/A"}
                     </td>
 
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4 text-sm">
                         <button
-                          onClick={() => navigate(product.planogramVersionId)}
+                          onClick={() => navigate(planogram.planogramVersionId)}
                           className="text-green-600 hover:underline"
                         >
                           View Details
                         </button>
                         <button
-                          onClick={() => onEdit(product)}
+                          onClick={() => onEdit(planogram)}
                           className="text-blue-600 hover:underline"
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => onDelete(planogram)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
