@@ -9,6 +9,8 @@ import { useToast } from "@/app/contexts/ToastContext";
 import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 
 const PlanogramDetails = () => {
+    const [lastSyncedAt, setLastSyncedAt] = useState()
+    const [syncStatus, setSyncStatus] = useState()
     const [loading, setLoading] = useState()
     const [isRotating, setIsRotating] = useState()
     const [planogram, setPlanogram] = useState(null)
@@ -44,11 +46,42 @@ const PlanogramDetails = () => {
 
             // Handle different response structures
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
+            console.log(fetchedProducts);
             setPlanogram(fetchedProducts)
         } catch (error) {
             console.error("Failed to load products", error);
         } finally {
             setLoading(false)
+        }
+    };
+
+    const fetchPlanogramVersionsAfterSync = async (useLastKey = null) => {
+        try {
+            let apiUrl = `/api/planogram_versions?limit=${pageSize}`
+            if (useLastKey) {
+                apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
+            }
+
+            const response = await api.getPlanogramVersions({
+                limit: pageSize,
+                lastKey: useLastKey,
+                planogramVersionId: params
+            })
+            console.log("Client fetch response status:", response.status)
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+                throw new Error(errorData.error || `HTTP ${response.status}`)
+            }
+
+            const data = await response.json()
+            console.log("Client received data:", data)
+            // Handle different response structures
+            const fetchedProducts = data?.planogramVersions[0] || data.results || []
+            setPlanogram(fetchedProducts)
+            return fetchedProducts;
+        } catch (error) {
+            console.error("Failed to load products", error);
         }
     };
 
@@ -59,6 +92,7 @@ const PlanogramDetails = () => {
     }
 
     const handelSyncVendlive = async () => {
+        let pollingInterval = null;
         try {
             setIsRotating(true);
 
@@ -70,13 +104,35 @@ const PlanogramDetails = () => {
             }
             const result = await res.json()
             toastSuccess(`${result?.message}`)
-            // 2️⃣ After API success → wait 1 minute
-            fetchPlanogramVersions();
-            setIsRotating(false);
+            // // 2️⃣ After API success → wait 1 minute
+            // fetchPlanogramVersions();
+            // setIsRotating(false);
 
+            // 2️⃣ Start polling every 3 seconds
+            pollingInterval = setInterval(async () => {
+                try {
+                    const data = await fetchPlanogramVersionsAfterSync();
+                    console.log(data, "AS");
+                    const syncStatus = data?.sync_status;
+                    const syncedAt = data?.lastSyncedAt;
+                    // adjust based on actual API response
+
+                    console.log("Sync status:", syncStatus);
+                    setSyncStatus(syncStatus);
+                    setLastSyncedAt(syncedAt);
+
+                    if (syncStatus === "COMPLETED" || syncStatus === "FAILD") {
+                        clearInterval(pollingInterval);
+                        setIsRotating(false);
+                        toastSuccess("Sync completed successfully ✅");
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            }, 3000); // 3 seconds
 
         } catch (error) {
-            console.error("Product sync error:", error);
+            console.error("planogram sync error:", error);
             setIsRotating(false);
         }
     }
@@ -105,6 +161,26 @@ const PlanogramDetails = () => {
         fetchPlanogramVersions()
     }, [])
 
+    const SYNC_STATUS_MAP = {
+        IN_PROGRESS: {
+            text: "Sync in progress...",
+            color: "text-blue-500",
+            rotating: true,
+        },
+        COMPLETED: {
+            text: (lastSyncedAt) =>
+                `Last synced at: ${new Date(lastSyncedAt).toLocaleString()}`,
+            color: "text-green-600",
+            rotating: false,
+        },
+        FAILED: {
+            text: "Sync failed, please try again.",
+            color: "text-red-600",
+            rotating: false,
+        },
+    };
+
+
     if (isOpenOrder) {
         return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
     }
@@ -116,7 +192,7 @@ const PlanogramDetails = () => {
             </div>
         )
     }
-    
+
     return (
         <div className="p-8">
             {/* Back Button */}
@@ -199,6 +275,16 @@ const PlanogramDetails = () => {
                             Sync with Vendlive
                         </button>
                     </div>
+                </div>
+                <div className="text-end">
+                    {syncStatus && (
+                        <p className={`text-sm ${SYNC_STATUS_MAP[syncStatus]?.color}`}>
+                            {typeof SYNC_STATUS_MAP[syncStatus]?.text === "function"
+                                ? SYNC_STATUS_MAP[syncStatus].text(lastSyncedAt)
+                                : SYNC_STATUS_MAP[syncStatus]?.text}
+                        </p>
+                    )}
+
                 </div>
 
                 <div className="overflow-hidden rounded-lg bg-white shadow">
