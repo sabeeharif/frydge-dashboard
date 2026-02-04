@@ -46,7 +46,8 @@ const PlanogramDetails = () => {
 
             // Handle different response structures
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
-            console.log(fetchedProducts);
+            setSyncStatus(fetchedProducts?.sync_status)
+            setLastSyncedAt(fetchedProducts?.lastSyncedAt)
             setPlanogram(fetchedProducts)
         } catch (error) {
             console.error("Failed to load products", error);
