@@ -281,7 +281,8 @@ const PlanogramDetails = () => {
                     {syncStatus && (
                         <p className={`text-sm ${SYNC_STATUS_MAP[syncStatus]?.color}`}>
                             {typeof SYNC_STATUS_MAP[syncStatus]?.text === "function"
-                                ? SYNC_STATUS_MAP[syncStatus].text(lastSyncedAt)
+                                ? SYNC_STATUS_MAP[syncStatus].text(lastSyncedAt ? lastSyncedAt : 
+                                    "None")
                                 : SYNC_STATUS_MAP[syncStatus]?.text}
                         </p>
                     )}
