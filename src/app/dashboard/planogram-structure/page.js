@@ -200,7 +200,7 @@ const PlanogramStructure = () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
     const payload = {
-      internalOrderId: selectedReApplyDate || !selectedDate && planogramMeta?.internalOrderId ? "" : planogramMeta?.internalOrderId,
+      planogramOrderId: selectedReApplyDate || !selectedDate && planogramMeta?.planogramOrderId ? "" : planogramMeta?.planogramOrderId,
       plannedPlanogramDate: selectedDate && !selectedReApplyDate ? selectedDate : (selectedPlanDate || selectedReApplyDate),
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
@@ -483,13 +483,13 @@ const PlanogramStructure = () => {
 
   // fetch internalOrder structure
   const fetchInteranalOrdersStructure = async (item) => {
-    const internalOrderId = item?.internalOrderId;
-    if (!internalOrderId) return;
+    const planogramOrderId = item?.planogramOrderId;
+    if (!planogramOrderId) return;
 
     setLoading(true);
     try {
       const response = await api.getInternalOreders({
-        internalOrderId: internalOrderId,
+        planogramOrderId: planogramOrderId,
         machineId: planogramMeta?.machineId,
         limit: 10,
       });
@@ -516,7 +516,7 @@ const PlanogramStructure = () => {
 
         // Set meta like your planogram structure function
         setPlanogramMeta({
-          internalOrderId: order.internalOrderId,
+          planogramOrderId: order.planogramOrderId,
           planogramVersionId: order.planogramVersionId,
           includedMachineIds: order.includedMachineIds || [],
           excludedMachineIds: order.excludedMachineIds || [],

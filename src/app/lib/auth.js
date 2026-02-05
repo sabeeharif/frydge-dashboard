@@ -1162,7 +1162,7 @@ export const api = {
     const queryString = queryParams.toString();
 
     return ApiService.awsRequest(
-      `/internal_orders/dates${queryString ? `?${queryString}` : ""}`
+      `/planogram_orders/dates${queryString ? `?${queryString}` : ""}`
     );
   },
 
@@ -1197,17 +1197,17 @@ export const api = {
       queryParams.append("machineId", params.machineId);
     }
     if (
-      params.internalOrderId &&
-      params.internalOrderId !== "null" &&
-      params.internalOrderId !== null
+      params.planogramOrderId &&
+      params.planogramOrderId !== "null" &&
+      params.planogramOrderId !== null
     ) {
-      queryParams.append("internalOrderId", params.internalOrderId);
+      queryParams.append("planogramOrderId", params.planogramOrderId);
     }
 
     const queryString = queryParams.toString();
 
     return ApiService.awsRequest(
-      `/internal_orders${queryString ? `?${queryString}` : ""}`
+      `/planogram_orders${queryString ? `?${queryString}` : ""}`
     );
   },
 
@@ -1223,7 +1223,7 @@ export const api = {
     const queryString = queryParams.toString();
 
     return ApiService.awsRequest(
-      `/internal_orders/file${queryString ? `?${queryString}` : ""}`
+      `/planogram_orders/file${queryString ? `?${queryString}` : ""}`
     );
   },
 

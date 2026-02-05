@@ -249,7 +249,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                 result.internalOrders.forEach((order) => {
                     const {
-                        internalOrderId,
+                        planogramOrderId,
                         planogramVersionId,
                         includedMachineIds = [],
                         excludedMachineIds = [],
@@ -277,7 +277,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                     planograms[plannedPlanogramDate
                     ] = {
                         meta: {
-                            internalOrderId,
+                            planogramOrderId,
                             planogramVersionId,
                             includedMachineIds,
                             excludedMachineIds,
