@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthService, api } from "@/app/lib/auth"
 import Loader from "@/app/components/Loader"
@@ -18,6 +18,10 @@ const PlanogramDetails = () => {
     const searchParams = useSearchParams()
     const { success: toastSuccess } = useToast()
     const router = useRouter()
+    const hasShownCompletionToast = useRef(false);
+    const pollingRef = useRef(null);
+    const stopPollingRef = useRef(false);
+
     const params = searchParams.get("planogramVersionId")
     const pageSize = 10
 
@@ -93,50 +97,54 @@ const PlanogramDetails = () => {
     }
 
     const handelSyncVendlive = async () => {
-        let pollingInterval = null;
         try {
             setIsRotating(true);
+            stopPollingRef.current = false;
 
-            // 1️⃣ Call sync API
             const res = await api.SyncwithVendlive(params);
+            if (!res.ok) throw new Error("Sync failed");
 
-            if (!res.ok) {
-                throw new Error("Sync failed");
-            }
-            const result = await res.json()
-            toastSuccess(`${result?.message}`)
-            // // 2️⃣ After API success → wait 1 minute
-            // fetchPlanogramVersions();
-            // setIsRotating(false);
+            const result = await res.json();
+            toastSuccess(result?.message);
 
-            // 2️⃣ Start polling every 3 seconds
-            pollingInterval = setInterval(async () => {
+            pollingRef.current = setInterval(async () => {
+                // 🚨 STOP EXECUTION IMMEDIATELY
+                if (stopPollingRef.current) return;
+
                 try {
                     const data = await fetchPlanogramVersionsAfterSync();
-                    console.log(data, "AS");
+
+                    // 🚨 CHECK AGAIN AFTER API CALL
+                    if (stopPollingRef.current) return;
+
                     const syncStatus = data?.sync_status;
                     const syncedAt = data?.lastSyncedAt;
-                    // adjust based on actual API response
 
-                    console.log("Sync status:", syncStatus);
                     setSyncStatus(syncStatus);
                     setLastSyncedAt(syncedAt);
 
                     if (syncStatus === "COMPLETED" || syncStatus === "FAILD") {
-                        clearInterval(pollingInterval);
+                        stopPollingRef.current = true;
+
+                        clearInterval(pollingRef.current);
+                        pollingRef.current = null;
+
                         setIsRotating(false);
+
                         toastSuccess("Sync completed successfully ✅");
                     }
                 } catch (err) {
                     console.error("Polling error:", err);
                 }
-            }, 3000); // 3 seconds
+            }, 3000);
 
         } catch (error) {
             console.error("planogram sync error:", error);
             setIsRotating(false);
         }
-    }
+    };
+
+
 
     const handelOrders = () => {
         setIsOpenOrder(true)
@@ -281,7 +289,7 @@ const PlanogramDetails = () => {
                     {syncStatus && (
                         <p className={`text-sm ${SYNC_STATUS_MAP[syncStatus]?.color}`}>
                             {typeof SYNC_STATUS_MAP[syncStatus]?.text === "function"
-                                ? SYNC_STATUS_MAP[syncStatus].text(lastSyncedAt ? lastSyncedAt : 
+                                ? SYNC_STATUS_MAP[syncStatus].text(lastSyncedAt ? lastSyncedAt :
                                     "None")
                                 : SYNC_STATUS_MAP[syncStatus]?.text}
                         </p>
