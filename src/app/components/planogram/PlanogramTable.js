@@ -30,7 +30,7 @@ const PlanogramTable = ({
                 Machines
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                Order
+                UpComming Order
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                 Actions

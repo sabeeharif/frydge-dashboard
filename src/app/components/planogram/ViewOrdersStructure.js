@@ -228,39 +228,127 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         setSuppliers(suppliers.filter((s) => s !== supId))
     }
 
+    // const fetchInteranalOrdersStructure = async (e) => {
+    //     const machineId = e.target.value;
+    //     if (!machineId) return;
+    //     setSelectedMachineId(machineId)
+    //     setLoading(true)
+    //     try {
+    //         const response = await api.getInternalOreders({
+    //             planogramVersionId: planogramVersionId,
+    //             machineId: machineId,
+    //             limit: 10
+    //         });
+
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP ${response.status}`);
+    //         }
+    //         const result = await response.json()
+    //         if (result.planogramOrders?.length > 0) {
+    //             const planograms = {};
+
+    //             result.planogramOrders.forEach((order) => {
+    //                 const {
+    //                     planogramOrderId,
+    //                     planogramVersionId,
+    //                     includedMachineIds = [],
+    //                     excludedMachineIds = [],
+    //                     orderSnapshot = {},
+    //                     plannedPlanogramDate
+    //                     ,
+    //                 } = order;
+
+    //                 // extract snapshot array (if exists)
+    //                 const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
+
+    //                 let grouped = {};
+    //                 if (snapshotArray.length > 0) {
+    //                     grouped = snapshotArray.reduce((acc, item) => {
+    //                         if (!acc[item.shelf]) acc[item.shelf] = [];
+    //                         acc[item.shelf].push(item);
+    //                         return acc;
+    //                     }, {});
+
+    //                     Object.keys(grouped).forEach((shelf) => {
+    //                         grouped[shelf].sort((a, b) => a.channel - b.channel);
+    //                     });
+    //                 }
+
+    //                 planograms[plannedPlanogramDate
+    //                 ] = {
+    //                     meta: {
+    //                         planogramOrderId,
+    //                         planogramVersionId,
+    //                         includedMachineIds,
+    //                         excludedMachineIds,
+    //                         plannedPlanogramDate
+    //                         ,
+    //                     },
+    //                     structure: grouped, // empty object if no snapshot
+    //                     hasSnapshot: snapshotArray[0]?.orderDetails?.length > 0,
+    //                 };
+    //             });
+
+    //             setPlanogramMeta(planograms);
+    //             setStructure(planograms);
+    //         } else {
+    //             setStructure(result?.internalOrders)
+    //         }
+
+    //     } catch (error) {
+    //         console.error("Failed to fetch planogram structure", error);
+    //     } finally {
+    //         setLoading(false)
+    //     }
+    // };
+
+
     const fetchInteranalOrdersStructure = async (e) => {
         const machineId = e.target.value;
         if (!machineId) return;
-        setSelectedMachineId(machineId)
-        setLoading(true)
+
+        setSelectedMachineId(machineId);
+        setLoading(true);
+
         try {
+            // 1️⃣ Fetch internal orders
             const response = await api.getInternalOreders({
-                planogramVersionId: planogramVersionId,
-                machineId: machineId,
-                limit: 10
+                planogramVersionId,
+                machineId,
+                limit: 10,
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const result = await response.json()
-            if (result.internalOrders?.length > 0) {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const result = await response.json();
+
+            if (result.planogramOrders?.length > 0) {
                 const planograms = {};
 
-                result.internalOrders.forEach((order) => {
+                for (const order of result.planogramOrders) {
                     const {
                         planogramOrderId,
                         planogramVersionId,
                         includedMachineIds = [],
                         excludedMachineIds = [],
-                        orderSnapshot = {},
-                        plannedPlanogramDate
-                        ,
+                        plannedPlanogramDate,
+                        orderSnapshotId, // <-- Use this to fetch channels
                     } = order;
 
-                    // extract snapshot array (if exists)
-                    const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
+                    let snapshotArray = [];
 
+                    // 2️⃣ Fetch channels using orderSnapshotId
+                    if (orderSnapshotId) {
+                        const snapshotResponse = await api.getOrderSnapshotChannels({ snapshotId: orderSnapshotId, machineId: machineId, });
+                        if (snapshotResponse.ok) {
+                            const snapshotData = await snapshotResponse.json();
+                            snapshotArray = Object.values(snapshotData?.orderSnapshots[0]?.orderDetails || {}).flat();
+                        }
+                    } else if (order.orderSnapshot?.[0]?.orderDetails) {
+                        // fallback if snapshotId missing
+                        snapshotArray = Object.values(order.orderSnapshot[0].orderDetails).flat();
+                    }
+
+                    // 3️⃣ Group channels by shelf
                     let grouped = {};
                     if (snapshotArray.length > 0) {
                         grouped = snapshotArray.reduce((acc, item) => {
@@ -274,31 +362,28 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         });
                     }
 
-                    planograms[plannedPlanogramDate
-                    ] = {
+                    planograms[plannedPlanogramDate] = {
                         meta: {
                             planogramOrderId,
                             planogramVersionId,
                             includedMachineIds,
                             excludedMachineIds,
-                            plannedPlanogramDate
-                            ,
+                            plannedPlanogramDate,
                         },
-                        structure: grouped, // empty object if no snapshot
-                        hasSnapshot: snapshotArray[0]?.orderDetails?.length > 0,
+                        structure: grouped,
+                        hasSnapshot: snapshotArray.length > 0,
                     };
-                });
+                }
 
                 setPlanogramMeta(planograms);
                 setStructure(planograms);
             } else {
-                setStructure(result?.internalOrders)
+                setStructure(result?.internalOrders || []);
             }
-
         } catch (error) {
             console.error("Failed to fetch planogram structure", error);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
 
@@ -346,7 +431,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             // Handle different response structures
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
             setLoading(false)
-            setGroupMachines(fetchedProducts.versionDetails)
+            const machines = fetchedProducts.versionDetails.filter((item) => !item.error)
+            setGroupMachines(machines)
         } catch (error) {
             console.error("Failed to load products", error);
         } finally {

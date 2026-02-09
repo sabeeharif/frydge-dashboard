@@ -95,8 +95,8 @@ const PlanogramStructure = () => {
     try {
       const res = await api.getInternalOrederDates({ machineStructureId: machineStructureId, planogramVersionId: planogramVersionId, limit: 10 })
       const data = await res.json()
-      setAvailableDates(data?.internalOrderDates || [])
-      if (data?.internalOrderDates?.length > 0) {
+      setAvailableDates(data?.planogramOrderDates || [])
+      if (data?.planogramOrderDates?.length > 0) {
         setDateLoader(false)
       }
     } catch (error) {
@@ -199,11 +199,14 @@ const PlanogramStructure = () => {
   const handleFinalizePlanogram = async () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
+    const machineIds = groupMachines.map(machine => machine.machineId);
     const payload = {
+      orderSnapshotId: planogramMeta?.orderSnapshotId && selectedDate ? planogramMeta?.orderSnapshotId : "",
       planogramOrderId: selectedReApplyDate || !selectedDate && planogramMeta?.planogramOrderId ? "" : planogramMeta?.planogramOrderId,
       plannedPlanogramDate: selectedDate && !selectedReApplyDate ? selectedDate : (selectedPlanDate || selectedReApplyDate),
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
+      allMachineIds: machineIds,
       productAssignments: channelDetails
     }
     console.log(payload);
@@ -482,73 +485,161 @@ const PlanogramStructure = () => {
   };
 
   // fetch internalOrder structure
+  //   const fetchInteranalOrdersStructure = async (item) => {
+  //     const planogramOrderId = item?.planogramOrderId;
+  //     if (!planogramOrderId) return;
+
+  //     setLoading(true);
+  //     try {
+  //       const response = await api.getInternalOreders({
+  //         planogramOrderId: planogramOrderId,
+  //         machineId: planogramMeta?.machineId,
+  //         limit: 10,
+  //       });
+
+  //       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  //       const result = await response.json();
+  // console.log(result);
+  //       if (result.planogramOrders?.length > 0) {
+  //         const order = result.planogramOrders[0]; // assuming only one internal order
+  //         const channels = Object.values(order.orderSnapshot[0]?.orderDetails || {}).flat();
+
+  //         // 🔹 Group by shelf
+  //         const grouped = channels.reduce((acc, item) => {
+  //           if (!acc[item.shelf]) acc[item.shelf] = [];
+  //           acc[item.shelf].push(item);
+  //           return acc;
+  //         }, {});
+
+  //         // 🔹 Sort channels inside each shelf
+  //         Object.keys(grouped).forEach((shelf) => {
+  //           grouped[shelf].sort((a, b) => a.channel - b.channel);
+  //         });
+
+  //         // Set meta like your planogram structure function
+  //         setPlanogramMeta({
+  //           planogramOrderId: order.planogramOrderId,
+  //           planogramVersionId: order.planogramVersionId,
+  //           includedMachineIds: order.includedMachineIds || [],
+  //           excludedMachineIds: order.excludedMachineIds || [],
+  //           machineId: order?.orderSnapshot[0]?.machineId,
+  //           createdAt: order.createdAt,
+  //           friendlyName: order?.orderSnapshot[0].friendlyName,
+  //           venueName: order?.orderSnapshot[0].venueName,
+  //           draft: order?.draft,
+  //           supplierOrderFiles: order?.supplierOrderFiles
+  //         });
+
+  //         if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
+  //           setExcludedMachineIds(order?.excludedMachineIds)
+  //           setExcludeEnabled(true)
+  //           setIncludedMachineIds(order.includedMachineIds)
+  //           setIncludeEnabled(true)
+  //         } else if (order?.includedMachineIds?.length > 0) {
+  //           setIncludedMachineIds(order?.includedMachineIds)
+  //           setIncludeEnabled(true)
+  //         } else if (order?.excludedMachineIds.length > 0) {
+  //           setExcludedMachineIds(order.excludedMachineIds)
+  //           setExcludeEnabled(true)
+  //         } else {
+  //           setIncludedMachineIds([])
+  //           setIncludeEnabled(false)
+  //           setIncludedMachineIds([])
+  //           setExcludeEnabled(false)
+  //         }
+
+  //         setStructure(grouped); // flat grouped structure
+  //       } else {
+  //         setStructure(result?.internalOrders)
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch internal order structure", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
   const fetchInteranalOrdersStructure = async (item) => {
     const planogramOrderId = item?.planogramOrderId;
     if (!planogramOrderId) return;
 
     setLoading(true);
     try {
+      // 1️⃣ Fetch internal orders
       const response = await api.getInternalOreders({
-        planogramOrderId: planogramOrderId,
+        planogramOrderId,
         machineId: planogramMeta?.machineId,
         limit: 10,
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
       const result = await response.json();
+      console.log("Internal Orders:", result);
 
-      if (result.internalOrders?.length > 0) {
-        const order = result.internalOrders[0]; // assuming only one internal order
-        const channels = Object.values(order.orderSnapshot[0]?.orderDetails || {}).flat();
+      if (result.planogramOrders?.length > 0) {
+        const order = result.planogramOrders[0]; // assuming only one internal order
 
-        // 🔹 Group by shelf
-        const grouped = channels.reduce((acc, item) => {
-          if (!acc[item.shelf]) acc[item.shelf] = [];
-          acc[item.shelf].push(item);
-          return acc;
-        }, {});
+        // 2️⃣ Fetch channels using orderSnapshotId
+        const snapshotId = order.orderSnapshotId || order?.orderSnapshot?.[0]?.id;
+        if (snapshotId) {
+          const snapshotResponse = await api.getOrderSnapshotChannels({ orderSnapshotId: snapshotId, machineId: planogramMeta?.machineId, });
+          if (!snapshotResponse.ok) throw new Error(`Snapshot HTTP ${snapshotResponse.status}`);
+          const snapshotData = await snapshotResponse.json();
+          console.log("Snapshot Channels:", snapshotData);
 
-        // 🔹 Sort channels inside each shelf
-        Object.keys(grouped).forEach((shelf) => {
-          grouped[shelf].sort((a, b) => a.channel - b.channel);
-        });
+          const channels = Object.values(snapshotData?.
+            orderSnapshots[0]?.orderDetails || {}).flat();
 
-        // Set meta like your planogram structure function
+          // 🔹 Group by shelf
+          const grouped = channels.reduce((acc, item) => {
+            if (!acc[item.shelf]) acc[item.shelf] = [];
+            acc[item.shelf].push(item);
+            return acc;
+          }, {});
+
+          // 🔹 Sort channels inside each shelf
+          Object.keys(grouped).forEach((shelf) => {
+            grouped[shelf].sort((a, b) => a.channel - b.channel);
+          });
+
+          setStructure(grouped);
+        }
+
+        // 3️⃣ Set planogram meta
         setPlanogramMeta({
+          orderSnapshotId: order.orderSnapshotId,
           planogramOrderId: order.planogramOrderId,
           planogramVersionId: order.planogramVersionId,
           includedMachineIds: order.includedMachineIds || [],
           excludedMachineIds: order.excludedMachineIds || [],
-          machineId: order?.orderSnapshot[0]?.machineId,
+          machineId: order?.orderSnapshot?.[0]?.machineId,
           createdAt: order.createdAt,
-          friendlyName: order?.orderSnapshot[0].friendlyName,
-          venueName: order?.orderSnapshot[0].venueName,
+          friendlyName: order?.orderSnapshot?.[0]?.friendlyName,
+          venueName: order?.orderSnapshot?.[0]?.venueName,
           draft: order?.draft,
-          supplierOrderFiles: order?.supplierOrderFiles
+          supplierOrderFiles: order?.supplierOrderFiles,
         });
 
-        if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
-          setExcludedMachineIds(order?.excludedMachineIds)
-          setExcludeEnabled(true)
-          setIncludedMachineIds(order.includedMachineIds)
-          setIncludeEnabled(true)
-        } else if (order?.includedMachineIds?.length > 0) {
-          setIncludedMachineIds(order?.includedMachineIds)
-          setIncludeEnabled(true)
-        } else if (order?.excludedMachineIds.length > 0) {
-          setExcludedMachineIds(order.excludedMachineIds)
-          setExcludeEnabled(true)
+        // 4️⃣ Handle included/excluded machines
+        if (order.includedMachineIds?.length && order.excludedMachineIds?.length) {
+          setExcludedMachineIds(order.excludedMachineIds);
+          setExcludeEnabled(true);
+          setIncludedMachineIds(order.includedMachineIds);
+          setIncludeEnabled(true);
+        } else if (order.includedMachineIds?.length) {
+          setIncludedMachineIds(order.includedMachineIds);
+          setIncludeEnabled(true);
+        } else if (order.excludedMachineIds?.length) {
+          setExcludedMachineIds(order.excludedMachineIds);
+          setExcludeEnabled(true);
         } else {
-          setIncludedMachineIds([])
-          setIncludeEnabled(false)
-          setIncludedMachineIds([])
-          setExcludeEnabled(false)
+          setIncludedMachineIds([]);
+          setIncludeEnabled(false);
+          setExcludedMachineIds([]);
+          setExcludeEnabled(false);
         }
-
-        setStructure(grouped); // flat grouped structure
       } else {
-        setStructure(result?.internalOrders)
+        setStructure(result?.internalOrders || []);
       }
     } catch (error) {
       console.error("Failed to fetch internal order structure", error);
@@ -557,7 +648,13 @@ const PlanogramStructure = () => {
     }
   };
 
+
+
+
+
+
   // fetch planogram Version
+
   const fetchPlanogramVersions = async (useLastKey = null) => {
     try {
       let apiUrl = `/api/planogram_versions?limit=${pageSize}`
@@ -580,7 +677,9 @@ const PlanogramStructure = () => {
 
       // Handle different response structures
       const fetchedProducts = data?.planogramVersions[0] || data.results || []
-      setGroupMachines(fetchedProducts.versionDetails)
+      console.log(fetchedProducts.versionDetails, "asas");
+      const machines = fetchedProducts.versionDetails.filter(item =>  !item.error);
+      setGroupMachines(machines)
     } catch (error) {
       console.error("Failed to load products", error);
     } finally {

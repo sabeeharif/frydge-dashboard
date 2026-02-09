@@ -175,7 +175,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
 
 
     return (
-        <div className="bg-white absolute border  border-gray-300 rounded-lg             top-[-10px] left-12  p-8  w-full max-w-md z-50 ">
+        <div className="bg-white absolute border  border-gray-300 rounded-lg top-[-10px] left-12  p-8  w-full max-w-md z-10 ">
             <h4 className="text-center text-gray-800 text-xl font-semibold mb-4">
                 Order Files For Supplier
             </h4>

@@ -1211,6 +1211,43 @@ export const api = {
     );
   },
 
+  getOrderSnapshotChannels: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
+
+    // Add lastKey only if it's valid
+    if (params.lastKey && params.lastKey !== "null" && params.lastKey !== null) {
+      queryParams.append("lastKey", params.lastKey);
+    }
+
+    // ✅ Add planogramVersionId only if provided
+    if (
+      params.orderSnapshotId &&
+      params.orderSnapshotId !== "null" &&
+      params.orderSnapshotId !== null
+    ) {
+      queryParams.append("orderSnapshotId", params.orderSnapshotId);
+    }
+    // ✅ Add machineId only if provided
+    if (
+      params.machineId &&
+      params.machineId !== "null" &&
+      params.machineId !== null
+    ) {
+      queryParams.append("machineId", params.machineId);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/order_snapshots${queryString ? `?${queryString}` : ""}`
+    );
+  },
+
   // Get Internal Orders
   getOrderSupplierFileName: (params = {}) => {
     const queryParams = new URLSearchParams();
