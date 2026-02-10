@@ -201,7 +201,7 @@ const PlanogramStructure = () => {
     const channelDetails = Object.values(structure).flat()
     const machineIds = groupMachines.map(machine => machine.machineId);
     const payload = {
-      orderSnapshotId: planogramMeta?.orderSnapshotId && selectedDate ? planogramMeta?.orderSnapshotId : "",
+      orderSnapshotId: planogramMeta?.orderSnapshotId && selectedDate && !selectedReApplyDate ? planogramMeta?.orderSnapshotId : "",
       planogramOrderId: selectedReApplyDate || !selectedDate && planogramMeta?.planogramOrderId ? "" : planogramMeta?.planogramOrderId,
       plannedPlanogramDate: selectedDate && !selectedReApplyDate ? selectedDate : (selectedPlanDate || selectedReApplyDate),
       excludedMachineIds: excludedMachineIds,
@@ -559,6 +559,8 @@ const PlanogramStructure = () => {
   //       setLoading(false);
   //     }
   //   };
+
+
   const fetchInteranalOrdersStructure = async (item) => {
     const planogramOrderId = item?.planogramOrderId;
     if (!planogramOrderId) return;
@@ -578,13 +580,13 @@ const PlanogramStructure = () => {
 
       if (result.planogramOrders?.length > 0) {
         const order = result.planogramOrders[0]; // assuming only one internal order
-
+        let snapshotData = null;
         // 2️⃣ Fetch channels using orderSnapshotId
         const snapshotId = order.orderSnapshotId || order?.orderSnapshot?.[0]?.id;
         if (snapshotId) {
           const snapshotResponse = await api.getOrderSnapshotChannels({ orderSnapshotId: snapshotId, machineId: planogramMeta?.machineId, });
           if (!snapshotResponse.ok) throw new Error(`Snapshot HTTP ${snapshotResponse.status}`);
-          const snapshotData = await snapshotResponse.json();
+          snapshotData = await snapshotResponse.json();
           console.log("Snapshot Channels:", snapshotData);
 
           const channels = Object.values(snapshotData?.
@@ -604,7 +606,6 @@ const PlanogramStructure = () => {
 
           setStructure(grouped);
         }
-
         // 3️⃣ Set planogram meta
         setPlanogramMeta({
           orderSnapshotId: order.orderSnapshotId,
@@ -612,10 +613,10 @@ const PlanogramStructure = () => {
           planogramVersionId: order.planogramVersionId,
           includedMachineIds: order.includedMachineIds || [],
           excludedMachineIds: order.excludedMachineIds || [],
-          machineId: order?.orderSnapshot?.[0]?.machineId,
+          machineId: snapshotData?.orderSnapshots?.[0]?.machineId,
           createdAt: order.createdAt,
-          friendlyName: order?.orderSnapshot?.[0]?.friendlyName,
-          venueName: order?.orderSnapshot?.[0]?.venueName,
+          friendlyName: snapshotData?.orderSnapshots?.[0]?.friendlyName,
+          venueName: snapshotData?.orderSnapshots?.[0]?.venueName,
           draft: order?.draft,
           supplierOrderFiles: order?.supplierOrderFiles,
         });
@@ -648,11 +649,6 @@ const PlanogramStructure = () => {
     }
   };
 
-
-
-
-
-
   // fetch planogram Version
 
   const fetchPlanogramVersions = async (useLastKey = null) => {
@@ -678,7 +674,7 @@ const PlanogramStructure = () => {
       // Handle different response structures
       const fetchedProducts = data?.planogramVersions[0] || data.results || []
       console.log(fetchedProducts.versionDetails, "asas");
-      const machines = fetchedProducts.versionDetails.filter(item =>  !item.error);
+      const machines = fetchedProducts.versionDetails.filter(item => !item.error);
       setGroupMachines(machines)
     } catch (error) {
       console.error("Failed to load products", error);
@@ -833,7 +829,7 @@ const PlanogramStructure = () => {
     today.setDate(today.getDate() + 1);
     return today.toISOString().split("T")[0];
   };
-
+  console.log(planogramMeta, "test");
 
   if (loading) {
     return (
@@ -1142,7 +1138,7 @@ const PlanogramStructure = () => {
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
             transition-colors flex items-center gap-2"
                 >
-                  Latest Order
+                  Current Applied Planogram
                 </button>
                 <div
                   className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
