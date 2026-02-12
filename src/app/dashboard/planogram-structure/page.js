@@ -484,83 +484,6 @@ const PlanogramStructure = () => {
     }
   };
 
-  // fetch internalOrder structure
-  //   const fetchInteranalOrdersStructure = async (item) => {
-  //     const planogramOrderId = item?.planogramOrderId;
-  //     if (!planogramOrderId) return;
-
-  //     setLoading(true);
-  //     try {
-  //       const response = await api.getInternalOreders({
-  //         planogramOrderId: planogramOrderId,
-  //         machineId: planogramMeta?.machineId,
-  //         limit: 10,
-  //       });
-
-  //       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-  //       const result = await response.json();
-  // console.log(result);
-  //       if (result.planogramOrders?.length > 0) {
-  //         const order = result.planogramOrders[0]; // assuming only one internal order
-  //         const channels = Object.values(order.orderSnapshot[0]?.orderDetails || {}).flat();
-
-  //         // 🔹 Group by shelf
-  //         const grouped = channels.reduce((acc, item) => {
-  //           if (!acc[item.shelf]) acc[item.shelf] = [];
-  //           acc[item.shelf].push(item);
-  //           return acc;
-  //         }, {});
-
-  //         // 🔹 Sort channels inside each shelf
-  //         Object.keys(grouped).forEach((shelf) => {
-  //           grouped[shelf].sort((a, b) => a.channel - b.channel);
-  //         });
-
-  //         // Set meta like your planogram structure function
-  //         setPlanogramMeta({
-  //           planogramOrderId: order.planogramOrderId,
-  //           planogramVersionId: order.planogramVersionId,
-  //           includedMachineIds: order.includedMachineIds || [],
-  //           excludedMachineIds: order.excludedMachineIds || [],
-  //           machineId: order?.orderSnapshot[0]?.machineId,
-  //           createdAt: order.createdAt,
-  //           friendlyName: order?.orderSnapshot[0].friendlyName,
-  //           venueName: order?.orderSnapshot[0].venueName,
-  //           draft: order?.draft,
-  //           supplierOrderFiles: order?.supplierOrderFiles
-  //         });
-
-  //         if (order?.includedMachineIds?.length > 0 && order?.excludedMachineIds?.length > 0) {
-  //           setExcludedMachineIds(order?.excludedMachineIds)
-  //           setExcludeEnabled(true)
-  //           setIncludedMachineIds(order.includedMachineIds)
-  //           setIncludeEnabled(true)
-  //         } else if (order?.includedMachineIds?.length > 0) {
-  //           setIncludedMachineIds(order?.includedMachineIds)
-  //           setIncludeEnabled(true)
-  //         } else if (order?.excludedMachineIds.length > 0) {
-  //           setExcludedMachineIds(order.excludedMachineIds)
-  //           setExcludeEnabled(true)
-  //         } else {
-  //           setIncludedMachineIds([])
-  //           setIncludeEnabled(false)
-  //           setIncludedMachineIds([])
-  //           setExcludeEnabled(false)
-  //         }
-
-  //         setStructure(grouped); // flat grouped structure
-  //       } else {
-  //         setStructure(result?.internalOrders)
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch internal order structure", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-
   const fetchInteranalOrdersStructure = async (item) => {
     const planogramOrderId = item?.planogramOrderId;
     if (!planogramOrderId) return;
@@ -829,7 +752,7 @@ const PlanogramStructure = () => {
     today.setDate(today.getDate() + 1);
     return today.toISOString().split("T")[0];
   };
-  console.log(planogramMeta, "test");
+
 
   if (loading) {
     return (
@@ -1700,39 +1623,6 @@ const PlanogramStructure = () => {
         )
       }
 
-      {/* {isPlanModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
-
-            <h2 className="text-lg font-semibold mb-4">Select Plan Date</h2>
-
-            <input
-              type="datetime-local"
-              onChange={(e) => handelSelectDate(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-            />
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsPlanModalOpen(false)}
-                className="px-4 py-2 text-gray-600"
-              >
-                Cancel
-              </button>
-
-              <button
-                disabled={!selectedPlanDate}
-                onClick={() => {
-                  setIsPlanModalOpen(false)
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {isPlanModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1786,7 +1676,6 @@ const PlanogramStructure = () => {
           </div>
         </div>
       )}
-
 
 
       {isNotify && (

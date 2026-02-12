@@ -7,8 +7,10 @@ import Loader from "@/app/components/Loader"
 import { RefreshCw } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext";
 import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
+import OrderErrorPlanogramDetails from "../../components/planogram/OrderErrorPlanogramDetails"
 
 const PlanogramDetails = () => {
+    const [errorModal, setErrorModal] = useState(false)
     const [lastSyncedAt, setLastSyncedAt] = useState()
     const [syncStatus, setSyncStatus] = useState()
     const [loading, setLoading] = useState()
@@ -144,6 +146,9 @@ const PlanogramDetails = () => {
         }
     };
 
+    const RefreshPage =()=>{
+        fetchPlanogramVersions()
+    }
 
 
     const handelOrders = () => {
@@ -271,6 +276,13 @@ const PlanogramDetails = () => {
                     </h3>
                     <div className="flex gap-2 items-center justify-center">
                         <button
+                            onClick={RefreshPage}
+                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                            Refresh
+                        </button>
+                        <button
                             onClick={handelOrders}
                             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
                         >
@@ -312,6 +324,9 @@ const PlanogramDetails = () => {
                                 </th>
                                 <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
                                     Prime Planogram
+                                </th>
+                                <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
+                                    Order Errors
                                 </th>
                                 <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">
                                     Actions
@@ -365,9 +380,27 @@ const PlanogramDetails = () => {
                                             {machine.primePlanogram ? "Yes" : "No"}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-4">
+                                        <span
+                                            className={`rounded-full relative px-3 py-1 text-xs font-semibold ${machine.orderError
+                                                ? "bg-red-600 text-white"
+                                                : "bg-green-400 text-white"
+                                                }`}
+                                        >
+                                            {machine.orderError = true ? "Error" : "Resolved"}
+
+                                            <span className="absolute min-w-6 h-auto p-1 rounded-full bg-black border-none top-[-16px] right-[-10px] text-white flex justify-center items-center">22</span>
+                                        </span>
+                                    </td>
 
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
+                                            {machine.orderError && <button
+                                                onClick={() => setErrorModal(true)}
+                                                className="text-red-600 hover:underline"
+                                            >
+                                                View Error
+                                            </button>}
                                             {machine.primePlanogram && <button
                                                 onClick={() => navigate("finalize", machine.machineStructureId)}
                                                 className="text-blue-600 hover:underline"
@@ -389,6 +422,10 @@ const PlanogramDetails = () => {
                     </table>
                 </div>
             </div>
+
+            {errorModal &&
+                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} />
+            }
         </div>
     );
 

@@ -33,6 +33,9 @@ const PlanogramTable = ({
                 UpComming Order
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                Order Error
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -78,6 +81,17 @@ const PlanogramTable = ({
                       {planogram.orders ? planogram.orders : "N/A"}
                     </td>
 
+                    <td className="px-4 py-4">
+                      <span
+                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram.orderError
+                          ? "bg-red-600 text-white"
+                          : "bg-gray-200 text-gray-500"
+                          }`}
+                      >
+                        {planogram.orderError ? "Yes" : "No"}
+
+                      </span>
+                    </td>
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4 text-sm">
