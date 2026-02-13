@@ -33,6 +33,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [groupMachines, setGroupMachines] = useState([]) // all machines
     const [excludedMachineIds, setExcludedMachineIds] = useState([])
     const [includedMachineIds, setIncludedMachineIds] = useState([])
+    const [selectedDate, setSelectedDate] = useState("");
     const pageSize = 10
 
 
@@ -228,83 +229,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         setSuppliers(suppliers.filter((s) => s !== supId))
     }
 
-    // const fetchInteranalOrdersStructure = async (e) => {
-    //     const machineId = e.target.value;
-    //     if (!machineId) return;
-    //     setSelectedMachineId(machineId)
-    //     setLoading(true)
-    //     try {
-    //         const response = await api.getInternalOreders({
-    //             planogramVersionId: planogramVersionId,
-    //             machineId: machineId,
-    //             limit: 10
-    //         });
-
-    //         if (!response.ok) {
-    //             throw new Error(`HTTP ${response.status}`);
-    //         }
-    //         const result = await response.json()
-    //         if (result.planogramOrders?.length > 0) {
-    //             const planograms = {};
-
-    //             result.planogramOrders.forEach((order) => {
-    //                 const {
-    //                     planogramOrderId,
-    //                     planogramVersionId,
-    //                     includedMachineIds = [],
-    //                     excludedMachineIds = [],
-    //                     orderSnapshot = {},
-    //                     plannedPlanogramDate
-    //                     ,
-    //                 } = order;
-
-    //                 // extract snapshot array (if exists)
-    //                 const snapshotArray = Object.values(orderSnapshot[0].orderDetails || {}).flat();
-
-    //                 let grouped = {};
-    //                 if (snapshotArray.length > 0) {
-    //                     grouped = snapshotArray.reduce((acc, item) => {
-    //                         if (!acc[item.shelf]) acc[item.shelf] = [];
-    //                         acc[item.shelf].push(item);
-    //                         return acc;
-    //                     }, {});
-
-    //                     Object.keys(grouped).forEach((shelf) => {
-    //                         grouped[shelf].sort((a, b) => a.channel - b.channel);
-    //                     });
-    //                 }
-
-    //                 planograms[plannedPlanogramDate
-    //                 ] = {
-    //                     meta: {
-    //                         planogramOrderId,
-    //                         planogramVersionId,
-    //                         includedMachineIds,
-    //                         excludedMachineIds,
-    //                         plannedPlanogramDate
-    //                         ,
-    //                     },
-    //                     structure: grouped, // empty object if no snapshot
-    //                     hasSnapshot: snapshotArray[0]?.orderDetails?.length > 0,
-    //                 };
-    //             });
-
-    //             setPlanogramMeta(planograms);
-    //             setStructure(planograms);
-    //         } else {
-    //             setStructure(result?.internalOrders)
-    //         }
-
-    //     } catch (error) {
-    //         console.error("Failed to fetch planogram structure", error);
-    //     } finally {
-    //         setLoading(false)
-    //     }
-    // };
-
-
-    const fetchInteranalOrdersStructure = async (e) => {
-        const machineId = e.target.value;
+    const fetchInteranalOrdersStructure = async (machineId) => {
         if (!machineId) return;
 
         setSelectedMachineId(machineId);
@@ -386,7 +311,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             setLoading(false);
         }
     };
-
 
     useEffect(() => {
         Object.values(shelfRefs.current).forEach((planogram) => {
@@ -473,6 +397,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             </div>
         )
     }
+
+    // console.log("db", groupMachines)
     return (
         <div className="min-h-screen bg-gray-50 pt-4">
             <button
@@ -509,8 +435,21 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                     </div>
                 </div>
 
+                {/* Date Selector */}
+                <div className="w-1/3 mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Date
+                    </label>
+                    <input
+                        type="date"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                    />
+                </div>
 
-                <select
+                {/* Select Machine */}
+                {/* <select
                     className="w-full px-3 py-2 border rounded-lg"
                     onChange={fetchInteranalOrdersStructure}
                     value={selectedMachineId}
@@ -521,10 +460,69 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                             {m?.friendlyName}
                         </option>
                     ))}
-                </select>
+                </select> */}
 
+                {/* Table Container */}
+                {selectedDate && (
+                    <div className="overflow-hidden rounded-lg bg-white shadow">
+                        <table className="w-full border-collapse">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Machine ID</th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Machine Name</th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Venue Name</th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Prime Planogram</th>
+                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
 
-                {/* 🔹 TOP SCROLLBAR */}
+                            <tbody>
+                                {groupMachines.map((machine, index) => (
+                                    <tr key={machine.machineId} className={index !== 0 ? "border-t border-gray-200" : ""}>
+                                        {/* Machine ID */}
+                                        <td className="px-4 py-4">
+                                            <span className="inline-block rounded px-3 py-1 text-sm font-semibold text-gray-800">
+                                                {machine.machineId}
+                                            </span>
+                                        </td>
+
+                                        {/* Machine Name */}
+                                        <td className="px-4 py-4">
+                                            <div className="text-sm font-medium text-gray-800">{machine.friendlyName}</div>
+                                        </td>
+
+                                        {/* Venue Name */}
+                                        <td className="px-4 py-4">
+                                            <div className="text-sm font-medium text-gray-800">
+                                                {machine.venueName || "_"}
+                                            </div>
+                                        </td>
+
+                                        {/* Prime Planogram */}
+                                        <td className="px-4 py-4">
+                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${machine.primePlanogram ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"}`}>
+                                                {machine.primePlanogram ? "Yes" : "No"}
+                                            </span>
+                                        </td>
+
+                                        {/* Actions */}
+                                        <td className="px-4 py-4">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => fetchInteranalOrdersStructure(machine?.machineId)}
+                                                    className="text-green-600 hover:underline cursor-pointer"
+                                                >
+                                                    View Order
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
                 {/* 🔹 TOP SCROLLBAR */}
                 <div
                     ref={topScrollRef}

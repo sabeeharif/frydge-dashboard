@@ -61,37 +61,40 @@ const PlanogramTable = ({
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       } hover:bg-blue-50 transition-colors duration-200`}
                   >
+                    {/* # */}
                     <td className="px-6 py-4">{index + 1}</td>
 
-                    {/* Product name */}
+                    {/* Version */}
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       <div className="flex items-center gap-2">
                         {/* <Package className="h-4 w-4 text-blue-600" /> */}
-                        {planogram.name}
+                        {planogram?.name}
                       </div>
                     </td>
 
-                    {/* Category */}
+                    {/* Machines */}
                     <td className="px-6 py-4 text-gray-700">
                       {planogram?.versionDetails?.length || "No Machines"}
                     </td>
 
-                    {/* Price */}
+                    {/* UpComming Order */}
                     <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
-                      {planogram.orders ? planogram.orders : "N/A"}
+                      {planogram?.orders ? planogram?.orders : "N/A"}
                     </td>
 
+                    {/* Order Error */}
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram.orderError
+                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.pendingMachineCount
                           ? "bg-red-600 text-white"
                           : "bg-gray-200 text-gray-500"
                           }`}
                       >
-                        {planogram.orderError ? "Yes" : "No"}
+                        {planogram?.pendingMachineCount ? "Yes" : "No"}
 
                       </span>
                     </td>
+
                     {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4 text-sm">

@@ -146,7 +146,7 @@ const PlanogramDetails = () => {
         }
     };
 
-    const RefreshPage =()=>{
+    const RefreshPage = () => {
         fetchPlanogramVersions()
     }
 
@@ -206,6 +206,8 @@ const PlanogramDetails = () => {
             </div>
         )
     }
+
+    console.log("planogram", planogram)
 
     return (
         <div className="p-8">
@@ -340,6 +342,7 @@ const PlanogramDetails = () => {
                                     key={machine?.machineId}
                                     className={index !== 0 ? "border-t border-gray-200" : ""}
                                 >
+                                    {/* Machine ID */}
                                     <td className="px-4 py-4">
                                         <span
                                             className={`inline-block rounded px-3 py-1 text-sm font-semibold ${machine?.error
@@ -351,7 +354,7 @@ const PlanogramDetails = () => {
                                         </span>
                                     </td>
 
-
+                                    {/* Machine Name */}
                                     <td className="px-4 py-4">
                                         <div className="text-sm font-medium text-gray-800">
                                             {machine.friendlyName}
@@ -363,13 +366,15 @@ const PlanogramDetails = () => {
                                             </div>
                                         )}
                                     </td>
+
+                                    {/* Venue Name */}
                                     <td className="px-4 py-4">
                                         <div className="text-sm font-medium text-gray-800">
                                             {machine.venueName === "null" ? "_" : machine?.venueName}
                                         </div>
                                     </td>
 
-
+                                    {/* Prime Planogram */}
                                     <td className="px-4 py-4">
                                         <span
                                             className={`rounded-full px-3 py-1 text-xs font-semibold ${machine.isPrimePlanogram
@@ -380,6 +385,10 @@ const PlanogramDetails = () => {
                                             {machine.primePlanogram ? "Yes" : "No"}
                                         </span>
                                     </td>
+
+
+
+                                    {/* Order Errors */}
                                     <td className="px-4 py-4">
                                         <span
                                             className={`rounded-full relative px-3 py-1 text-xs font-semibold ${machine.orderError
@@ -393,6 +402,7 @@ const PlanogramDetails = () => {
                                         </span>
                                     </td>
 
+                                    {/* Actions */}
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
                                             {machine.orderError && <button
