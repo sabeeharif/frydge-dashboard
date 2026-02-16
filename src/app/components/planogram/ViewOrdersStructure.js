@@ -35,8 +35,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [includedMachineIds, setIncludedMachineIds] = useState([])
     const [selectedDate, setSelectedDate] = useState("");
     const pageSize = 10
-
-
+    // 
     const searchTimeoutRef = useRef(null)
     const isFetchingCategoriesRef = useRef(false)
     const isFetchingSuppliersRef = useRef(false)
@@ -49,6 +48,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const { success: toastSuccess } = useToast()
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
     const formatDate = (dateString) => {
         try {
             if (!dateString) return "";
@@ -72,6 +72,13 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         } catch (error) {
             return dateString;
         }
+    };
+
+    const formatPlannedPlanogramDate = (dateStr) => {
+        if (!dateStr) return "";
+
+        const [year, month, day] = dateStr.split("-");
+        return `${day}-${month}-${year}`;
     };
 
     const handleSave = async () => {
@@ -263,7 +270,14 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                     // 2️⃣ Fetch channels using orderSnapshotId
                     if (orderSnapshotId) {
-                        const snapshotResponse = await api.getOrderSnapshotChannels({ snapshotId: orderSnapshotId, machineId: machineId, });
+                        const snapshotResponse =
+                            await api.getOrderSnapshotChannels({
+                                snapshotId: orderSnapshotId,
+                                machineId: machineId,
+                                planogramVersionId: planogramVersionId,
+                                plannedPlanogramDate: formatPlannedPlanogramDate(selectedDate),
+
+                            });
                         if (snapshotResponse.ok) {
                             const snapshotData = await snapshotResponse.json();
                             snapshotArray = Object.values(snapshotData?.orderSnapshots[0]?.orderDetails || {}).flat();
@@ -475,10 +489,9 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                     <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Actions</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-                                {groupMachines.map((machine, index) => (
-                                    <tr key={machine.machineId} className={index !== 0 ? "border-t border-gray-200" : ""}>
+                                {groupMachines?.map((machine, index) => (
+                                    <tr key={machine?.machineId} className={index !== 0 ? "border-t border-gray-200" : ""}>
                                         {/* Machine ID */}
                                         <td className="px-4 py-4">
                                             <span className="inline-block rounded px-3 py-1 text-sm font-semibold text-gray-800">
@@ -488,20 +501,20 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                                         {/* Machine Name */}
                                         <td className="px-4 py-4">
-                                            <div className="text-sm font-medium text-gray-800">{machine.friendlyName}</div>
+                                            <div className="text-sm font-medium text-gray-800">{machine?.friendlyName}</div>
                                         </td>
 
                                         {/* Venue Name */}
                                         <td className="px-4 py-4">
                                             <div className="text-sm font-medium text-gray-800">
-                                                {machine.venueName || "_"}
+                                                {machine?.venueName || "_"}
                                             </div>
                                         </td>
 
                                         {/* Prime Planogram */}
                                         <td className="px-4 py-4">
-                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${machine.primePlanogram ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"}`}>
-                                                {machine.primePlanogram ? "Yes" : "No"}
+                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${machine?.primePlanogram ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"}`}>
+                                                {machine?.primePlanogram ? "Yes" : "No"}
                                             </span>
                                         </td>
 
@@ -535,7 +548,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 >
                     <div style={{ width: `${scrollWidth}px` }} className="h-1" />
                 </div>
-
 
                 {/* 🔹 ACTUAL CONTENT (YOUR CODE) */}
                 <div
@@ -759,8 +771,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         ))
                     )}
                 </div>
-
-
             </div>
 
             {/* Edit Modal */}

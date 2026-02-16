@@ -1241,6 +1241,24 @@ export const api = {
       queryParams.append("machineId", params.machineId);
     }
 
+    // ✅ Add plannedPlanogramDate only if provided
+    if (
+      params.plannedPlanogramDate &&
+      params.plannedPlanogramDate !== "null" &&
+      params.plannedPlanogramDate !== null
+    ) {
+      queryParams.append("plannedPlanogramDate", params.plannedPlanogramDate);
+    }
+
+    // ✅ Add planogramVersionId only if provided
+    if (
+      params.planogramVersionId &&
+      params.planogramVersionId !== "null" &&
+      params.planogramVersionId !== null
+    ) {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
+
     const queryString = queryParams.toString();
 
     return ApiService.awsRequest(
