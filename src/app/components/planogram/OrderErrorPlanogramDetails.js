@@ -6,14 +6,12 @@ import { AuthService, api } from "@/app/lib/auth";
 const OrderErrorPlanogramDetails = ({
     closeModal,
 }) => {
-    const versionDetails = [{orderId:"asda34234asdd",error:"No 12 shelf is not correct" ,date:"24-4-2025"}]
+    const versionDetails = [{ orderId: "asda34234asdd", error: "No 12 shelf is not correct", date: "24-4-2025" }]
     const [machines, setMachines] = useState()
     const [errors, setErrors] = useState({
         machine: "",
         primePlanogram: "",
     });
-
-
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -35,11 +33,35 @@ const OrderErrorPlanogramDetails = ({
 
                 {/* Form */}
                 <div className="p-6 space-y-6">
-
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                             Order Details
                         </h3>
+
+                        {/* Machine Info Header */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Machine ID</p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {machines?.machineId || "N/A"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Machine Name</p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {machines?.machineName || "N/A"}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Venue Name</p>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    {machines?.venueName || "N/A"}
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Empty State */}
                         {versionDetails?.length === 0 ? (
                             <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -59,7 +81,7 @@ const OrderErrorPlanogramDetails = ({
                                                     Error
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                                                   Order Date
+                                                    Order Date
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
                                                     Actions
@@ -97,14 +119,11 @@ const OrderErrorPlanogramDetails = ({
                                             ))}
                                         </tbody>
                                     </table>
-
                                 </div>
-
                             </div>
                         )}
                     </div>
                 </div>
-
 
                 {/* Footer */}
                 <div className="p-6  border-gray-200 flex justify-end gap-3">
@@ -114,20 +133,6 @@ const OrderErrorPlanogramDetails = ({
                     >
                         Cancel
                     </button>
-
-                    {/* <button
-                        onClick={handleCreatePlanogram}
-                        disabled={
-                            creatingPlanogram ||
-                            !!errors.machine ||
-                            !!errors.prime
-                        }
-                        className="px-6 flex gap-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg disabled:opacity-50"
-                    >
-
-                        {creatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-                        {creatingPlanogram ? "Creating..." : "Create Planogram"}
-                    </button> */}
                 </div>
             </div>
         </div>

@@ -54,6 +54,7 @@ const PlanogramStructure = () => {
   const shelfRefs = useRef({});
   const searchParams = useSearchParams()
   const machineStructureId = searchParams.get("machineStructureId")
+  const machineId = searchParams.get("machineId")
   const planogramVersionId = searchParams.get("planogramVersionId")
   const action = searchParams.get("action")
   const pageSize = 10
@@ -435,7 +436,7 @@ const PlanogramStructure = () => {
     setLoading(true)
     try {
       const response = await api.getPlanogramStructure({
-        machineStructureId: machineStructureId,
+        machineId: machineId,
         planogramVersionId: planogramVersionId
       });
 
@@ -665,12 +666,13 @@ const PlanogramStructure = () => {
 
 
   useEffect(() => {
-    if (!machineStructureId) return
+    // if (!machineStructureId) return
+    if (!machineId) return
     if (hasFetchedPlanogramRef.current) return
 
     hasFetchedPlanogramRef.current = true
     fetchPlanogramStructure()
-  }, [machineStructureId])
+  }, [machineId])
 
 
   // 🔹 Sync all cards height in each shelf row

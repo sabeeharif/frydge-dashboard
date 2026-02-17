@@ -1084,8 +1084,15 @@ export const api = {
     if (params.machineStructureId && params.machineStructureId !== "null") {
       queryParams.append("machineStructureId", params.machineStructureId);
     }
+
+    // Add planogramVersionId
     if (params.planogramVersionId && params.planogramVersionId !== "null") {
       queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
+
+    // ✅ Add machineId
+    if (params.machineId && params.machineId !== "null") {
+      queryParams.append("machineId", params.machineId);
     }
 
     const queryString = queryParams.toString();

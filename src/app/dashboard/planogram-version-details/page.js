@@ -10,7 +10,10 @@ import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 import OrderErrorPlanogramDetails from "../../components/planogram/OrderErrorPlanogramDetails"
 
 const PlanogramDetails = () => {
+    // Error State
     const [errorModal, setErrorModal] = useState(false)
+    const [selectedMachine, setSelectedMachine] = useState(null);
+    // Local States
     const [lastSyncedAt, setLastSyncedAt] = useState()
     const [syncStatus, setSyncStatus] = useState()
     const [loading, setLoading] = useState()
@@ -20,10 +23,11 @@ const PlanogramDetails = () => {
     const searchParams = useSearchParams()
     const { success: toastSuccess } = useToast()
     const router = useRouter()
+    // Ref
     const hasShownCompletionToast = useRef(false);
     const pollingRef = useRef(null);
     const stopPollingRef = useRef(false);
-
+    // Helper
     const params = searchParams.get("planogramVersionId")
     const pageSize = 10
 
@@ -123,7 +127,7 @@ const PlanogramDetails = () => {
 
     const navigate = (action, machineId) => {
         router.push(
-            `/dashboard/planogram-structure?machineStructureId=${machineId}&action=${action}&planogramVersionId=${params}`
+            `/dashboard/planogram-structure?machineId=${machineId}&action=${action}&planogramVersionId=${params}`
         );
     }
 
@@ -179,13 +183,18 @@ const PlanogramDetails = () => {
         fetchPlanogramVersions()
     }
 
-
     const handelOrders = () => {
         setIsOpenOrder(true)
         router.push(
             `/dashboard/planogram-version-details?planogramVersionId=${planogram?.planogramVersionId}&orders`
         )
     }
+
+    // Modal
+    const openViewErrorModal = (machine) => {
+        setSelectedMachine(machine);
+        setErrorModal(true);
+    };
 
     useEffect(() => {
         // Get query params
@@ -222,7 +231,6 @@ const PlanogramDetails = () => {
             rotating: false,
         },
     };
-
 
     if (isOpenOrder) {
         return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
@@ -299,6 +307,7 @@ const PlanogramDetails = () => {
 
             {/* Machine Table */}
             <div className="mb-8">
+                {/* Buttons-Cont */}
                 <div className="flex justify-between items-center mb-4">
                     <h3 className=" text-xl font-semibold text-gray-800">
                         Machines
@@ -326,6 +335,8 @@ const PlanogramDetails = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* Sync Status */}
                 <div className="text-end">
                     {syncStatus && (
                         <p className={`text-sm ${SYNC_STATUS_MAP[syncStatus]?.color}`}>
@@ -335,9 +346,9 @@ const PlanogramDetails = () => {
                                 : SYNC_STATUS_MAP[syncStatus]?.text}
                         </p>
                     )}
-
                 </div>
 
+                {/* Table-Cont */}
                 <div className="overflow-hidden rounded-lg bg-white shadow">
                     <table className="w-full border-collapse">
                         <thead className="bg-gray-50">
@@ -432,21 +443,21 @@ const PlanogramDetails = () => {
                                     {/* Actions */}
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
-                                            {machine.orderError && <button
-                                                onClick={() => setErrorModal(true)}
+                                            {machine?.orderError && <button
+                                                onClick={() => openViewErrorModal(machine)}
                                                 className="text-red-600 hover:underline"
                                             >
                                                 View Error
                                             </button>}
                                             {machine.primePlanogram && <button
-                                                onClick={() => navigate("finalize", machine.machineStructureId)}
+                                                onClick={() => navigate("finalize", machine.machineId)}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 Finalize
                                             </button>}
 
                                             {!machine.error && <button
-                                                onClick={() => navigate("structure", machine.machineStructureId)}
+                                                onClick={() => navigate("structure", machine.machineId)}
                                                 className="text-green-600 hover:underline"
                                             >
                                                 View Structure
@@ -461,7 +472,7 @@ const PlanogramDetails = () => {
             </div>
 
             {errorModal &&
-                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} />
+                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} />
             }
         </div>
     );
