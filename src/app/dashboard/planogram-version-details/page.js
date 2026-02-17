@@ -9,6 +9,10 @@ import { useToast } from "@/app/contexts/ToastContext";
 import ViewOrderStructure from "../../components/planogram/ViewOrdersStructure"
 
 const PlanogramDetails = () => {
+    // Error State
+    const [errorModal, setErrorModal] = useState(false)
+    const [selectedMachine, setSelectedMachine] = useState(null);
+    // Local States
     const [lastSyncedAt, setLastSyncedAt] = useState()
     const [syncStatus, setSyncStatus] = useState()
     const [loading, setLoading] = useState()
@@ -92,7 +96,7 @@ const PlanogramDetails = () => {
 
     const navigate = (action, machineId) => {
         router.push(
-            `/dashboard/planogram-structure?machineStructureId=${machineId}&action=${action}&planogramVersionId=${params}`
+            `/dashboard/planogram-structure?machineId=${machineId}&action=${action}&planogramVersionId=${params}`
         );
     }
 
@@ -369,14 +373,14 @@ const PlanogramDetails = () => {
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
                                             {machine.primePlanogram && <button
-                                                onClick={() => navigate("finalize", machine.machineStructureId)}
+                                                onClick={() => navigate("finalize", machine.machineId)}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 Finalize
                                             </button>}
 
                                             {!machine.error && <button
-                                                onClick={() => navigate("structure", machine.machineStructureId)}
+                                                onClick={() => navigate("structure", machine.machineId)}
                                                 className="text-green-600 hover:underline"
                                             >
                                                 View Structure
