@@ -5,6 +5,7 @@ import { AuthService, api } from "@/app/lib/auth";
 
 const OrderErrorPlanogramDetails = ({
     closeModal,
+    machine
 }) => {
     const versionDetails = [{ orderId: "asda34234asdd", error: "No 12 shelf is not correct", date: "24-4-2025" }]
     const [machines, setMachines] = useState()
@@ -12,6 +13,8 @@ const OrderErrorPlanogramDetails = ({
         machine: "",
         primePlanogram: "",
     });
+
+    // console.log("machine", machine)
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
@@ -43,21 +46,21 @@ const OrderErrorPlanogramDetails = ({
                             <div>
                                 <p className="text-xs text-gray-500 uppercase">Machine ID</p>
                                 <p className="text-sm font-semibold text-gray-800">
-                                    {machines?.machineId || "N/A"}
+                                    {machine?.machineId || "N/A"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="text-xs text-gray-500 uppercase">Machine Name</p>
                                 <p className="text-sm font-semibold text-gray-800">
-                                    {machines?.machineName || "N/A"}
+                                    {machine?.friendlyName || "N/A"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="text-xs text-gray-500 uppercase">Venue Name</p>
                                 <p className="text-sm font-semibold text-gray-800">
-                                    {machines?.venueName || "N/A"}
+                                    {machine?.venueName || "N/A"}
                                 </p>
                             </div>
                         </div>

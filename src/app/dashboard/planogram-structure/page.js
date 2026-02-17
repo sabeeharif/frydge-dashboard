@@ -200,6 +200,8 @@ const PlanogramStructure = () => {
   const handleFinalizePlanogram = async () => {
     setUpdatingPlanogram(true)
     const channelDetails = Object.values(structure).flat()
+    // console.log("groupMachines", groupMachines)
+
     const machineIds = groupMachines.map(machine => machine.machineId);
     const payload = {
       orderSnapshotId: planogramMeta?.orderSnapshotId && selectedDate && !selectedReApplyDate ? planogramMeta?.orderSnapshotId : "",
@@ -210,7 +212,8 @@ const PlanogramStructure = () => {
       allMachineIds: machineIds,
       productAssignments: channelDetails
     }
-    console.log(payload);
+    
+    // console.log("payload", payload);
     try {
       // // 🔹 API call
       const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
@@ -597,8 +600,26 @@ const PlanogramStructure = () => {
 
       // Handle different response structures
       const fetchedProducts = data?.planogramVersions[0] || data.results || []
-      console.log(fetchedProducts.versionDetails, "asas");
-      const machines = fetchedProducts.versionDetails.filter(item => !item.error);
+      // console.log("fetchedProducts", fetchedProducts);
+
+      const detailResponse = await api.planogramVersionDetails({
+        versionDetailId: fetchedProducts?.versionDetailId, // assuming _id is the version ID
+        limit: 10, // or any limit you want
+      });
+
+      if (!detailResponse.ok) {
+        alert("Failed to fetch planogram details. Please try again.");
+        return;
+      }
+
+      const detailData = await detailResponse.json();
+      // console.log("detailData", detailData)
+
+      // Filter out
+      const machines = detailData.versionDetails
+        .filter(item => !item.error)
+
+      // set
       setGroupMachines(machines)
     } catch (error) {
       console.error("Failed to load products", error);
