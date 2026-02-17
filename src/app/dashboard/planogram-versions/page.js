@@ -179,12 +179,26 @@ const PlanogramManagement = () => {
     };
 
     // Modal
-    const openEditModal = (planogram) => {
+    const openEditModal = async (planogram) => {
         setEditingPlanogramId(planogram.planogramVersionId);
+        // console.log("openEditModal", planogram)
+
+        const detailResponse = await api.planogramVersionDetails({
+            versionDetailId: planogram?.versionDetailId, // assuming _id is the version ID
+            limit: 10, // or any limit you want
+        });
+
+        if (!detailResponse.ok) {
+            alert("Failed to fetch planogram details. Please try again.");
+            return;
+        }
+
+        const detailData = await detailResponse.json();
+        // console.log("detailData", detailData)
 
         setFormData({
             name: planogram.name || "",
-            versionDetails: planogram.versionDetails
+            versionDetails: detailData?.versionDetails
         });
 
         setShowEditPlanogramModal(true);
@@ -266,6 +280,7 @@ const PlanogramManagement = () => {
                 lastKey: newLastKey,
             };
 
+            // console.log("dd", fetched)
             setPlanograms(fetched);
             setPlanogramLastKey(newLastKey);
 

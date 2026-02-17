@@ -74,7 +74,7 @@ const PlanogramTable = ({
 
                     {/* Machines */}
                     <td className="px-6 py-4 text-gray-700">
-                      {planogram?.versionDetails?.length || "No Machines"}
+                      {planogram?.machineCount || "No Machines"}
                     </td>
 
                     {/* UpComming Order */}

@@ -54,7 +54,23 @@ const PlanogramDetails = () => {
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
             setSyncStatus(fetchedProducts?.sync_status)
             setLastSyncedAt(fetchedProducts?.lastSyncedAt)
-            setPlanogram(fetchedProducts)
+
+            // console.log("fetchedProducts", fetchedProducts)
+
+            const detailResponse = await api.planogramVersionDetails({
+                versionDetailId: fetchedProducts?.versionDetailId, // assuming _id is the version ID
+                limit: 10, // or any limit you want
+            });
+
+            if (!detailResponse.ok) {
+                alert("Failed to fetch planogram details. Please try again.");
+                return;
+            }
+
+            const detailData = await detailResponse.json();
+            // console.log("detailData", detailData)
+
+            setPlanogram({ ...fetchedProducts, versionDetails: detailData?.versionDetails })
         } catch (error) {
             console.error("Failed to load products", error);
         } finally {
@@ -74,7 +90,6 @@ const PlanogramDetails = () => {
                 lastKey: useLastKey,
                 planogramVersionId: params
             })
-            console.log("Client fetch response status:", response.status)
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
@@ -82,10 +97,24 @@ const PlanogramDetails = () => {
             }
 
             const data = await response.json()
-            console.log("Client received data:", data)
             // Handle different response structures
             const fetchedProducts = data?.planogramVersions[0] || data.results || []
-            setPlanogram(fetchedProducts)
+            // console.log("fetchedProducts", fetchedProducts)
+
+            const detailResponse = await api.planogramVersionDetails({
+                versionDetailId: fetchedProducts?.versionDetailId, // assuming _id is the version ID
+                limit: 10, // or any limit you want
+            });
+
+            if (!detailResponse.ok) {
+                alert("Failed to fetch planogram details. Please try again.");
+                return;
+            }
+
+            const detailData = await detailResponse.json();
+            // console.log("detailData", detailData)
+
+            setPlanogram({ ...fetchedProducts, versionDetails: detailData?.versionDetails })
             return fetchedProducts;
         } catch (error) {
             console.error("Failed to load products", error);
@@ -207,8 +236,6 @@ const PlanogramDetails = () => {
         )
     }
 
-    console.log("planogram", planogram)
-
     return (
         <div className="p-8">
             {/* Back Button */}
@@ -253,7 +280,7 @@ const PlanogramDetails = () => {
                 <div className="rounded-lg bg-white p-6 shadow">
                     <div className="mb-2 text-sm text-gray-500">Total Machines</div>
                     <div className="text-2xl font-bold text-gray-800">
-                        {planogram?.versionDetails?.length}
+                        {planogram?.machineCount}
                     </div>
                 </div>
 

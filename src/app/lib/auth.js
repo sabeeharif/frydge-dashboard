@@ -1266,6 +1266,31 @@ export const api = {
     );
   },
 
+  planogramVersionDetails: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit if provided
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
+
+    // Add versionDetailId if provided
+    if (
+      params.versionDetailId &&
+      params.versionDetailId !== "null" &&
+      params.versionDetailId !== null
+    ) {
+      queryParams.append("versionDetailId", params.versionDetailId);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/planogram_version_details${queryString ? `?${queryString}` : ""}`
+    );
+  },
+
+
   // Get Internal Orders
   getOrderSupplierFileName: (params = {}) => {
     const queryParams = new URLSearchParams();
