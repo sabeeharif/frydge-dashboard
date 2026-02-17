@@ -13,6 +13,7 @@ const PlanogramDetails = () => {
     // Error State
     const [errorModal, setErrorModal] = useState(false)
     const [selectedMachine, setSelectedMachine] = useState(null);
+    const [machineErrors, setMachineErrors] = useState([]);
     // Local States
     const [lastSyncedAt, setLastSyncedAt] = useState()
     const [syncStatus, setSyncStatus] = useState()
@@ -191,9 +192,27 @@ const PlanogramDetails = () => {
     }
 
     // Modal
-    const openViewErrorModal = (machine) => {
+    const openViewErrorModal = async (machine) => {
+        // console.log("machine", machine)
         setSelectedMachine(machine);
         setErrorModal(true);
+
+        try {
+            const response = await api.getOrderSnapshotErrors({
+                limit: 10,
+                planogramVersionId: machine?.planogramVersionId, // make sure available in scope
+                machineId: machine?.machineId,
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+
+            setMachineErrors(data?.orderErrors || []); // adjust based on API response shape
+        } catch (error) {
+            console.error("Failed to fetch machine errors:", error);
+            setMachineErrors([]);
+        }
     };
 
     useEffect(() => {
@@ -424,26 +443,28 @@ const PlanogramDetails = () => {
                                         </span>
                                     </td>
 
-
-
                                     {/* Order Errors */}
                                     <td className="px-4 py-4">
-                                        <span
-                                            className={`rounded-full relative px-3 py-1 text-xs font-semibold ${machine.orderError
-                                                ? "bg-red-600 text-white"
-                                                : "bg-green-400 text-white"
-                                                }`}
-                                        >
-                                            {machine.orderError = true ? "Error" : "Resolved"}
+                                        {(() => {
+                                            const count = machine?.errorCount ?? 0;
 
-                                            <span className="absolute min-w-6 h-auto p-1 rounded-full bg-black border-none top-[-16px] right-[-10px] text-white flex justify-center items-center">22</span>
-                                        </span>
+                                            return (
+                                                <span
+                                                    className={`px-3 py-1 rounded-full text-xs font-semibold ${count > 0
+                                                        ? "bg-red-100 text-red-700"
+                                                        : "bg-green-100 text-green-700"
+                                                        }`}
+                                                >
+                                                    {count}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
 
                                     {/* Actions */}
                                     <td className="px-4 py-4">
                                         <div className="flex gap-2">
-                                            {machine?.orderError && <button
+                                            {machine?.errorCount > 0 && <button
                                                 onClick={() => openViewErrorModal(machine)}
                                                 className="text-red-600 hover:underline"
                                             >
@@ -472,7 +493,7 @@ const PlanogramDetails = () => {
             </div>
 
             {errorModal &&
-                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} />
+                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} machineErrors={machineErrors} />
             }
         </div>
     );

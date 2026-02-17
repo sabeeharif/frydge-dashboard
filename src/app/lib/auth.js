@@ -1102,7 +1102,38 @@ export const api = {
     );
   },
 
+  getOrderSnapshotErrors: (params = {}) => {
+    const queryParams = new URLSearchParams();
 
+    // Add limit
+    if (params.limit) {
+      queryParams.append("limit", params.limit);
+    }
+
+    // Add planogramVersionId
+    if (
+      params.planogramVersionId &&
+      params.planogramVersionId !== "null" &&
+      params.planogramVersionId !== null
+    ) {
+      queryParams.append("planogramVersionId", params.planogramVersionId);
+    }
+
+    // Add machineId
+    if (
+      params.machineId &&
+      params.machineId !== "null" &&
+      params.machineId !== null
+    ) {
+      queryParams.append("machineId", params.machineId);
+    }
+
+    const queryString = queryParams.toString();
+
+    return ApiService.awsRequest(
+      `/order_snapshots/error${queryString ? `?${queryString}` : ""}`
+    );
+  },
 
   // Update Planogram Version 
   updatePlangoramVersionStructure: (planogramId, payload) => {
