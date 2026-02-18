@@ -14,6 +14,7 @@ const PlanogramDetails = () => {
     const [errorModal, setErrorModal] = useState(false)
     const [selectedMachine, setSelectedMachine] = useState(null);
     const [machineErrors, setMachineErrors] = useState([]);
+    const [loadingErrors, setLoadingErrors] = useState(false);
     // Local States
     const [lastSyncedAt, setLastSyncedAt] = useState()
     const [syncStatus, setSyncStatus] = useState()
@@ -196,6 +197,7 @@ const PlanogramDetails = () => {
         // console.log("machine", machine)
         setSelectedMachine(machine);
         setErrorModal(true);
+        setLoadingErrors(true);
 
         try {
             const response = await api.getOrderSnapshotErrors({
@@ -212,6 +214,8 @@ const PlanogramDetails = () => {
         } catch (error) {
             console.error("Failed to fetch machine errors:", error);
             setMachineErrors([]);
+        } finally {
+            setLoadingErrors(false);
         }
     };
 
@@ -493,7 +497,7 @@ const PlanogramDetails = () => {
             </div>
 
             {errorModal &&
-                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} machineErrors={machineErrors} />
+                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} machineErrors={machineErrors} loadingErrors={loadingErrors} />
             }
         </div>
     );

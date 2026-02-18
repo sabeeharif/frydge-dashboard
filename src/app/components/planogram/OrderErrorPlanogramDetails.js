@@ -3,7 +3,7 @@ import { X, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AuthService, api } from "@/app/lib/auth";
 
-const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors }) => {
+const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, loadingErrors }) => {
   // console.log("machine", machine)
   // console.log("machineErrors", machineErrors)
 
@@ -56,8 +56,13 @@ const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors }) => {
               </div>
             </div>
 
-            {/* Empty State */}
-            {machineErrors?.length === 0 ? (
+            {/* Content */}
+            {loadingErrors ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+              </div>
+            ) : machineErrors?.length === 0 ? (
+              /* Empty State */
               <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
                 <p className="text-gray-600 mb-4">No data available</p>
               </div>
@@ -107,7 +112,7 @@ const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors }) => {
                             <td className="px-4 py-3 text-center space-x-3">
                               <button
                                 className="text-green-600 cursor-pointer hover:underline font-medium"
-                                // onClick={() => handleAction(row)}
+                              // onClick={() => handleAction(row)}
                               >
                                 Resolved
                               </button>
