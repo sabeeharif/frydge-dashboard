@@ -255,6 +255,7 @@ const PlanogramDetails = () => {
         },
     };
 
+    // View Order Structure
     if (isOpenOrder) {
         return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
     }

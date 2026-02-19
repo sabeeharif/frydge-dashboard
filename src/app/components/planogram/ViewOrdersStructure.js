@@ -17,6 +17,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [updatingPlanogram, setUpdatingPlanogram] = useState()
     const [planogramMeta, setPlanogramMeta] = useState(null)
     const searchParams = useSearchParams()
+    // Machine
+    const [selectedMachine, setSelectedMachine] = useState(null);
     const machineId = searchParams.get("machineId")
     const planogramVersionId = searchParams.get("planogramVersionId")
     const action = searchParams.get("action")
@@ -236,10 +238,12 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         setSuppliers(suppliers.filter((s) => s !== supId))
     }
 
-    const fetchInteranalOrdersStructure = async (machineId) => {
+    const fetchInteranalOrdersStructure = async (machine) => {
+        let machineId = machine?.machineId
         if (!machineId) return;
 
-        setSelectedMachineId(machineId);
+        setSelectedMachine(machine); // ⭐ store full machine
+        setSelectedMachineId(machineId); // store machine id
         setLoading(true);
 
         try {
@@ -326,6 +330,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
+    // 
     useEffect(() => {
         Object.values(shelfRefs.current).forEach((planogram) => {
             if (!planogram) return;
@@ -378,20 +383,21 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
+    // 
     useEffect(() => {
         if (planogramVersionId) {
             fetchPlanogramVersions()
         }
     }, [planogramVersionId])
 
-
+    // 
     useEffect(() => {
         if (contentScrollRef.current) {
             setScrollWidth(contentScrollRef.current.scrollWidth)
         }
     }, [structure])
 
-
+    // 
     const hasValidSnapshot = (shelvesByNumber) => {
         if (!shelvesByNumber?.structure) return false
 
@@ -400,6 +406,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         )
     }
 
+    // 
     const validEntries = Object.entries(structure).filter(
         ([, shelvesByNumber]) => hasValidSnapshot(shelvesByNumber)
     );
@@ -462,22 +469,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                     />
                 </div>
 
-                {/* Select Machine */}
-                {/* <select
-                    className="w-full px-3 py-2 border rounded-lg"
-                    onChange={fetchInteranalOrdersStructure}
-                    value={selectedMachineId}
-                >
-                    <option value="">Select Machine</option>
-                    {groupMachines?.map((m) => (
-                        <option key={m.machineId} value={m.machineId}>
-                            {m?.friendlyName}
-                        </option>
-                    ))}
-                </select> */}
-
                 {/* Table Container */}
-                {selectedDate && (
+                {selectedDate && validEntries?.length === 0 && (
                     <div className="overflow-hidden rounded-lg bg-white shadow">
                         <table className="w-full border-collapse">
                             <thead className="bg-gray-50">
@@ -522,7 +515,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                         <td className="px-4 py-4">
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => fetchInteranalOrdersStructure(machine?.machineId)}
+                                                    onClick={() => fetchInteranalOrdersStructure(machine)}
                                                     className="text-green-600 hover:underline cursor-pointer"
                                                 >
                                                     View Order
@@ -537,7 +530,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 )}
 
                 {/* 🔹 TOP SCROLLBAR */}
-                <div
+                {selectedDate && validEntries?.length === 0 && <div
                     ref={topScrollRef}
                     className="overflow-x-scroll overflow-y-hidden mt-10 h-4 mb-4"
                     onScroll={(e) => {
@@ -547,9 +540,33 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                     }}
                 >
                     <div style={{ width: `${scrollWidth}px` }} className="h-1" />
-                </div>
+                </div>}
 
-                {/* 🔹 ACTUAL CONTENT (YOUR CODE) */}
+                {/* Machine Info Header */}
+                {validEntries?.length > 0 && <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <p className="text-xs text-gray-500 uppercase">Machine ID</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                            {selectedMachine?.machineId || "N/A"}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p className="text-xs text-gray-500 uppercase">Machine Name</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                            {selectedMachine?.friendlyName || "N/A"}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p className="text-xs text-gray-500 uppercase">Venue Name</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                            {selectedMachine?.venueName || "N/A"}
+                        </p>
+                    </div>
+                </div>}
+
+                {/* 🔹 ACTUAL CONTENT */}
                 <div
                     ref={contentScrollRef}
                     className="flex gap-10 overflow-x-scroll hide-scrollbar"
