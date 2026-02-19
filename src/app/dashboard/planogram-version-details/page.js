@@ -76,7 +76,12 @@ const PlanogramDetails = () => {
             const detailData = await detailResponse.json();
             // console.log("detailData", detailData)
 
-            setPlanogram({ ...fetchedProducts, versionDetails: detailData?.versionDetails })
+            // Sort → primePlanogram true first
+            const sortedDetails = (detailData?.versionDetails || detailData || []).sort(
+                (a, b) => Number(b.primePlanogram) - Number(a.primePlanogram)
+            );
+
+            setPlanogram({ ...fetchedProducts, versionDetails: sortedDetails })
         } catch (error) {
             console.error("Failed to load products", error);
         } finally {

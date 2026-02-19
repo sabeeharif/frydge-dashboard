@@ -114,7 +114,7 @@ const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, loadin
                                 className="text-green-600 cursor-pointer hover:underline font-medium"
                               // onClick={() => handleAction(row)}
                               >
-                                Resolved
+                                Mark as Read
                               </button>
                             </td>
                           </tr>
