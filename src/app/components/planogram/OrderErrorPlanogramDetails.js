@@ -3,7 +3,14 @@ import { X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { AuthService, api } from "@/app/lib/auth";
 
-const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, setMachineErrors, loadingErrors }) => {
+const OrderErrorPlanogramDetails = ({
+  closeModal,
+  machine,
+  machineErrors,
+  setMachineErrors,
+  loadingErrors,
+  fetchPlanogramVersions
+}) => {
   const [loadingRow, setLoadingRow] = useState(null);
 
   const handleMarkAsRead = async (row) => {
@@ -19,15 +26,21 @@ const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, setMac
       });
 
       // optional: update UI after success
-      setMachineErrors((prev) =>
-        prev.filter(
-          (item) =>
-            !(
-              item.orderSnapshotId === row.orderSnapshotId &&
-              item.machineId === row.machineId
-            )
-        )
-      );
+      // setMachineErrors((prev) =>
+      //   prev.filter(
+      //     (item) =>
+      //       !(
+      //         item.orderSnapshotId === row.orderSnapshotId &&
+      //         item.machineId === row.machineId
+      //       )
+      //   )
+      // );
+
+      // ✅ call parent function
+      fetchPlanogramVersions?.();
+
+      // Close Modal
+      closeModal()
     } catch (error) {
       console.error("Failed to mark as read:", error);
     } finally {

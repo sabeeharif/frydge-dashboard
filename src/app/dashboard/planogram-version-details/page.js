@@ -509,6 +509,7 @@ const PlanogramDetails = () => {
                     machineErrors={machineErrors}
                     setMachineErrors={setMachineErrors}
                     loadingErrors={loadingErrors}
+                    fetchPlanogramVersions={fetchPlanogramVersions}
                 />
             }
         </div>
