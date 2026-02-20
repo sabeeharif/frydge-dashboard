@@ -1304,6 +1304,17 @@ export const api = {
     );
   },
 
+  markOrderSnapshotErrorRead: (body = {}) => {
+    return ApiService.awsRequest(`/order_snapshots/error:read`, {
+      method: "PUT",
+      body: JSON.stringify({
+        planogramVersionId: body.planogramVersionId,
+        orderSnapshotId: body.orderSnapshotId,
+        machineId: body.machineId,
+      }),
+    });
+  },
+
   planogramVersionDetails: (params = {}) => {
     const queryParams = new URLSearchParams();
 

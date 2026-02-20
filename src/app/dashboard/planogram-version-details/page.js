@@ -503,7 +503,13 @@ const PlanogramDetails = () => {
             </div>
 
             {errorModal &&
-                <OrderErrorPlanogramDetails closeModal={() => setErrorModal(false)} machine={selectedMachine} machineErrors={machineErrors} loadingErrors={loadingErrors} />
+                <OrderErrorPlanogramDetails
+                    closeModal={() => setErrorModal(false)}
+                    machine={selectedMachine}
+                    machineErrors={machineErrors}
+                    setMachineErrors={setMachineErrors}
+                    loadingErrors={loadingErrors}
+                />
             }
         </div>
     );

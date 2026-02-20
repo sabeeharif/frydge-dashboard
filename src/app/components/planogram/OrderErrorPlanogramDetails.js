@@ -1,9 +1,40 @@
 "use client";
 import { X, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthService, api } from "@/app/lib/auth";
 
-const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, loadingErrors }) => {
+const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, setMachineErrors, loadingErrors }) => {
+  const [loadingRow, setLoadingRow] = useState(null);
+
+  const handleMarkAsRead = async (row) => {
+    const key = `${row?.orderSnapshotId}-${row?.machineId}`;
+    setLoadingRow(key);
+
+    try {
+      // console.log("Mark As Read", row)
+      await api.markOrderSnapshotErrorRead({
+        planogramVersionId: row?.planogramVersionId,
+        orderSnapshotId: row?.orderSnapshotId,
+        machineId: row?.machineId,
+      });
+
+      // optional: update UI after success
+      setMachineErrors((prev) =>
+        prev.filter(
+          (item) =>
+            !(
+              item.orderSnapshotId === row.orderSnapshotId &&
+              item.machineId === row.machineId
+            )
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    } finally {
+      setLoadingRow(null);
+    }
+  };
+
   // console.log("machine", machine)
   // console.log("machineErrors", machineErrors)
 
@@ -111,10 +142,15 @@ const OrderErrorPlanogramDetails = ({ closeModal, machine, machineErrors, loadin
                             {/* Actions */}
                             <td className="px-4 py-3 text-center space-x-3">
                               <button
+                                disabled={
+                                  loadingRow === `${row?.orderSnapshotId}-${row?.machineId}`
+                                }
                                 className="text-green-600 cursor-pointer hover:underline font-medium"
-                              // onClick={() => handleAction(row)}
+                                onClick={() => handleMarkAsRead(row)}
                               >
-                                Mark as Read
+                                {loadingRow === `${row?.orderSnapshotId}-${row?.machineId}`
+                                  ? "Marking..."
+                                  : "Mark as Read"}
                               </button>
                             </td>
                           </tr>
