@@ -85,13 +85,12 @@ const PlanogramTable = ({
                     {/* Order Error */}
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.pendingMachineCount
-                          ? "bg-red-600 text-white"
-                          : "bg-gray-200 text-gray-500"
+                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.pendingMachineCount > 0
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
                           }`}
                       >
-                        {planogram?.pendingMachineCount ? "Yes" : "No"}
-
+                        {planogram?.pendingMachineCount > 0 ? "IN PROGRESS" : "COMPLETED"}
                       </span>
                     </td>
 
