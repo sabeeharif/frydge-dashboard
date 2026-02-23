@@ -82,11 +82,13 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete }) => {
                     {/* Order Status */}
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.orderStatus === "COMPLETED"
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${planogram?.orderStatus === "COMPLETED"
                             ? "bg-green-100 text-green-700"
-                            : planogram?.orderStatus
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-500"
+                            : planogram?.orderStatus === "ERROR"
+                              ? "bg-red-100 text-red-700"
+                              : planogram?.orderStatus === "IN_PROGRESS"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-gray-100 text-gray-500"
                           }`}
                       >
                         {planogram?.orderStatus || "N/A"}
