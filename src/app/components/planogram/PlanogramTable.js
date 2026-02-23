@@ -2,17 +2,15 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 
-const PlanogramTable = ({
-  planogram = [],
-  onEdit,
-  onDelete,
-}) => {
-  const router = useRouter()
+const PlanogramTable = ({ planogram = [], onEdit, onDelete }) => {
+  const router = useRouter();
   const navigate = (planogramVersionId) => {
     router.push(
-      `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
+      `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`,
     );
-  }
+  };
+
+  // console.log("planogram", planogram)
   return (
     <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {/* HORIZONTAL SCROLL */}
@@ -33,7 +31,7 @@ const PlanogramTable = ({
                 UpComming Order
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                Order Error
+                Order Status
               </th>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
                 Actions
@@ -54,7 +52,6 @@ const PlanogramTable = ({
               </tr>
             ) : (
               planogram?.map((planogram, index) => {
-
                 return (
                   <tr
                     key={planogram.id}
@@ -82,15 +79,17 @@ const PlanogramTable = ({
                       {planogram?.orders ? planogram?.orders : "N/A"}
                     </td>
 
-                    {/* Order Error */}
+                    {/* Order Status */}
                     <td className="px-4 py-4">
                       <span
-                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.pendingMachineCount > 0
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
+                        className={`rounded-full relative px-3 py-1 text-xs font-semibold ${planogram?.orderStatus === "COMPLETED"
+                            ? "bg-green-100 text-green-700"
+                            : planogram?.orderStatus
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-500"
                           }`}
                       >
-                        {planogram?.pendingMachineCount > 0 ? "IN PROGRESS" : "COMPLETED"}
+                        {planogram?.orderStatus || "N/A"}
                       </span>
                     </td>
 
