@@ -65,7 +65,7 @@ const PlanogramStructure = () => {
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
-  const formatNewPlanDate = (dateString) => {
+  const formatNewPlanDate = (dateString, dateOnly = false) => {
     try {
       if (!dateString) return "";
 
@@ -78,6 +78,15 @@ const PlanogramStructure = () => {
       const date = new Date(
         `${year}-${month}-${day}T00:00:01`
       );
+
+      if (dateOnly) {
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
       return date.toLocaleString("en-US", {
         year: "numeric",
         month: "short",
@@ -212,7 +221,7 @@ const PlanogramStructure = () => {
       allMachineIds: machineIds,
       productAssignments: channelDetails
     }
-    
+
     // console.log("payload", payload);
     try {
       // // 🔹 API call
@@ -1111,7 +1120,7 @@ const PlanogramStructure = () => {
                 <option value="">Select date</option>
                 {availableDates?.map((item) => (
                   <option key={item?.plannedPlanogramDate} value={item?.plannedPlanogramDate}>
-                    {formatNewPlanDate(item?.plannedPlanogramDate)} {item?.draft && "(Draft)"}
+                    {formatNewPlanDate(item?.plannedPlanogramDate, true)} {item?.draft && "(Draft)"}
                   </option>
                 ))}
               </select>
