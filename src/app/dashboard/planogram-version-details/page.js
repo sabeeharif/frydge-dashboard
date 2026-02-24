@@ -476,20 +476,20 @@ const PlanogramDetails = () => {
                                         <div className="flex gap-2">
                                             {machine?.errorCount > 0 && <button
                                                 onClick={() => openViewErrorModal(machine)}
-                                                className="text-red-600 hover:underline"
+                                                className="text-red-600 hover:underline cursor-pointer"
                                             >
                                                 View Error
                                             </button>}
                                             {machine.primePlanogram && <button
                                                 onClick={() => navigate("finalize", machine.machineId)}
-                                                className="text-blue-600 hover:underline"
+                                                className="text-blue-600 hover:underline cursor-pointer"
                                             >
                                                 Finalize
                                             </button>}
 
                                             {!machine.error && <button
                                                 onClick={() => navigate("structure", machine.machineId)}
-                                                className="text-green-600 hover:underline"
+                                                className="text-green-600 hover:underline cursor-pointer"
                                             >
                                                 View Structure
                                             </button>}

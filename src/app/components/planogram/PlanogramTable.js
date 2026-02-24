@@ -83,12 +83,12 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete }) => {
                     <td className="px-4 py-4">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${planogram?.orderStatus === "COMPLETED"
-                            ? "bg-green-100 text-green-700"
-                            : planogram?.orderStatus === "ERROR"
-                              ? "bg-red-100 text-red-700"
-                              : planogram?.orderStatus === "IN_PROGRESS"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-500"
+                          ? "bg-green-100 text-green-700"
+                          : planogram?.orderStatus === "ERROR"
+                            ? "bg-red-100 text-red-700"
+                            : planogram?.orderStatus === "IN_PROGRESS"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-500"
                           }`}
                       >
                         {planogram?.orderStatus || "N/A"}
@@ -100,19 +100,19 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete }) => {
                       <div className="flex items-center gap-4 text-sm">
                         <button
                           onClick={() => navigate(planogram.planogramVersionId)}
-                          className="text-green-600 hover:underline"
+                          className="text-green-600 hover:underline cursor-pointer"
                         >
                           View Details
                         </button>
                         <button
                           onClick={() => onEdit(planogram)}
-                          className="text-blue-600 hover:underline"
+                          className="text-blue-600 hover:underline cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => onDelete(planogram)}
-                          className="text-red-600 hover:underline"
+                          className="text-red-600 hover:underline cursor-pointer"
                         >
                           Delete
                         </button>
