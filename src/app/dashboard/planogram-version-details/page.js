@@ -33,6 +33,7 @@ const PlanogramDetails = () => {
     const params = searchParams.get("planogramVersionId")
     const pageSize = 10
 
+    // Fetch
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
         try {
@@ -89,6 +90,7 @@ const PlanogramDetails = () => {
         }
     };
 
+    // Fetch
     const fetchPlanogramVersionsAfterSync = async (useLastKey = null) => {
         try {
             let apiUrl = `/api/planogram_versions?limit=${pageSize}`
@@ -132,6 +134,8 @@ const PlanogramDetails = () => {
         }
     };
 
+    // Navigates to the planogram structure page with the provided action and machineId.
+    // Passes machineId, action type, and current planogramVersionId as query parameters.
     const navigate = (action, machineId) => {
         router.push(
             `/dashboard/planogram-structure?machineId=${machineId}&action=${action}&planogramVersionId=${params}`
@@ -186,10 +190,13 @@ const PlanogramDetails = () => {
         }
     };
 
+    // Refresh
     const RefreshPage = () => {
         fetchPlanogramVersions()
     }
 
+    // Opens the orders panel and navigates to the planogram version details page
+    // with the selected planogramVersionId and orders query flag.
     const handelOrders = () => {
         setIsOpenOrder(true)
         router.push(
@@ -236,11 +243,15 @@ const PlanogramDetails = () => {
         }
     }, [searchParams]); // re-run if query params change
 
-
     useEffect(() => {
         fetchPlanogramVersions()
     }, [])
 
+    // Mapping of machine sync statuses to UI display properties.
+    // Each status defines:
+    // - text: Message to show (can be static or a function for dynamic values like lastSyncedAt)
+    // - color: Tailwind CSS class for text color styling
+    // - rotating: Whether to show a rotating loader icon for the status
     const SYNC_STATUS_MAP = {
         IN_PROGRESS: {
             text: "Sync in progress...",
@@ -260,7 +271,7 @@ const PlanogramDetails = () => {
         },
     };
 
-    // View Order Structure
+    // View Order Structure Component
     if (isOpenOrder) {
         return <ViewOrderStructure setIsOpenOrder={setIsOpenOrder} />
     }
@@ -341,6 +352,7 @@ const PlanogramDetails = () => {
                     <h3 className=" text-xl font-semibold text-gray-800">
                         Machines
                     </h3>
+                    {/* Btn-Cont */}
                     <div className="flex gap-2 items-center justify-center">
                         <button
                             onClick={RefreshPage}
@@ -502,6 +514,7 @@ const PlanogramDetails = () => {
                 </div>
             </div>
 
+            {/* Modal */}
             {errorModal &&
                 <OrderErrorPlanogramDetails
                     closeModal={() => setErrorModal(false)}
