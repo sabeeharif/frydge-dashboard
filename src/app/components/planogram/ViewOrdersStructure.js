@@ -48,6 +48,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const pageSize = 10
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+    // Formats a date string into a readable format.
     const formatDate = (dateString, dateOnly = false) => {
         try {
             if (!dateString) return "";
@@ -82,6 +83,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
+    // Formats a date string from "YYYY-MM-DD" to "DD-MM-YYYY" for planned planogram display
     const formatPlannedPlanogramDate = (dateStr) => {
         if (!dateStr) return "";
 
@@ -89,6 +91,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         return `${day}-${month}-${year}`;
     };
 
+    // Handles saving edits made to a specific channel item:
     const handleSave = async () => {
         try {
             // Simulated API call
@@ -127,6 +130,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
+    // Helper function to fetch data progressively in pages with optional delay.
     const fetchProgressively = async ({
         fetchFn,
         onData,
@@ -180,6 +184,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
+    // Fetches all suppliers progressively using a helper function,
+    // updates state, loading, progress, and prevents duplicate fetches.
     const fetchAllSuppliersProgressively = () =>
         fetchProgressively({
             fetchFn: api.getSuppliers,
@@ -190,6 +196,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             label: "suppliers",
         })
 
+    // Fetches all product categories progressively using a helper function,
+    // updates state, loading, progress, and prevents duplicate fetches.
     const fetchAllCategoriesProgressively = () =>
         fetchProgressively({
             fetchFn: api.getProductsCategories,
@@ -200,6 +208,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             label: "categories",
         })
 
+    // Adds a selected category to the categories list if it's not already present
     const handleCategorySelect = (e) => {
         const value = e.target.value
         if (value && !categories.includes(value)) {
@@ -207,6 +216,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
+    // Adds a selected supplier to the suppliers list if not already included
     const handleSupplierSelect = (e) => {
         const value = e.target.value
         if (value && !suppliers.includes(value)) {
@@ -214,14 +224,17 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
+    // Removes a category from the categories list by filtering out the given catId
     const removeCategory = (catId) => {
         setCategories(categories.filter((c) => c !== catId))
     }
 
+    // Removes a supplier from the suppliers list by filtering out the given supId
     const removeSupplier = (supId) => {
         setSuppliers(suppliers.filter((s) => s !== supId))
     }
 
+    // Fetch and build grouped planogram structure for a machine from internal orders and snapshots
     const fetchInteranalOrdersStructure = async (machine) => {
         let machineId = machine?.machineId
         if (!machineId) return;
@@ -313,7 +326,9 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     };
 
-    // 
+    // Fetches planogram versions from the API with optional pagination (lastKey).
+    // Handles response parsing, loading state, and filters out machines with errors
+    // before updating the grouped machines state.
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
         try {
@@ -355,12 +370,13 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         )
     }
 
-    // 
-    const validEntries = Object.entries(structure).filter(
+    // Filters structure entries to include only shelves that have a valid snapshot
+    const validEntries = Object?.entries(structure)?.filter(
         ([, shelvesByNumber]) => hasValidSnapshot(shelvesByNumber)
     );
 
-    // 
+    // On component mount, sets up a debounced effect to progressively fetch all suppliers and categories
+    // if they haven't been loaded yet. Clears timeout on unmount to prevent memory leaks.
     useEffect(() => {
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
 
@@ -381,7 +397,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }, [])
 
-    // 
+    // Ensures all cards within each shelf have equal height by calculating the tallest card
+    // and applying that height to all other cards. Runs whenever the planogram structure changes.
     useEffect(() => {
         Object.values(shelfRefs.current).forEach((planogram) => {
             if (!planogram) return;
@@ -402,14 +419,16 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         });
     }, [structure]);
 
-    // 
+    // Fetches planogram versions whenever the planogramVersionId changes
+    // Ensures the component has the latest version data for the selected planogram.
     useEffect(() => {
         if (planogramVersionId) {
             fetchPlanogramVersions()
         }
     }, [planogramVersionId])
 
-    // 
+    // Updates the scrollWidth state based on the content's scrollWidth
+    // Runs whenever the planogram structure changes to reflect new content size.
     useEffect(() => {
         if (contentScrollRef.current) {
             setScrollWidth(contentScrollRef.current.scrollWidth)
