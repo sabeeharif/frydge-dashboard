@@ -8,13 +8,12 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
 
 const PlanogramStructure = ({ setIsOpenOrder }) => {
+    // Local States
     const [scrollWidth, setScrollWidth] = useState(0)
-    const [selectedMachineId, setSelectedMachineId] = useState()
     const [editItem, setEditItem] = useState(null)
     const [categories, setCategories] = useState([])
     const [suppliers, setSuppliers] = useState([])
     const [maxOrder, setMaxOrder] = useState({})
-    const [updatingPlanogram, setUpdatingPlanogram] = useState()
     const [planogramMeta, setPlanogramMeta] = useState(null)
     const searchParams = useSearchParams()
     // Machine
@@ -22,6 +21,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const machineId = searchParams.get("machineId")
     const planogramVersionId = searchParams.get("planogramVersionId")
     const action = searchParams.get("action")
+    // Local States
     const [productOptions, setProductOptions] = useState([])
     const [productSearchLoading, setProductSearchLoading] = useState(false)
     const [isProductModalOpen, setIsProductModalOpen] = useState(false)
@@ -30,25 +30,22 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const [allProducts, setAllProducts] = useState([])
     const [allSuppliers, setAllSuppliers] = useState([])
     const [allCategories, setAllCategories] = useState([])
-    const topScrollRef = useRef(null);
-    const contentScrollRef = useRef(null);
     const [groupMachines, setGroupMachines] = useState([]) // all machines
-    const [excludedMachineIds, setExcludedMachineIds] = useState([])
-    const [includedMachineIds, setIncludedMachineIds] = useState([])
     const [selectedDate, setSelectedDate] = useState("");
-    const pageSize = 10
-    // 
-    const searchTimeoutRef = useRef(null)
-    const isFetchingCategoriesRef = useRef(false)
-    const isFetchingSuppliersRef = useRef(false)
-    const router = useRouter()
-    const shelfRefs = useRef({});
     const [structure, setStructure] = useState({})
     const [loading, setLoading] = useState(false)
     const [supplierLoading, setSupplierLoading] = useState(false)
     const [categoryLoading, setCategoryLoading] = useState(false)
-    const { success: toastSuccess } = useToast()
-
+    // Ref
+    const topScrollRef = useRef(null);
+    const contentScrollRef = useRef(null);
+    const searchTimeoutRef = useRef(null)
+    const isFetchingCategoriesRef = useRef(false)
+    const isFetchingSuppliersRef = useRef(false)
+    const shelfRefs = useRef({});
+    // Helper
+    const router = useRouter()
+    const pageSize = 10
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
     const formatDate = (dateString, dateOnly = false) => {
@@ -130,7 +127,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
-
     const fetchProgressively = async ({
         fetchFn,
         onData,
@@ -184,7 +180,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         }
     }
 
-
     const fetchAllSuppliersProgressively = () =>
         fetchProgressively({
             fetchFn: api.getSuppliers,
@@ -204,26 +199,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             setProgress: setCategoryFetchProgress,
             label: "categories",
         })
-
-    useEffect(() => {
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-
-        searchTimeoutRef.current = setTimeout(() => {
-            if (!isFetchingSuppliersRef.current && allSuppliers.length === 0) {
-                console.log("Fetching all suppliers progressively...")
-                fetchAllSuppliersProgressively()
-            }
-
-            if (!isFetchingCategoriesRef.current && allCategories.length === 0) {
-                console.log("Fetching all categories progressively...")
-                fetchAllCategoriesProgressively()
-            }
-        }, 500)
-
-        return () => {
-            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-        }
-    }, [])
 
     const handleCategorySelect = (e) => {
         const value = e.target.value
@@ -252,7 +227,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         if (!machineId) return;
 
         setSelectedMachine(machine); // ⭐ store full machine
-        setSelectedMachineId(machineId); // store machine id
         setLoading(true);
 
         try {
@@ -340,26 +314,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     };
 
     // 
-    useEffect(() => {
-        Object.values(shelfRefs.current).forEach((planogram) => {
-            if (!planogram) return;
-
-            Object.values(planogram).forEach((cards) => {
-                if (!Array.isArray(cards) || cards.length === 0) return;
-
-                const maxHeight = Math.max(
-                    ...cards
-                        .filter(Boolean)
-                        .map((el) => el.offsetHeight)
-                );
-
-                cards.forEach((el) => {
-                    if (el) el.style.height = `${maxHeight}px`;
-                });
-            });
-        });
-    }, [structure]);
-
     const fetchPlanogramVersions = async (useLastKey = null) => {
         setLoading(true)
         try {
@@ -393,20 +347,6 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     };
 
     // 
-    useEffect(() => {
-        if (planogramVersionId) {
-            fetchPlanogramVersions()
-        }
-    }, [planogramVersionId])
-
-    // 
-    useEffect(() => {
-        if (contentScrollRef.current) {
-            setScrollWidth(contentScrollRef.current.scrollWidth)
-        }
-    }, [structure])
-
-    // 
     const hasValidSnapshot = (shelvesByNumber) => {
         if (!shelvesByNumber?.structure) return false
 
@@ -419,6 +359,62 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
     const validEntries = Object.entries(structure).filter(
         ([, shelvesByNumber]) => hasValidSnapshot(shelvesByNumber)
     );
+
+    // 
+    useEffect(() => {
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+
+        searchTimeoutRef.current = setTimeout(() => {
+            if (!isFetchingSuppliersRef.current && allSuppliers.length === 0) {
+                console.log("Fetching all suppliers progressively...")
+                fetchAllSuppliersProgressively()
+            }
+
+            if (!isFetchingCategoriesRef.current && allCategories.length === 0) {
+                console.log("Fetching all categories progressively...")
+                fetchAllCategoriesProgressively()
+            }
+        }, 500)
+
+        return () => {
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+        }
+    }, [])
+
+    // 
+    useEffect(() => {
+        Object.values(shelfRefs.current).forEach((planogram) => {
+            if (!planogram) return;
+
+            Object.values(planogram).forEach((cards) => {
+                if (!Array.isArray(cards) || cards.length === 0) return;
+
+                const maxHeight = Math.max(
+                    ...cards
+                        .filter(Boolean)
+                        .map((el) => el.offsetHeight)
+                );
+
+                cards.forEach((el) => {
+                    if (el) el.style.height = `${maxHeight}px`;
+                });
+            });
+        });
+    }, [structure]);
+
+    // 
+    useEffect(() => {
+        if (planogramVersionId) {
+            fetchPlanogramVersions()
+        }
+    }, [planogramVersionId])
+
+    // 
+    useEffect(() => {
+        if (contentScrollRef.current) {
+            setScrollWidth(contentScrollRef.current.scrollWidth)
+        }
+    }, [structure])
 
     if (loading) {
         return (
