@@ -72,7 +72,7 @@ const PlanogramManagement = () => {
         fetchPlanogramVersions(planogramLastKey);
     };
 
-
+    // Handle prev page
     const handlePrevPage = () => {
         if (currentPageRef.current === 0) return;
 
@@ -88,7 +88,7 @@ const PlanogramManagement = () => {
         setHasNextPage(true);
     };
 
-
+    // Handle Refresh
     const handleRefresh = async () => {
         setIsRotating(true);
         setTimeout(() => setIsRotating(false), 600); // stop after animation};
@@ -168,6 +168,7 @@ const PlanogramManagement = () => {
         }
     };
 
+    // CLose Create Modal
     const closeCreatePlanogramModal = () => {
         setShowCreatePlanogramModal(false);
 
@@ -178,7 +179,7 @@ const PlanogramManagement = () => {
         });
     };
 
-    // Modal
+    // Open Edit Modal
     const openEditModal = async (planogram) => {
         setEditingPlanogramId(planogram.planogramVersionId);
         // console.log("openEditModal", planogram)
@@ -204,7 +205,7 @@ const PlanogramManagement = () => {
         setShowEditPlanogramModal(true);
     };
 
-    // Delte Modal Open Func
+    // Open Delete Modal
     const openDeleteModal = (planogram) => {
         setDeleteingPlanogramId(planogram.planogramVersionId);
 
@@ -295,6 +296,7 @@ const PlanogramManagement = () => {
         }
     };
 
+    // Handle delete
     const handleDeletePalnogram = async () => {
 
         if (!deleteingPlanogramId) return;
@@ -322,7 +324,6 @@ const PlanogramManagement = () => {
 
     }
 
-
     useEffect(() => {
         currentPageRef.current = 0;
         pageCacheRef.current = {};
@@ -338,7 +339,6 @@ const PlanogramManagement = () => {
             </div>
         )
     }
-
 
     return (
         <div className="p-8 space-y-8">
@@ -449,7 +449,6 @@ const PlanogramManagement = () => {
                     </div>
                 </div>
             )}
-
         </div>
     );
 };
