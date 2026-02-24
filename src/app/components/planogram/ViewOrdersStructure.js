@@ -51,7 +51,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString, dateOnly = false) => {
         try {
             if (!dateString) return "";
 
@@ -64,6 +64,15 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             const date = new Date(
                 `${year}-${month}-${day}T00:00:01`
             );
+
+            if (dateOnly) {
+                return date.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+            }
+
             return date.toLocaleString("en-US", {
                 year: "numeric",
                 month: "short",
@@ -594,7 +603,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                                 {/* Planogram Header */}
                                 <div className="text-lg font-bold mb-4">
-                                    Date: {formatDate(plannedPlanogramDate)}
+                                    Date: {formatDate(plannedPlanogramDate, true)}
                                 </div>
 
                                 {Object.entries(shelvesByNumber.structure)
