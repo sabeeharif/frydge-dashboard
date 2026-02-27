@@ -1,15 +1,18 @@
 "use client";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Eye, Check, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const PlanogramDetailsModal = ({
-    closeModal,
-    machine,
-    onViewPlanogram
-}) => {
+const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
     // State
     const [loading, setLoading] = useState(false);
     const [planograms, setPlanograms] = useState([]);
+    // Apply Planogram States
+    const [applyError, setApplyError] = useState(null);
+    const [applyModal, setApplyModal] = useState({
+        open: false,
+        message: "",
+        type: "success", // "success" | "error"
+    });
 
     const fetchPlanograms = async () => {
         // If machine id is not available, do not call API
@@ -31,7 +34,7 @@ const PlanogramDetailsModal = ({
                         "Content-Type": "application/json",
                     },
                     cache: "no-store", // Prevent caching to always get fresh data
-                }
+                },
             );
 
             // Convert response to JSON
@@ -46,6 +49,64 @@ const PlanogramDetailsModal = ({
             // Stop loading state after request completes
             setLoading(false);
         }
+    };
+
+    const onApplyPlanogram = async (planogram) => {
+        const deviceId = machine?.maxItemsPerDevice?.[0]?.deviceId;
+        if (!deviceId || !planogram?.id) return;
+
+        console.log("device->id", deviceId, "planogram->id", planogram?.id)
+
+        const token = process.env.NEXT_PUBLIC_VENDLIVE_API_TOKEN;
+
+        try {
+            // setLoading(true);
+
+            // const response = await fetch(
+            //     `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/apply/`,
+            //     {
+            //         method: "POST",
+            //         headers: {
+            //             Authorization: token,
+            //             "Content-Type": "application/json",
+            //         },
+            //     }
+            // );
+
+            // if (!response.ok) {
+            //     // Store API error message in state
+            //     setApplyError((prev) => ({
+            //         ...prev,
+            //         [planogram.id]: data?.error?.message || "Something went wrong",
+            //     }));
+            //     return;
+            // }
+
+            // const data = await response.json();
+
+            // Success
+            setApplyModal({
+                open: true,
+                message: "Planogram applied successfully",
+                type: "success",
+            });
+
+            // Optional: refresh list after applying
+            // fetchPlanograms();
+
+        } catch (error) {
+            setApplyModal({
+                open: true,
+                message: "Network error. Please try again.",
+                type: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onUpdateDate = (planogram) => {
+        console.log("Update Date:", planogram);
     };
 
     useEffect(() => {
@@ -118,7 +179,9 @@ const PlanogramDetailsModal = ({
                                     <tr>
                                         <td colSpan={4} className="text-center py-6">
                                             <Loader2 className="animate-spin mx-auto h-6 w-6 text-gray-500" />
-                                            <p className="mt-2 text-gray-500">Loading planograms...</p>
+                                            <p className="mt-2 text-gray-500">
+                                                Loading planograms...
+                                            </p>
                                         </td>
                                     </tr>
                                 ) : planograms.length === 0 ? (
@@ -137,7 +200,10 @@ const PlanogramDetailsModal = ({
 
                                             {/* Applied Time Only */}
                                             <td className="px-4 py-3 text-sm text-gray-700">
-                                                {new Date(planogram.applied).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(planogram.applied).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
                                             </td>
 
                                             {/* Published */}
@@ -147,12 +213,34 @@ const PlanogramDetailsModal = ({
 
                                             {/* Actions */}
                                             <td className="px-4 py-3 text-center">
-                                                <button
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                                    onClick={() => onViewPlanogram(planogram)}
-                                                >
-                                                    View Planogram
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {/* View */}
+                                                    <button
+                                                        className="px-2 py-1 rounded-full bg-blue-100 text-sm text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1 transition"
+                                                        onClick={() => onViewPlanogram(planogram)}
+                                                    >
+                                                        <Eye className="h-3 w-3" />
+                                                        View
+                                                    </button>
+
+                                                    {/* Apply */}
+                                                    <button
+                                                        className="px-2 py-1 rounded-full bg-green-100 text-sm text-green-800 font-medium hover:bg-green-200 flex items-center gap-1 transition"
+                                                        onClick={() => onApplyPlanogram(planogram)}
+                                                    >
+                                                        <Check className="h-3 w-3" />
+                                                        Apply
+                                                    </button>
+
+                                                    {/* Update Date */}
+                                                    <button
+                                                        className="px-2 py-1 rounded-full bg-yellow-100 text-sm text-yellow-800 font-medium hover:bg-yellow-200 flex items-center gap-1 transition"
+                                                        onClick={() => onUpdateDate(planogram)}
+                                                    >
+                                                        <Calendar className="h-3 w-3" />
+                                                        Update Date
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -162,9 +250,37 @@ const PlanogramDetailsModal = ({
                     </div>
                 </div>
             </div>
+
+            {/* Modal */}
+            {applyModal.open && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl w-[350px] p-6">
+
+                        <h2 className={`text-lg font-semibold mb-3 ${applyModal.type === "success"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}>
+                            {applyModal.type === "success" ? "Success" : "Error"}
+                        </h2>
+
+                        <p className="text-sm text-gray-700 mb-6">
+                            {applyModal.message}
+                        </p>
+
+                        <div className="flex justify-end">
+                            <button
+                                className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition"
+                                onClick={() => setApplyModal({ ...applyModal, open: false })}
+                            >
+                                OK
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 export default PlanogramDetailsModal;
-

@@ -758,6 +758,7 @@ function MachineTableContent() {
         </div>
       )}
 
+      {/* Table Card Wrapper */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
           <table className="w-full table-fixed text-xs">
@@ -999,6 +1000,27 @@ function MachineTableContent() {
           </table>
         </div>
       </div>
+
+      {/* <MachinesTable
+        displayedMachines={displayedMachines}
+        searchTerm={searchTerm}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        encryptedIds={encryptedIds}
+        loadingEncryptedIds={loadingEncryptedIds}
+        getEncryptedMachineId={getEncryptedMachineId}
+        qrUrls={qrUrls}
+        loadingQrCodes={loadingQrCodes}
+        getQrCode={getQrCode}
+        handleViewQr={handleViewQr}
+        deviceStatuses={deviceStatuses}
+        loadingDeviceStatus={loadingDeviceStatus}
+        getDeviceStatus={getDeviceStatus}
+        handlePlanograms={handlePlanograms}
+        handleToggleMachine={handleToggleMachine}
+        handleSyncMachine={handleSyncMachine}
+        isSync={isSync}
+      /> */}
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
