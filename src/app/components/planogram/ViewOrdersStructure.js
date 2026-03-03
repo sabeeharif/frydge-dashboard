@@ -350,9 +350,21 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             const data = await response.json()
 
             // Handle different response structures
-            const fetchedProducts = data?.planogramVersions[0] || data.results || []
+            const fetchedProducts = data?.planogramVersions[0] || data?.results || []
+            // console.log("fetchedProducts", fetchedProducts)
+
+            const detailResponse = await api.planogramVersionDetails({
+                versionDetailId: fetchedProducts?.versionDetailId,
+                limit: 10, // or any limit you want
+            });
+
+            const detailData = await detailResponse.json();
+            // console.log("detailData", detailData)
+
             setLoading(false)
-            const machines = fetchedProducts.versionDetails.filter((item) => !item.error)
+            const machines = detailData?.versionDetails?.filter((item) => !item.error)
+            // console.log("machines", machines)
+
             setGroupMachines(machines)
         } catch (error) {
             console.error("Failed to load products", error);
@@ -448,10 +460,14 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         <div className="min-h-screen bg-gray-50 pt-4">
             <button
                 onClick={() => {
-                    router.push(
-                        `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
-                    )
-                        ; setIsOpenOrder(false)
+                    if (structure && Object.keys(structure)?.length > 0) {
+                        setStructure({}); // reset if it has data
+                    } else {
+                        router.push(
+                            `/dashboard/planogram-version-details?planogramVersionId=${planogramVersionId}`
+                        );
+                        setIsOpenOrder(false); // otherwise close
+                    }
                 }}
                 className="mb-3 flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-800 hover:bg-gray-200"
             >

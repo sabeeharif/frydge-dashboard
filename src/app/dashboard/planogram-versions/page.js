@@ -32,6 +32,7 @@ const PlanogramManagement = () => {
     const [updatingPlanogram, setUpdatingPlanogram] = useState(false);
     const [deletingPlanogram, setDeletingPalogram] = useState(false);
     const [editingPlanogramId, setEditingPlanogramId] = useState(null);
+    const [selectedPlanogram, setSelectedPlanogram] = useState(null);
     const [deleteingPlanogramId, setDeleteingPlanogramId] = useState(null);
     const router = useRouter();
 
@@ -182,6 +183,8 @@ const PlanogramManagement = () => {
     // Open Edit Modal
     const openEditModal = async (planogram) => {
         setEditingPlanogramId(planogram.planogramVersionId);
+        setSelectedPlanogram(planogram);
+
         // console.log("openEditModal", planogram)
 
         const detailResponse = await api.planogramVersionDetails({
@@ -220,6 +223,8 @@ const PlanogramManagement = () => {
     // Update Product
     const handleUpdatePlanogram = async () => {
         setUpdatingPlanogram(true);
+        // console.log("formData", formData);
+        // console.log("selectedPlanogram", selectedPlanogram);
 
         // Backup previous state in case API fails
         const previousPlanogram = [...planograms];
@@ -230,7 +235,7 @@ const PlanogramManagement = () => {
 
         try {
             // Call the API
-            const response = await api.updatePlangoramVersion({ planogramVersionId: editingPlanogramId, ...formData });
+            const response = await api.updatePlangoramVersion({ planogramVersionId: editingPlanogramId, ...formData, versionDetailId: selectedPlanogram?.versionDetailId });
 
             if (!response.ok) {
                 throw new Error("Failed to update planogram");
