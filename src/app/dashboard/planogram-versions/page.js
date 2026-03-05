@@ -244,12 +244,16 @@ const PlanogramManagement = () => {
             const updated = await response.json();
             console.log("Product updated successfully:", updated);
 
-            const initRes = await api.initPlanogramStructure(editingPlanogramId, { force: true });
+            // 🔹 Fire and forget (background)
+            api.initPlanogramStructure(editingPlanogramId, { force: true })
+                .then((res) => {
+                    if (!res.ok) {
+                        console.error("Structure init failed");
+                    }
+                })
+                .catch((err) => console.error("Structure init error:", err));
 
-            if (!initRes.ok) {
-                throw new Error("Structure init failed");
-            }
-            // Close modal on success
+            // Close modal immediately
             setShowEditPlanogramModal(false);
 
         } catch (error) {
