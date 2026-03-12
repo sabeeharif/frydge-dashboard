@@ -85,12 +85,11 @@ const PlanogramStructure = () => {
       // Split date and time
       const [datePart, timePart] = dateString.split("T");
       const [day, month, year] = datePart.split("-");
-      // const [hour, minute, second] = timePart.split(":");
 
-      // Create valid Date object (YYYY-MM-DDTHH:mm:ss)
-      const date = new Date(
-        `${year}-${month}-${day}T00:00:01`
-      );
+      // Use real time if present
+      const formattedDate = `${year}-${month}-${day}T${timePart || "00:00:00"}`;
+
+      const date = new Date(formattedDate);
 
       if (dateOnly) {
         return date.toLocaleDateString("en-US", {
@@ -277,7 +276,6 @@ const PlanogramStructure = () => {
 
     // console.log("payload", payload);
     try {
-      // // 🔹 API call
       const response = await api.finalizePlangoramVersionStructure(planogramMeta.planogramVersionId, payload)
       console.log(response.status);
       if (!response.ok || !response.status === 200) {
@@ -703,8 +701,8 @@ const PlanogramStructure = () => {
 
   // date selector
   const handelSelectDate = (date) => {
-    console.log(date);
     if (!date) return ""
+
     setSelectedPlanDate(date)
     setSelectedDate("")
     setDate("")
@@ -811,11 +809,13 @@ const PlanogramStructure = () => {
     handleFinalizePlanogram()
   }
 
-  const combineDateTime = (date) => {
+  const combineDateTime = (date, time) => {
     if (!date) return "";
 
     const [year, month, day] = date.split("-");
-    return `${day}-${month}-${year}T00:00:01`;
+    const finalTime = time ? `${time}:00` : "00:00:01";
+
+    return `${day}-${month}-${year}T${finalTime}`;
   };
 
   const handelAppplyAllMachines = (check) => {
@@ -1229,7 +1229,7 @@ const PlanogramStructure = () => {
 
             {selectedPlanDate && (
               <div className="px-3 relative py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
-                Plan Date: {formatNewPlanDate(selectedPlanDate)}
+                Plan Date: {formatNewPlanDate(`${selectedPlanDate}T${time}:00`)}
 
                 <button
                   onClick={() => setSelectedPlanDate("")}
@@ -1753,7 +1753,7 @@ const PlanogramStructure = () => {
               <button
                 disabled={!date}
                 onClick={() => {
-                  const finalDateTime = combineDateTime(date);
+                  const finalDateTime = combineDateTime(date, time);
                   handelSelectDate(finalDateTime)
                   setIsPlanModalOpen(false);
                 }}
