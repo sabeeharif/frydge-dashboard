@@ -1751,7 +1751,7 @@ const PlanogramStructure = () => {
               </button>
 
               <button
-                disabled={!date}
+                disabled={!date || !time}
                 onClick={() => {
                   const finalDateTime = combineDateTime(date, time);
                   handelSelectDate(finalDateTime)
