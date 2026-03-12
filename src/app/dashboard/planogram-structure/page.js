@@ -8,9 +8,24 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/app/contexts/ToastContext";
 import { OrderFileForSupplier } from "@/app/components/planogram/OrderFileForSupplier"
 
+const getGermanTime = () => {
+  const now = new Date();
+  
+  // Format the current date to German time string
+  const germanTimeStr = now.toLocaleTimeString("en-GB", {
+      timeZone: "Europe/Berlin",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return germanTimeStr; // Returns "HH:mm"
+};
+
 const PlanogramStructure = () => {
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  // const [time, setTime] = useState("");
+  const [time, setTime] = useState(getGermanTime());
 
   const { success: toastSuccess } = useToast()
   const [structure, setStructure] = useState({})
@@ -1666,18 +1681,26 @@ const PlanogramStructure = () => {
             <input
               type="date"
               value={date}
-              min={getTomorrowDate()}
+              // min={getTomorrowDate()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-3"
             />
 
             {/* TIME */}
-            {/* <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-            /> */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Select Time</label>
+                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">
+                  German Time Zone
+                </span>
+              </div>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              />
+            </div>
 
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-3">
@@ -1751,7 +1774,7 @@ const PlanogramStructure = () => {
             <input
               type="date"
               value={date}
-              min={getTomorrowDate()}
+              // min={getTomorrowDate()}
               onChange={(e) => setDate(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 mb-3"
             />
