@@ -10,16 +10,16 @@ import { OrderFileForSupplier } from "@/app/components/planogram/OrderFileForSup
 
 const getGermanTime = () => {
   const now = new Date();
-  
+
   // Format the current date to German time string
   const germanTimeStr = now.toLocaleTimeString("en-GB", {
-      timeZone: "Europe/Berlin",
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    timeZone: "Europe/Berlin",
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    return germanTimeStr; // Returns "HH:mm"
+  return germanTimeStr; // Returns "HH:mm"
 };
 
 const PlanogramStructure = () => {
@@ -75,8 +75,6 @@ const PlanogramStructure = () => {
   const pageSize = 10
   const router = useRouter()
 
-
-
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
@@ -111,6 +109,27 @@ const PlanogramStructure = () => {
       });
     } catch (error) {
       return dateString;
+    }
+  };
+
+  const formatTimeOnly = (dateString) => {
+    try {
+      if (!dateString) return "";
+
+      // Split date and time
+      const [datePart, timePart] = dateString.split("T");
+      const [hoursStr, minutesStr] = (timePart || "00:00").split(":");
+
+      let hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12;
+      hours = hours === 0 ? 12 : hours;
+
+      return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+    } catch (error) {
+      return "";
     }
   };
 
@@ -226,6 +245,24 @@ const PlanogramStructure = () => {
     const channelDetails = Object.values(structure).flat()
     // console.log("groupMachines", groupMachines)
 
+    // Split date and time
+    const timePart = selectedPlanDate.split('T')[1]; // "00:00:01"
+
+    // Get hours and minutes
+    let [hours, minutes] = timePart.split(':').map(Number);
+
+    // Determine AM/PM
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    // Convert hours to 12-hour format
+    hours = hours % 12;
+    hours = hours === 0 ? 12 : hours;
+
+    // Format time string without seconds
+    const plannedTime = `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+
+    // console.log("Planned Time:", plannedTime);
+
     const machineIds = groupMachines.map(machine => machine.machineId);
     const payload = {
       orderSnapshotId: planogramMeta?.orderSnapshotId && selectedDate && !selectedReApplyDate ? planogramMeta?.orderSnapshotId : "",
@@ -234,7 +271,8 @@ const PlanogramStructure = () => {
       excludedMachineIds: excludedMachineIds,
       includedMachineIds: includedMachineIds,
       allMachineIds: machineIds,
-      productAssignments: channelDetails
+      productAssignments: channelDetails,
+      plannedPlanogramTime: plannedTime
     }
 
     // console.log("payload", payload);
@@ -246,7 +284,7 @@ const PlanogramStructure = () => {
         throw new Error(`HTTP ${response.status}`)
       }
 
-      // const result = await response.json()
+      const result = await response.json()
       toastSuccess(`Structure Finalize Successfully`)
       router.push(
         `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
@@ -773,9 +811,6 @@ const PlanogramStructure = () => {
     handleFinalizePlanogram()
   }
 
-  useEffect(() => { console.log(isNotify); }, [isNotify])
-
-
   const combineDateTime = (date) => {
     if (!date) return "";
 
@@ -785,7 +820,6 @@ const PlanogramStructure = () => {
 
   const handelAppplyAllMachines = (check) => {
     setApplyToGroup(check)
-    console.log(check);
     if (check === true) {
       setIncludeEnabled(false)
       setExcludeEnabled(false)
@@ -1135,12 +1169,13 @@ const PlanogramStructure = () => {
                 <option value="">Select date</option>
                 {availableDates?.map((item) => (
                   <option key={item?.plannedPlanogramDate} value={item?.plannedPlanogramDate}>
-                    {formatNewPlanDate(item?.plannedPlanogramDate, true)} {item?.draft && "(Draft)"}
+                    {formatNewPlanDate(item?.plannedPlanogramDate, true)}{" "}
+                    {formatTimeOnly(item?.plannedPlanogramDate)}{" "}
+                    {item?.draft && "(Draft)"}
                   </option>
                 ))}
               </select>
             </div>
-
 
             {dateLoader && (
               <div className="ml-2">
