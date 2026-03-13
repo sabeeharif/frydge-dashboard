@@ -53,10 +53,20 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
         try {
             if (!dateString) return "";
 
+            let year, month, day;
+
             // Split date and time
-            const [datePart, timePart] = dateString.split("T");
-            const [day, month, year] = datePart.split("-");
-            // const [hour, minute, second] = timePart.split(":");
+            const [datePart] = dateString.split("T");
+            const parts = datePart.split("-");
+
+            // Detect format
+            if (parts[0].length === 4) {
+                // YYYY-MM-DD
+                [year, month, day] = parts;
+            } else {
+                // DD-MM-YYYY
+                [day, month, year] = parts;
+            }
 
             // Create valid Date object (YYYY-MM-DDTHH:mm:ss)
             const date = new Date(
@@ -631,10 +641,10 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                             <div key={plannedPlanogramDate
                             } className="mb-10 min-w-full border p-4 border-blue-600 rounded-lg">
-
                                 {/* Planogram Header */}
                                 <div className="text-lg font-bold mb-4">
-                                    Date: {formatDate(plannedPlanogramDate, true)}
+                                    {/* Date: {formatDate(plannedPlanogramDate, true)} */}
+                                    Date: {formatDate(selectedDate, true)}
                                 </div>
 
                                 {Object.entries(shelvesByNumber.structure)
