@@ -11,8 +11,15 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Venue Name</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine SN</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine ID</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Friendly No</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine Type</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Friendly Name</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Terminal ID</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Terminal Type</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Active Insurance</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Last Electrical Audit</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Next Electrical Audit</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Key Type</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Elevator Roof</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Subsidy Variant</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Subsidy Limit</th>
                             <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Actions</th>
@@ -48,14 +55,49 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                         {location.machineId || "N/A"}
                                     </td>
 
+                                    {/* Machine Type */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.machineType || "N/A"}
+                                    </td>
+
                                     {/* Friendly Number */}
                                     <td className="px-6 py-4 text-gray-700">
-                                        {location.friendlyNumber || "N/A"}
+                                        {location.friendlyName || "N/A"}
                                     </td>
 
                                     {/* Terminal ID */}
                                     <td className="px-6 py-4 text-gray-700">
                                         {location.terminalId || "N/A"}
+                                    </td>
+                                    
+                                    {/* Terminal Type */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.paymentTerminalType || "N/A"}
+                                    </td>
+
+                                    {/* Active Insurance */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.insuranceActive || "N/A"}
+                                    </td>
+
+                                    {/* Last Electrical Audit */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.lastElectricalAudit || "N/A"}
+                                    </td>
+
+                                    {/* Next Electrical Audit */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.nextElectricalAudit || "N/A"}
+                                    </td>
+
+                                    {/* Key Type */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.machineKey || "N/A"}
+                                    </td>
+
+                                    {/* Elevator Roof */}
+                                    <td className="px-6 py-4 text-gray-700">
+                                        {location.elevatorRoof || "N/A"}
                                     </td>
 
                                     {/* Subsidy Variant */}

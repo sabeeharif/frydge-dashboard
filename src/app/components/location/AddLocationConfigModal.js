@@ -6,8 +6,16 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
     const [formData, setFormData] = useState({
         machineSn: existingLocation?.machineSn || "",
         machineId: existingLocation?.machineId || "",
+        machineType: existingLocation?.machineType || null,
         friendlyNumber: existingLocation?.friendlyNumber || "",
+        friendlyName: existingLocation?.friendlyName || null,
         terminalId: existingLocation?.terminalId || "",
+        paymentTerminalType: existingLocation?.paymentTerminalType || "",
+        insuranceActive: existingLocation?.insuranceActive || null,
+        lastElectricalAudit: existingLocation?.lastElectricalAudit || null,
+        nextElectricalAudit: existingLocation?.nextElectricalAudit || null,
+        machineKey: existingLocation?.machineKey || null,
+        elevatorRoof: existingLocation?.elevatorRoof || null,
         venueName: existingLocation?.venueName || "",
         subsidyVariant: existingLocation?.subsidyVariant || 0,
         subsidyValueLimit: existingLocation?.subsidyValueLimit || "0.00",
@@ -122,6 +130,19 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Machine Type
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Machine Type"
+                                value={formData.machineType}
+                                onChange={(e) => setFormData({ ...formData, machineType: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Friendly Number
                             </label>
                             <input
@@ -135,6 +156,19 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Friendly Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Friendly Name"
+                                value={formData.friendlyName}
+                                onChange={(e) => setFormData({ ...formData, friendlyName: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Terminal ID
                             </label>
                             <input
@@ -142,6 +176,84 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                 placeholder="Terminal ID"
                                 value={formData.terminalId}
                                 onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Terminal Type
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Terminal Type"
+                                value={formData.paymentTerminalType}
+                                onChange={(e) => setFormData({ ...formData, paymentTerminalType: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Active Insurance
+                            </label>
+                            <input
+                                type="number"
+                                placeholder="Active Insurance"
+                                value={formData.insuranceActive}
+                                onChange={(e) => setFormData({ ...formData, insuranceActive: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Last Electrical Audit
+                            </label>
+                            <input
+                                type="date"
+                                placeholder="Last Electrical Audit"
+                                value={formData.lastElectricalAudit}
+                                onChange={(e) => setFormData({ ...formData, lastElectricalAudit: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Next Electrical Audit
+                            </label>
+                            <input
+                                type="date"
+                                placeholder="Next Electrical Audit"
+                                value={formData.nextElectricalAudit}
+                                onChange={(e) => setFormData({ ...formData, nextElectricalAudit: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Key Type
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Key Type"
+                                value={formData.machineKey}
+                                onChange={(e) => setFormData({ ...formData, machineKey: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Elevator Roof
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Elevator Roof"
+                                value={formData.elevatorRoof}
+                                onChange={(e) => setFormData({ ...formData, elevatorRoof: e.target.value })}
                                 className="border px-3 py-2 rounded-lg w-full"
                             />
                         </div>
