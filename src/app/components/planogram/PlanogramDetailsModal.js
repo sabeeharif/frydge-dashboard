@@ -1,6 +1,7 @@
 "use client";
 import { X, Loader2, Eye, Check, Calendar, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AuthService } from "@/app/lib/auth";
 
 const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
     // State
@@ -26,25 +27,26 @@ const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
     const fetchPlanograms = async () => {
         // If machine id is not available, do not call API
         if (!machine?.id) return;
+        
+        const deviceId = machine?.maxItemsPerDevice?.[0]?.deviceId;
 
         // API token stored in environment variable
-        const token = process.env.NEXT_PUBLIC_VENDLIVE_API_TOKEN;
+        const authToken = AuthService.getAuthToken();
 
         try {
             // Start loading state before API call
             setLoading(true);
 
             // Fetch planned planograms from VendLive API
-            const response = await fetch(
-                `https://vendlive.com/api/2.0/devices/1707/planned-planograms?page=1&pageSize=10`,
-                {
-                    headers: {
-                        Authorization: token, // Auth token for API access
-                        "Content-Type": "application/json",
-                    },
-                    cache: "no-store", // Prevent caching to always get fresh data
+            const url = `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms?page=1&pageSize=10`
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${authToken}`,
+                'accept': 'application/json',
                 },
-            );
+            });
 
             // Convert response to JSON
             const data = await response.json();
@@ -66,32 +68,30 @@ const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
 
         console.log("device->id", deviceId, "planogram->id", planogram?.id)
 
-        const token = process.env.NEXT_PUBLIC_VENDLIVE_API_TOKEN;
+        const authToken = AuthService.getAuthToken();
 
         try {
-            // setLoading(true);
+            setLoading(true);
 
-            // const response = await fetch(
-            //     `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/apply/`,
-            //     {
-            //         method: "POST",
-            //         headers: {
-            //             Authorization: token,
-            //             "Content-Type": "application/json",
-            //         },
-            //     }
-            // );
-
-            // if (!response.ok) {
-            //     // Store API error message in state
-            //     setApplyError((prev) => ({
-            //         ...prev,
-            //         [planogram.id]: data?.error?.message || "Something went wrong",
-            //     }));
-            //     return;
-            // }
-
-            // const data = await response.json();
+            const response = await fetch(
+                `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/apply/`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Token ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            console.log("response: ", response)
+            if (!response.ok) {
+                // Store API error message in state
+                setApplyError((prev) => ({
+                    ...prev,
+                    [planogram.id]: data?.error?.message || "Something went wrong",
+                }));
+                return;
+            }
 
             // Success
             setApplyModal({
@@ -119,33 +119,33 @@ const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
         const deviceId = machine?.maxItemsPerDevice?.[0]?.deviceId;
         if (!deviceId || !planogram?.id || !selectedDate) return;
 
-        const token = process.env.NEXT_PUBLIC_VENDLIVE_API_TOKEN;
+        const authToken = AuthService.getAuthToken();
 
         try {
             setLoading(true);
 
-            // const response = await fetch(
-            //     `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/`,
-            //     {
-            //         method: "PUT", // change if API requires PUT
-            //         headers: {
-            //             Authorization: token,
-            //             "Content-Type": "application/json",
-            //         },
-            //         body: JSON.stringify({
-            //             planogram: planogram?.planogram || [], // existing channels data
-            //             applyAt: selectedDate,                 // updated date
-            //             applied: false, // applied should be false when we edit date
-            //             isPublished: planogram?.isPublished,
-            //         }),
-            //     }
-            // );
+            const response = await fetch(
+                `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/`,
+                {
+                    method: "PUT", // change if API requires PUT
+                    headers: {
+                        "Authorization": `Token ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        planogram: planogram?.planogram || [], // existing channels data
+                        applyAt: selectedDate,                 // updated date
+                        applied: false, // applied should be false when we edit date
+                        isPublished: planogram?.isPublished,
+                    }),
+                }
+            );
 
-            // const data = await response.json();
+            const data = await response.json();
 
-            // if (!response.ok) {
-            //     throw new Error(data?.error?.message || "Failed to update date");
-            // }
+            if (!response.ok) {
+                throw new Error(data?.error?.message || "Failed to update date");
+            }
 
             // Success
             fetchPlanograms();
@@ -163,37 +163,37 @@ const PlanogramDetailsModal = ({ closeModal, machine, onViewPlanogram }) => {
         const deviceId = machine?.maxItemsPerDevice?.[0]?.deviceId;
         if (!deviceId || !planogram?.id) return;
 
-        const token = process.env.NEXT_PUBLIC_VENDLIVE_API_TOKEN;
+        const authToken = AuthService.getAuthToken();
 
         try {
             setLoading(true);
 
-            // const response = await fetch(
-            //     `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/`,
-            //     {
-            //         method: "DELETE",
-            //         headers: {
-            //             Authorization: token,
-            //             "Content-Type": "application/json",
-            //         },
-            //     }
-            // );
+            const response = await fetch(
+                `https://vendlive.com/api/2.0/devices/${deviceId}/planned-planograms/${planogram.id}/`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Token ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-            // if (response.status === 204) {
-            //     setDeleteModal({ open: false, planogram: null });
+            if (response.status === 204) {
+                setDeleteModal({ open: false, planogram: null });
 
-            //     setApplyModal({
-            //         open: true,
-            //         message: "Planogram deleted successfully",
-            //         type: "success",
-            //     });
+                setApplyModal({
+                    open: true,
+                    message: "Planogram deleted successfully",
+                    type: "success",
+                });
 
-            //     fetchPlanograms();
-            //     return;
-            // }
+                fetchPlanograms();
+                return;
+            }
 
-            // const data = await response.json();
-            // throw new Error(data?.error?.message || "Failed to delete");
+            const data = await response.json();
+            throw new Error(data?.error?.message || "Failed to delete");
 
         } catch (error) {
             setDeleteModal({ open: false, planogram: null });

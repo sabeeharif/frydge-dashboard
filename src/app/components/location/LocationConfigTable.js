@@ -77,7 +77,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
 
                                     {/* Active Insurance */}
                                     <td className="px-6 py-4 text-gray-700">
-                                        {location.insuranceActive || "N/A"}
+                                        {location.insuranceActive}
                                     </td>
 
                                     {/* Last Electrical Audit */}
