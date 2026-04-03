@@ -1,136 +1,142 @@
 // LocationConfigTable.jsx
-import React from "react";
+import React, { useState } from "react";
 
 const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
+    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [expandedRow, setExpandedRow] = useState(null);
+
+    const toggleRow = (id) => {
+        setExpandedRow(expandedRow === id ? null : id);
+    };
+
+    const hasCustomPricing = (location) => {
+        return (
+            location.mainPriceOverride ||
+            location.mealPriceOverride ||
+            location.saladPriceOverride ||
+            location.snackPriceOverride ||
+            location.drinkPriceOverride
+        );
+    };
     return (
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                         <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Venue Name</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine SN</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine ID</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Machine Type</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Friendly Name</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Terminal ID</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Terminal Type</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Active Insurance</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Last Electrical Audit</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Next Electrical Audit</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Key Type</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Elevator Roof</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Subsidy Variant</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Subsidy Limit</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold uppercase">Actions</th>
+                            <th className="px-4 py-3"></th>
+                            <th className="px-6 py-3 text-left">Venue</th>
+                            <th className="px-6 py-3 text-left">Machine SN</th>
+                            <th className="px-6 py-3 text-left">Type</th>
+                            <th className="px-6 py-3 text-left">Terminal</th>
+                            <th className="px-6 py-3 text-left">Insurance</th>
+                            <th className="px-6 py-3 text-left">Pricing</th>
+                            <th className="px-6 py-3 text-left">Fee</th>
+                            <th className="px-6 py-3 text-left">Actions</th>
                         </tr>
                     </thead>
 
-                    <tbody className="divide-y divide-gray-200">
-                        {locations?.length === 0 ? (
-                            <tr>
-                                <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
-                                    <p className="text-lg">No Location Config Found</p>
-                                </td>
-                            </tr>
-                        ) : (
-                            locations.map((location, index) => (
-                                <tr
-                                    key={location.id}
-                                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                        } hover:bg-blue-50 transition-colors duration-200`}
-                                >
-                                    {/* Venue */}
-                                    <td className="px-6 py-4 font-medium text-gray-900">
-                                        {location.venueName || "N/A"}
+                    <tbody>
+                        {locations.map((location) => (
+                            <React.Fragment key={location.id}>
+                                {/* Main Row */}
+                                <tr className="border-b hover:bg-gray-50">
+                                    <td className="px-4 py-3">
+                                        <button
+                                            onClick={() => toggleRow(location.id)}
+                                            className="text-blue-600"
+                                        >
+                                            {expandedRow === location.id ? "−" : "+"}
+                                        </button>
                                     </td>
 
-                                    {/* Machine SN */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.machineSn || "N/A"}
+                                    <td className="px-6 py-3">{location.venueName || "N/A"}</td>
+                                    <td className="px-6 py-3">{location.machineSn}</td>
+                                    <td className="px-6 py-3">{location.machineType || "N/A"}</td>
+                                    <td className="px-6 py-3">{location.terminalId}</td>
+
+                                    <td className="px-6 py-3">
+                                        {location.insuranceActive ? "Active" : "Inactive"}
                                     </td>
 
-                                    {/* Machine ID */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.machineId || "N/A"}
+                                    <td className="px-6 py-3">
+                                        {hasCustomPricing(location) ? "Custom" : "Default"}
                                     </td>
 
-                                    {/* Machine Type */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.machineType || "N/A"}
+                                    <td className="px-6 py-3">
+                                        {location.feePM ? `€${location.feePM}` : "N/A"}
                                     </td>
 
-                                    {/* Friendly Number */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.friendlyName || "N/A"}
-                                    </td>
-
-                                    {/* Terminal ID */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.terminalId || "N/A"}
-                                    </td>
-                                    
-                                    {/* Terminal Type */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.paymentTerminalType || "N/A"}
-                                    </td>
-
-                                    {/* Active Insurance */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.insuranceActive}
-                                    </td>
-
-                                    {/* Last Electrical Audit */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.lastElectricalAudit || "N/A"}
-                                    </td>
-
-                                    {/* Next Electrical Audit */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.nextElectricalAudit || "N/A"}
-                                    </td>
-
-                                    {/* Key Type */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.machineKey || "N/A"}
-                                    </td>
-
-                                    {/* Elevator Roof */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.elevatorRoof || "N/A"}
-                                    </td>
-
-                                    {/* Subsidy Variant */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.subsidyVariant}
-                                    </td>
-
-                                    {/* Subsidy Limit */}
-                                    <td className="px-6 py-4 text-gray-700">
-                                        {location.subsidyValueLimit || "0.00"}
-                                    </td>
-
-                                    {/* Actions */}
-                                    <td className="px-6 py-4">
-                                        <div className="flex gap-4 text-sm">
+                                    <td className="px-6 py-3 align-middle">
+                                        <div className="flex justify-center items-center gap-3 text-sm h-full">
                                             <button
                                                 onClick={() => onEdit(location)}
-                                                className="text-blue-600 hover:underline"
+                                                className="text-blue-600 hover:underline cursor-pointer"
                                             >
                                                 Edit
                                             </button>
 
                                             <button
                                                 onClick={() => onDelete(location)}
-                                                className="text-red-600 hover:underline"
+                                                className="text-red-600 hover:underline cursor-pointer"
                                             >
                                                 Delete
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
-                            ))
-                        )}
+
+                                {/* Expanded Row */}
+                                {expandedRow === location.id && (
+                                    <tr className="bg-gray-100">
+                                        <td colSpan={9} className="px-6 py-4">
+                                            <div className="grid grid-cols-3 gap-4 text-sm">
+
+                                                {/* BASIC */}
+                                                <div>
+                                                    <p><b>Machine ID:</b> {location.machineId}</p>
+                                                    <p><b>Friendly Name:</b> {location.friendlyName}</p>
+                                                    <p><b>Terminal Type:</b> {location.paymentTerminalType}</p>
+                                                    <p><b>Machine Key:</b> {location.machineKey || "N/A"}</p>
+                                                    <p><b>Elevator Roof:</b> {location.elevatorRoof || "N/A"}</p>
+                                                </div>
+
+                                                {/* AUDIT */}
+                                                <div>
+                                                    <p><b>Last Audit:</b> {location.lastElectricalAudit || "N/A"}</p>
+                                                    <p><b>Next Audit:</b> {location.nextElectricalAudit || "N/A"}</p>
+                                                </div>
+
+                                                {/* FINANCIAL */}
+                                                <div>
+                                                    <p><b>Min Revenue:</b> {location.minRevenuePD || "N/A"}</p>
+                                                    <p><b>Fee PM:</b> {location.feePM || "N/A"}</p>
+                                                    <p><b>Subsidy Variant:</b> {location.subsidyVariant}</p>
+                                                    <p><b>Subsidy Limit:</b> {location.subsidyValueLimit}</p>
+                                                </div>
+
+                                                {/* PRICING */}
+                                                <div className="col-span-3">
+                                                    <p className="font-semibold mt-2">Price Overrides:</p>
+                                                    <p>Main: {location.mainPriceOverride || "-"}</p>
+                                                    <p>Meal: {location.mealPriceOverride || "-"}</p>
+                                                    <p>Salad: {location.saladPriceOverride || "-"}</p>
+                                                    <p>Snack: {location.snackPriceOverride || "-"}</p>
+                                                    <p>Drink: {location.drinkPriceOverride || "-"}</p>
+                                                </div>
+
+                                                {/* NOTE */}
+                                                <div className="col-span-3">
+                                                    <p className="font-semibold mt-2">Note:</p>
+                                                    <p>{location.note || "No notes available"}</p>
+                                                </div>
+
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        ))}
                     </tbody>
                 </table>
             </div>
