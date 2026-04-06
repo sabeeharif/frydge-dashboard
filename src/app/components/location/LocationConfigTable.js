@@ -18,6 +18,27 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
             location.drinkPriceOverride
         );
     };
+
+    const formatDate = (date) => {
+        if (!date) return "N/A";
+        return new Date(date)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-");
+    };
+
+    const isDatePassed = (date) => {
+        if (!date) return false;
+
+        const today = new Date();
+        const auditDate = new Date(date);
+
+        // Remove time part for accurate comparison
+        today.setHours(0, 0, 0, 0);
+        auditDate.setHours(0, 0, 0, 0);
+
+        return auditDate < today;
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
@@ -103,8 +124,21 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
 
                                                 {/* AUDIT */}
                                                 <div>
-                                                    <p><b>Last Audit:</b> {location.lastElectricalAudit || "N/A"}</p>
-                                                    <p><b>Next Audit:</b> {location.nextElectricalAudit || "N/A"}</p>
+                                                    <p>
+                                                        <b>Last Audit:</b> {formatDate(location.lastElectricalAudit)}
+                                                    </p>
+                                                    <p>
+                                                        <b>Next Audit:</b>{" "}
+                                                        <span
+                                                            className={
+                                                                isDatePassed(location.nextElectricalAudit)
+                                                                    ? "text-red-600 font-semibold"
+                                                                    : ""
+                                                            }
+                                                        >
+                                                            {formatDate(location.nextElectricalAudit)}
+                                                        </span>
+                                                    </p>
                                                 </div>
 
                                                 {/* FINANCIAL */}
