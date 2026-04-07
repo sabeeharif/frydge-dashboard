@@ -241,14 +241,15 @@ const PlanogramStructure = () => {
   // finalize planogram function
   const handleFinalizePlanogram = async () => {
     setUpdatingPlanogram(true)
-    const channelDetails = Object.values(structure).flat()
+    const channelDetails = Object.values(structure || {}).flat();
     // console.log("groupMachines", groupMachines)
+    // console.log("selectedPlanDate", selectedPlanDate)
 
     // Split date and time
-    const timePart = selectedPlanDate.split('T')[1]; // "00:00:01"
+    const timePart = selectedPlanDate?.split('T')[1]; // "00:00:01"
 
     // Get hours and minutes
-    let [hours, minutes] = timePart.split(':').map(Number);
+    let [hours, minutes] = timePart?.split(':')?.map(Number);
 
     // Determine AM/PM
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -259,7 +260,6 @@ const PlanogramStructure = () => {
 
     // Format time string without seconds
     const plannedTime = `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-
     // console.log("Planned Time:", plannedTime);
 
     const machineIds = groupMachines.map(machine => machine.machineId);
@@ -712,6 +712,8 @@ const PlanogramStructure = () => {
   // ReApply-date selector
   const handelReapplySelectDate = (date) => {
     if (!date) return ""
+
+    setSelectedPlanDate(date)
     setSelectedReApplyDate(date)
     setDate("")
     setTime("")
@@ -1705,7 +1707,7 @@ const PlanogramStructure = () => {
         )
       }
 
-
+      {/* Modal */}
       {isPlanModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm">
@@ -1767,7 +1769,7 @@ const PlanogramStructure = () => {
         </div>
       )}
 
-
+      {/* Modal */}
       {isNotify && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg">
@@ -1799,6 +1801,7 @@ const PlanogramStructure = () => {
         </div>
       )}
 
+      {/* Modal */}
       {isReapplyPlanModalDateOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm">
@@ -1815,12 +1818,21 @@ const PlanogramStructure = () => {
             />
 
             {/* TIME */}
-            {/* <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-            /> */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Select Time</label>
+                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">
+                  German Time Zone
+                </span>
+              </div>
+
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              />
+            </div>
 
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-3">
@@ -1836,9 +1848,9 @@ const PlanogramStructure = () => {
               </button>
 
               <button
-                disabled={!date}
+                disabled={!date || !time}
                 onClick={() => {
-                  const finalDateTime = combineDateTime(date);
+                  const finalDateTime = combineDateTime(date, time);
                   handelReapplySelectDate(finalDateTime)
                   setIsNotify(true)
                   setIsReapplyPlanModalDateOpen(false);
