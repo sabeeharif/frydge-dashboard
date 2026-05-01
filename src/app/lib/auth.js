@@ -1356,4 +1356,52 @@ export const api = {
     );
   },
 
+  createNotification: (data) => {
+    return ApiService.awsRequest('/dashboard_notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getNotifications: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append('limit', params.limit);
+    }
+
+    // Add lastKey only if it's not null or undefined
+    if (params.lastKey && params.lastKey !== 'null' && params.lastKey !== null) {
+      queryParams.append('lastKey', params.lastKey);
+    }
+
+    // Add userId if provided
+    if (params.userId) {
+      queryParams.append('userId', params.userId);
+    }
+
+    // Add notificationId if provided
+    if (params.notificationId) {
+      queryParams.append('notificationId', params.notificationId);
+    }
+
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/dashboard_notifications?${queryString}`);
+  },
+
+  updateNotification: (data) => {
+    return ApiService.awsRequest('/dashboard_notifications', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteNotification: (data) => {
+    return ApiService.awsRequest('/dashboard_notifications', {
+      method: 'DELETE',
+      body: JSON.stringify(data),
+    });
+  },
+
 };

@@ -12,6 +12,8 @@ import {
   Sparkles,
   PackageSearch,
   SquareChartGantt,
+  AlertCircle,
+  Bell,
 } from "lucide-react";
 
 // Dynamic builder to always reflect current role from localStorage
@@ -35,6 +37,7 @@ export function getNavItems() {
     ...(role === "admin"
       ? [{ name: "Users", path: "/dashboard/users", icon: Users }]
       : []),
+    { name: "Notifications", path: "/dashboard/notifications", icon: Bell},
     { name: "App-Orders", path: "/dashboard/app-orders", icon: Trello },
     { name: "Machines", path: "/dashboard/machines", icon: Package },
     // { name: "Routes", path: "/dashboard/routes", icon: Navigation },
