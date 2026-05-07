@@ -102,6 +102,22 @@ const EditProductModal = ({
                 />
               </div>
 
+              {/* Selling Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Selling Price
+                </label>
+                <input
+                  type="number"
+                  value={formData.sellingPrice ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("sellingPrice", Number(e.target.value))
+                  }
+                  placeholder="Enter selling price"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
               {/* External ID */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

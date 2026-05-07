@@ -22,6 +22,7 @@ const ProductManagement = () => {
     productCategoryId: "",
     externalId: "",
     costPrice: "",
+    sellingPrice: "",
     productType:''
   });
   const [suppliers, setSuppliers] = useState([]);
@@ -140,7 +141,7 @@ const ProductManagement = () => {
       // 2️⃣ Send update to backend
       const response = await api.updateProduct({
         productId: productId, supplierId: supplierId, productCategoryId: "",
-        costPrice: ""
+        costPrice: "", sellingPrice: ""
       });
 
       if (!response.ok) {
@@ -179,6 +180,7 @@ const ProductManagement = () => {
       productCategoryId: product.productCategoryId || "",
       externalId: product.externalId || "",
       costPrice: product.costPrice || "",
+      sellingPrice: product.defaultPrice || "",
       productType:product.productType
     });
 
