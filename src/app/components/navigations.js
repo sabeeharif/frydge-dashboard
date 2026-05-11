@@ -48,7 +48,7 @@ export function getNavItems() {
     { name: "Products Management", path: "/dashboard/product-management", icon: PackageSearch },
     { name: "Planogram Versions", path: "/dashboard/planogram-versions", icon: SquareChartGantt },
     { name: "Location Config", path: "/dashboard/location-config", icon: MapPin },
-    // { name: "Location", path: "/dashboard/locations", icon: MapPin },
+    { name: "Inventory Calculation", path: "/dashboard/inventory-calculation", icon: Package },
     // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
     // { name: "Settings", path: "/dashboard/settings", icon: Settings },
   ];

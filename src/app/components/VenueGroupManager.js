@@ -267,13 +267,16 @@ function VenueGroupManagerContent({ context = "driver" }) {
     )
 
     const handleDeleteGroup = async (group) => {
-        if (isDeletingGroup === group.id) return
+        if (isDeletingGroup === group.id || isDeletingGroup === group.groupId) return
         const confirmDelete = window.confirm(`Are you sure you want to delete the venue group "${group.name}"?`)
         if (!confirmDelete) return
 
         try {
-            setIsDeletingGroup(group.id)
-            const response = await api.deleteVenueGroup(group.groupId || group.id)
+            setIsDeletingGroup(group.id || group.groupId)
+            const reqGroupId = group.groupId || group.id
+            const response = await api.deleteVenueGroup({
+                groupId: reqGroupId
+            })
             if (!response.ok) {
                 throw new Error("Failed to delete venue group")
             }
@@ -739,7 +742,7 @@ function VenueGroupManagerContent({ context = "driver" }) {
                                                 return (
                                                     <div key={venue.id} className="space-y-2">
                                                         {modalDragOverIndex === actualIndex && (
-                                                        <div className="h-1 rounded-full bg-blue-500 transition-all"></div>
+                                                            <div className="h-1 rounded-full bg-blue-500 transition-all"></div>
                                                         )}
                                                         <div
                                                             draggable

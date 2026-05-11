@@ -1,78 +1,104 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { RefreshCw, Plus, SquareChartGantt, Trash2, Loader2, Search } from "lucide-react";
+import { RefreshCw, Plus, SquareChartGantt, Trash2, Loader2 } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import LocationConfigTable from "../../components/location/LocationConfigTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
 import AddLocationConfigModal from "../../components/location/AddLocationConfigModal";
+import InventoryCalculationTable from "../../components/inventoryCalculation/InventoryCalculationTable";
+import InventoryCalculateModal from "../../components/inventoryCalculation/InventoryCalculateModal";
+import { api } from "../../lib/auth";
 
-const LocationConfig = () => {
+const InventoryCalculation = () => {
     const ITEMS_PER_PAGE = 10;
     // States
-    const [locationConfigs, setLocationConfigs] = useState([]);
-    const [editingLocation, setEditingLocation] = useState(null);
+    const [machines, setMachines] = useState([])
+    const [categories, setCategories] = useState([])
+    const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [isRotating, setIsRotating] = useState(false);
-    const [search, setSearch] = useState("");
+    // Store tokens for each page
+    const [pageTokens, setPageTokens] = useState({
+        1: null,
+    });
+    const [nextToken, setNextToken] = useState(null);
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const filteredLocations = locationConfigs.filter(
-        (location) => {
-            console.log(location);
-            const searchValue =
-                search.toLowerCase();
-
-            return (
-                location?.venueName
-                    ?.toLowerCase()
-                    .includes(searchValue) ||
-                location?.machineType
-                    ?.toLowerCase()
-                    .includes(searchValue) ||
-                location?.terminalId
-                    ?.toLowerCase()
-                    .includes(searchValue)
-                ||
-                location?.machineSn
-                    ?.toLowerCase()
-                    .includes(searchValue)
-            );
-        }
-    );
-
-
     // Calculate Pagination
-    const totalPages = Math.ceil(
-        filteredLocations.length /
-        ITEMS_PER_PAGE
-    );
+    const totalPages = Math.ceil(inventory.length / ITEMS_PER_PAGE);
 
-    const paginatedLocations =
-        filteredLocations.slice(
-            (currentPage - 1) *
-            ITEMS_PER_PAGE,
-            currentPage *
-            ITEMS_PER_PAGE
-        );
+    const paginatedInventory = inventory.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const hasNextPage = currentPage < totalPages;
     const hasPrevPage = currentPage > 1;
 
     // Fetch
-    const fetchLocationConfig = async () => {
+    const fetchInventory = async (page = 1) => {
         try {
             setLoading(true);
 
-            const res = await fetch(
-                "https://reporting241024.frydge.com/location-config/api.php"
-            );
+            // Get token for current page
+            const continuationToken = pageTokens[page];
 
+            const res = await api.getInventory({
+                limit: ITEMS_PER_PAGE,
+                continuationToken,
+            });
+            const data = await res.json();
+            console.log("API RESPONSE:", data);
+
+            // Your API data
+            const items = data?.files || [];
+
+            // Next token from API
+            const token = data?.continuationToken || null;
+
+            setInventory(items);
+
+            // Save next page token
+            if (token) {
+                setPageTokens((prev) => ({
+                    ...prev,
+                    [page + 1]: token,
+                }));
+            }
+
+            setNextToken(token);
+            setCurrentPage(page);
+        } catch (err) {
+            console.error("Failed to load inventory", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const fetchMachines = async () => {
+        try {
+            setLoading(true);
+
+            const res = await api.getMachines()
             const data = await res.json();
 
-            setLocationConfigs(data);
+            setMachines(data.results);
+        } catch (err) {
+            console.error("Failed to load location config", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const fetchCategories = async () => {
+        try {
+            setLoading(true);
+
+            const res = await api.getCategories()
+            const data = await res.json();
+
+            setCategories(data.results);
         } catch (err) {
             console.error("Failed to load location config", err);
         } finally {
@@ -94,7 +120,7 @@ const LocationConfig = () => {
 
     const handleRefresh = async () => {
         setIsRotating(true);       // start spinning
-        await fetchLocationConfig(); // re-fetch the data
+        await fetchInventory(); // re-fetch the data
         setTimeout(() => setIsRotating(false), 500); // stop spinning after a short delay
     };
 
@@ -125,7 +151,6 @@ const LocationConfig = () => {
     };
 
     const handleAdd = () => {
-        setEditingLocation(null); // set
         setIsModalOpen(true); // open modal
     };
 
@@ -136,7 +161,9 @@ const LocationConfig = () => {
     };
 
     useEffect(() => {
-        fetchLocationConfig();
+        fetchInventory();
+        fetchCategories();
+        fetchMachines();
     }, []);
 
 
@@ -154,61 +181,41 @@ const LocationConfig = () => {
             <div className="">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
                     <SquareChartGantt className="h-10 w-10 text-blue-600" />
-                    <span className="text-gray-800">Location Configuration</span>
+                    <span className="text-gray-800">Inventory Calculation</span>
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>
-                        Showing {filteredLocations?.length} location configs
-                    </span>
+                    <span>Showing {inventory?.length} inventory calculation</span>
                 </div>
             </div>
 
             {/* Head - 2 */}
             <div className="">
-                <div className="flex flex-col items-center sm:flex-row justify-between gap-4">
-                    {/* SEARCH */}
-                    <div className="relative w-full sm:max-w-sm">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-
-                        <input
-                            type="text"
-                            placeholder="Search locations..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={handleRefresh}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
-                            Refresh
-                        </button>
-                        <button
-                            onClick={handleAdd}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add
-                        </button>
-                    </div>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={handleRefresh}
+                        className="px-4 py-2 cursor-pointer bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                        Refresh
+                    </button>
+                    <button
+                        onClick={handleAdd}
+                        className="px-4 py-2 cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                    >
+                        Calculate Inventory
+                    </button>
                 </div>
             </div>
 
-            <LocationConfigTable
-                locations={paginatedLocations}
+            <InventoryCalculationTable
+                inventorys={paginatedInventory}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
             />
 
             {/* Pagination Controls */}
             <PaginationControls
-                paginatedItems={paginatedLocations}
+                paginatedItems={paginatedInventory}
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
                 currentPage={currentPage}
@@ -219,17 +226,17 @@ const LocationConfig = () => {
 
             {/* Add Location Modal */}
             {isModalOpen && (
-                <AddLocationConfigModal
+                <InventoryCalculateModal
                     closeModal={() => setIsModalOpen(false)}
-                    fetchLocationConfig={fetchLocationConfig}
-                    existingLocation={editingLocation}
+                    machines={machines}
+                    categories={categories}
                 />
             )}
         </div>
     );
 };
 
-export default function LocationConfigPage() {
+export default function InventoryCalculationPage() {
     return (
         <Suspense
             fallback={
@@ -238,7 +245,7 @@ export default function LocationConfigPage() {
                 </div>
             }
         >
-            <LocationConfig />
+            <InventoryCalculation />
         </Suspense>
     );
 }

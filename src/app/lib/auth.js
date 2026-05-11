@@ -1404,4 +1404,36 @@ export const api = {
     });
   },
 
+  getInventory: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.limit) {
+      queryParams.append('limit', params.limit);
+    }
+
+    // Add lastKey only if it's not null or undefined
+    if (params.continuationToken && params.continuationToken !== 'null' && params.continuationToken !== null) {
+      queryParams.append('lastKey', params.lastKey);
+    }
+
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/inventory/files?${queryString}`);
+  },
+  // Machines (Vendlive)
+  getCategories: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return ApiService.vendliveRequest(`/2.0/categories/?${queryString}`);
+  },
+
+  calculateInventory: (data) => {
+    return ApiService.awsRequest('/inventory/calculate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  // API SERVICE
+downloadInventoryFile: async (id) => {
+    return ApiService.awsRequest(`/inventory/file:download?filename=${id}`);
+},
 };
