@@ -51,6 +51,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                             <th className="px-6 py-3 text-left">Type</th>
                             <th className="px-6 py-3 text-left">Terminal</th>
                             <th className="px-6 py-3 text-left">Insurance</th>
+                            <th className="px-6 py-3 text-left">Subsidy Voucher Anonym</th>
                             <th className="px-6 py-3 text-left">Pricing</th>
                             <th className="px-6 py-3 text-left">Fee</th>
                             <th className="px-6 py-3 text-left">Actions</th>
@@ -79,6 +80,8 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                     <td className="px-6 py-3">
                                         {location.insuranceActive ? "Active" : "Inactive"}
                                     </td>
+
+                                    <td className="px-6 py-3">{location.subsidyVoucherAnonym}</td>
 
                                     <td className="px-6 py-3">
                                         {hasCustomPricing(location) ? "Custom" : "Default"}

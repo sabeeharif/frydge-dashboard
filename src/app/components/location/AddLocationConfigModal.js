@@ -12,6 +12,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
         terminalId: existingLocation?.terminalId || "",
         paymentTerminalType: existingLocation?.paymentTerminalType || "",
         insuranceActive: existingLocation?.insuranceActive || null,
+        subsidyVoucherAnonym: existingLocation?.subsidyVoucherAnonym || null,
         lastElectricalAudit: existingLocation?.lastElectricalAudit || null,
         nextElectricalAudit: existingLocation?.nextElectricalAudit || null,
         machineKey: existingLocation?.machineKey || null,
@@ -202,6 +203,19 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                 placeholder="Active Insurance"
                                 value={formData.insuranceActive}
                                 onChange={(e) => setFormData({ ...formData, insuranceActive: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Subsidy Voucher Anonym
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Subsidy Voucher Anonym"
+                                value={formData.subsidyVoucherAnonym}
+                                onChange={(e) => setFormData({ ...formData, subsidyVoucherAnonym: e.target.value })}
                                 className="border px-3 py-2 rounded-lg w-full"
                             />
                         </div>

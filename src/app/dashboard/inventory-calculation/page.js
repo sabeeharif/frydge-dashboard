@@ -224,7 +224,7 @@ const InventoryCalculation = () => {
                 onNextPage={handleNextPage}
             />
 
-            {/* Add Location Modal */}
+            {/* Inventory Calculate Modal */}
             {isModalOpen && (
                 <InventoryCalculateModal
                     closeModal={() => setIsModalOpen(false)}
