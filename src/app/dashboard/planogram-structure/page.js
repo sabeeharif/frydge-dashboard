@@ -29,6 +29,7 @@ const PlanogramStructure = () => {
 
   const { success: toastSuccess } = useToast()
   const [structure, setStructure] = useState({})
+  const [currentStructure, setCurrentStructure] = useState({})
   const [loading, setLoading] = useState(false)
   const [editItem, setEditItem] = useState(null)
   const [categories, setCategories] = useState([])
@@ -535,6 +536,7 @@ const PlanogramStructure = () => {
           );
         });
         setStructure(grouped);
+        setCurrentStructure(grouped)
       }
     } catch (error) {
       console.error("Failed to fetch planogram structure", error);
@@ -591,7 +593,36 @@ const PlanogramStructure = () => {
             grouped[shelf].sort((a, b) => a.channel - b.channel);
           });
 
-          setStructure(grouped);
+          // compare products with currect products
+          const comparedGrouped = {}
+
+          Object.entries(grouped).forEach(([shelf, items]) => {
+            comparedGrouped[shelf] = items.map((item) => {
+
+              const currentItem =
+                currentStructure?.[shelf]?.find(
+                  (c) => String(c.channel) === String(item.channel)
+                )
+
+              const isDifferent =
+                currentItem?.productId !== item?.productId
+
+              return {
+                ...item,
+
+                comparedProductId: currentItem?.productId || null,
+                comparedProductName: currentItem?.productName || null,
+                comparedExternalProductId:
+                  currentItem?.externalProductId || null,
+
+                isDifferent,
+
+                currentProduct: currentItem || null,
+              }
+            })
+          })
+
+          setStructure(comparedGrouped);
         }
         // 3️⃣ Set planogram meta
         setPlanogramMeta({
@@ -1269,7 +1300,6 @@ const PlanogramStructure = () => {
                     }}
                   >
                     {shelves.map((item, shelfIndex) => {
-
                       return (
                         <div
                           key={`${item.channel}-${item.shelf}`}
@@ -1278,20 +1308,22 @@ const PlanogramStructure = () => {
                               shelfRefs.current[shelfNumber] = [];
                             shelfRefs.current[shelfNumber][shelfIndex] = el;
                           }}
-                          className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
-                        >
+                          className={`relative border-1   ${item.isDifferent
+                            ? "border-green-500 bg-green-50"
+                            : "border-gray-200 bg-white"
+                            } min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3`} >
 
                           {/* Top Badge */}
                           <div className="flex items-center justify-between">
                             <div className="text-sm font-bold border border-blue-400 rounded px-2 py-0.5 whitespace-nowrap text-blue-600">
                               {item.shelf} - {item.channel}
                             </div>
-                            {item.channelModified && (
+                            {/* {item.channelModified && (
                               <div
                                 className="h-2 w-2 rounded-full bg-green-500 animate-pulse"
                                 title="Modified"
                               />
-                            )}
+                            )} */}
                           </div>
 
                           {/* Warning: Missing External ID */}
