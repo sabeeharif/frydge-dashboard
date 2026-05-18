@@ -14,6 +14,7 @@ import {
   SquareChartGantt,
   AlertCircle,
   Bell,
+  SquareTerminal,
 } from "lucide-react";
 
 // Dynamic builder to always reflect current role from localStorage
@@ -49,6 +50,7 @@ export function getNavItems() {
     { name: "Planogram Versions", path: "/dashboard/planogram-versions", icon: SquareChartGantt },
     { name: "Location Config", path: "/dashboard/location-config", icon: MapPin },
     { name: "Inventory Calculation", path: "/dashboard/inventory-calculation", icon: Package },
+    { name: "Terminal Management", path: "/dashboard/terminal-management", icon: SquareTerminal },
     // { name: "Reporting", path: "/dashboard/reporting", icon: BarChart2 },
     // { name: "Settings", path: "/dashboard/settings", icon: Settings },
   ];
