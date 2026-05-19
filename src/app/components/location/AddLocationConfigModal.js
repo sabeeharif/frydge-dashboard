@@ -1,8 +1,9 @@
 "use client";
-import { X, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { api } from "@/app/lib/auth";
+import { ChevronDown, Search, X, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocation = null }) => {
+const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocation = null, terminals }) => {
     const [formData, setFormData] = useState({
         machineSn: existingLocation?.machineSn || "",
         machineId: existingLocation?.machineId || "",
@@ -30,6 +31,36 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
         note: existingLocation?.note || "",
     });
     const [loading, setLoading] = useState(false);
+    const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+    const [terminalSearch, setTerminalSearch] = useState("");
+    const terminalDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                terminalDropdownRef.current &&
+                !terminalDropdownRef.current.contains(event.target)
+            ) {
+                setIsTerminalOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+    const filteredTerminals = terminals?.filter((item) => {
+        const search = terminalSearch.toLowerCase();
+
+        return (
+            item?.terminalId?.toLowerCase().includes(search) ||
+            item?.protocol?.toLowerCase().includes(search)
+        );
+    });
+
 
     const handleSaveLocation = async () => {
         try {
@@ -47,6 +78,15 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
             });
 
             if (!res.ok) throw new Error(`${isEdit ? "Update" : "Add"} location failed`);
+            // Call second API only when creating new location
+            if (!isEdit) {
+                const payload = {
+                    terminalId: formData.terminalId,
+                    machineFriendlyName: formData.friendlyName
+                }
+                await api.assignTerminalToMachine(payload)
+            }
+
 
             fetchLocationConfig?.();
             closeModal();
@@ -168,30 +208,132 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                             />
                         </div>
 
-                        <div>
+                        <div className="relative" ref={terminalDropdownRef}>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Terminal ID
+                                Terminal
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Terminal ID"
-                                value={formData.terminalId}
-                                onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
-                                className="border px-3 py-2 rounded-lg w-full"
-                            />
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Terminal Type
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Terminal Type"
-                                value={formData.paymentTerminalType}
-                                onChange={(e) => setFormData({ ...formData, paymentTerminalType: e.target.value })}
-                                className="border px-3 py-2 rounded-lg w-full"
-                            />
+                            {/* Selected Value */}
+                            <div
+                                onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                                className="border px-3 py-2 rounded-lg w-full bg-white flex items-center justify-between cursor-pointer min-h-[42px]"
+                            >
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    {formData?.terminalId === "Empty" ? (
+                                        <span className=" text-black text-sm">
+                                            Empty
+                                        </span>
+                                    ) : formData?.terminalId ? (
+                                        <span className="truncate text-sm">
+                                            {
+                                                terminals?.find(
+                                                    (item) =>
+                                                        item.terminalId === formData.terminalId
+                                                )?.protocol
+                                            }
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-400 text-sm">
+                                            Select Terminal
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {formData?.terminalId && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+
+                                                setFormData({
+                                                    ...formData,
+                                                    terminalId: null,
+                                                    protocol: null,
+                                                });
+                                            }}
+                                            className="text-gray-400 hover:text-red-500"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+
+                                    <ChevronDown size={18} className="text-gray-500" />
+                                </div>
+                            </div>
+
+                            {/* Dropdown */}
+                            {isTerminalOpen && (
+                                <div className="absolute z-50 mt-2 w-full bg-white border rounded-xl shadow-lg overflow-hidden">
+                                    {/* Search */}
+                                    <div className="p-2 border-b flex w-full justify-between  gap-1">
+                                        <div className="flex items-center w-full border rounded-lg px-2">
+                                            <Search size={16} className="text-gray-400" />
+
+                                            <input
+                                                type="text"
+                                                placeholder="Search terminal..."
+                                                value={terminalSearch}
+                                                onChange={(e) =>
+                                                    setTerminalSearch(e.target.value)
+                                                }
+                                                className="w-full px-2 py-2 outline-none text-sm"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setFormData({
+                                                    ...formData,
+                                                    terminalId: "Empty",
+                                                    protocol: "Empty",
+                                                });
+
+                                                setIsTerminalOpen(false);
+                                                setTerminalSearch("");
+                                            }}
+                                            //  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                                            className="px-3 py-2 text-sm  bg-gradient-to-r from-blue-600 to-purple-600 text-white  rounded-lg  hover:from-blue-700 hover:to-purple-700 transition-colors whitespace-nowrap"
+                                        >
+                                            Set Empty
+                                        </button>
+                                    </div>
+
+                                    {/* List */}
+                                    <div className="max-h-60 overflow-y-auto">
+                                        {filteredTerminals?.length > 0 ? (
+                                            filteredTerminals?.map((item) => (
+                                                <div
+                                                    key={item.id}
+                                                    onClick={() => {
+                                                        setFormData({
+                                                            ...formData,
+                                                            terminalId: item.terminalId,
+                                                            protocol:
+                                                                item.protocol,
+                                                        });
+
+                                                        setIsTerminalOpen(false);
+                                                        setTerminalSearch("");
+                                                    }}
+                                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                                                >
+                                                    <p className="text-sm font-medium text-gray-800">
+                                                        {item.terminalId}
+                                                    </p>
+
+                                                    <p className="text-xs text-gray-500">
+                                                        {item.protocol}
+                                                    </p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-sm text-gray-500 text-center">
+                                                No Terminal Found
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -411,7 +553,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                     >
                         Cancel
                     </button>
-                    
+
                     <button
                         onClick={handleSaveLocation}
                         disabled={loading}

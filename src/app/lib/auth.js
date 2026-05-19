@@ -1474,4 +1474,11 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+  assignTerminalToMachine: (data) => {
+    return ApiService.awsRequest(`/terminal:assign`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };

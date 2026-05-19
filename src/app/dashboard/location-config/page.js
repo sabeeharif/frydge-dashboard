@@ -6,10 +6,11 @@ import Loader from "@/app/components/Loader";
 import LocationConfigTable from "../../components/location/LocationConfigTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
 import AddLocationConfigModal from "../../components/location/AddLocationConfigModal";
-
+import { api } from "@/app/lib/auth";
 const LocationConfig = () => {
     const ITEMS_PER_PAGE = 10;
     // States
+    const [terminals, setTerminals] = useState([]);
     const [locationConfigs, setLocationConfigs] = useState([]);
     const [editingLocation, setEditingLocation] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -21,7 +22,6 @@ const LocationConfig = () => {
 
     const filteredLocations = locationConfigs.filter(
         (location) => {
-            console.log(location);
             const searchValue =
                 search.toLowerCase();
 
@@ -135,8 +135,28 @@ const LocationConfig = () => {
         setIsModalOpen(true); // open modal
     };
 
+    const fetchTerminals = async () => {
+        try {
+            setLoading(true);
+
+            const res = await api.getTerminals({
+                limit: ITEMS_PER_PAGE,
+            });
+
+            const data = await res.json();
+
+            setTerminals(data.terminals || []);
+
+        } catch (err) {
+            console.error("Failed to load terminals", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchLocationConfig();
+        fetchTerminals();
     }, []);
 
 
@@ -223,6 +243,7 @@ const LocationConfig = () => {
                     closeModal={() => setIsModalOpen(false)}
                     fetchLocationConfig={fetchLocationConfig}
                     existingLocation={editingLocation}
+                    terminals={terminals}
                 />
             )}
         </div>
