@@ -1481,4 +1481,26 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+  unassignTerminal: (data) => {
+    return ApiService.awsRequest(`/terminal:unassign`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  getTerminalHistory: (params = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add limit
+    if (params.customTerminalId) {
+      queryParams.append('customTerminalId', params.customTerminalId);
+    }
+
+    // Add lastKey only if it's not null or undefined
+    if (params.lastKey && params.lastKey !== 'null' && params.lastKey !== null) {
+      queryParams.append('lastKey', params.lastKey);
+    }
+
+    const queryString = queryParams.toString();
+    return ApiService.awsRequest(`/terminal_history?${queryString}`);
+  },
 };

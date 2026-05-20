@@ -100,6 +100,7 @@ const LocationConfig = () => {
 
         await fetchTerminals(prevKey || null);
     };
+
     const handleRefresh = async () => {
         setIsRotating(true);       // start spinning
         await fetchTerminals(); // re-fetch the data
@@ -116,7 +117,7 @@ const LocationConfig = () => {
             if (res.status === 204 || res.ok) {
                 // Remove deleted terminal from state
                 setTerminals((prev) =>
-                    prev.filter((loc) => loc.id !== terminal.id)
+                    prev.filter((loc) => loc.terminalId !== terminal.terminalId)
                 );
                 alert("Location deleted successfully!");
             } else {

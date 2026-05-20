@@ -115,6 +115,9 @@ const TerminalManagementTable = ({
                         <tr>
 
                             <th className="px-6 py-3 text-left">
+                                Terminal ID
+                            </th>
+                            <th className="px-6 py-3 text-left">
                                 Protocol
                             </th>
 
@@ -139,6 +142,9 @@ const TerminalManagementTable = ({
                                 >
                                     <tr className="border-b hover:bg-gray-50">
 
+                                        <td className="px-6 py-3">
+                                            {terminal.customTerminalId || "N/A"}
+                                        </td>
                                         <td className="px-6 py-3">
                                             {terminal.protocol || "N/A"}
                                         </td>

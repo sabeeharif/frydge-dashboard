@@ -6,6 +6,7 @@ import { api } from "../../lib/auth";
 const AddTerminalModal = ({ closeModal, fetchTerminals, existingTerminal = null }) => {
     const [formData, setFormData] = useState({
         terminalId: existingTerminal?.terminalId || null,
+        customTerminalId: existingTerminal?.customTerminalId || null,
         protocol: existingTerminal?.protocol || "",
         manufacturer: existingTerminal?.manufacturer || "",
         paymentServiceProvider: existingTerminal?.paymentServiceProvider || "",
@@ -63,6 +64,19 @@ const AddTerminalModal = ({ closeModal, fetchTerminals, existingTerminal = null 
                 {/* Body */}
                 <div className="p-6 space-y-6">
                     <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Terminal ID
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Terminal ID"
+                                value={formData.customTerminalId}
+                                onChange={(e) => setFormData({ ...formData, customTerminalId: e.target.value })}
+                                className="border px-3 py-2 rounded-lg w-full"
+                            />
+                        </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -2,6 +2,8 @@
 import { api } from "@/app/lib/auth";
 import { ChevronDown, Search, X, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { TerminalHistoryModal } from "../location/TerminalHistoryModal"
+
 
 const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocation = null, terminals }) => {
     const [formData, setFormData] = useState({
@@ -11,6 +13,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
         friendlyNumber: existingLocation?.friendlyNumber || "",
         friendlyName: existingLocation?.friendlyName || null,
         terminalId: existingLocation?.terminalId || "",
+        terminalHistoryId: existingLocation?.terminalHistoryId || "",
         paymentTerminalType: existingLocation?.paymentTerminalType || "",
         insuranceActive: existingLocation?.insuranceActive || null,
         subsidyVoucherAnonym: existingLocation?.subsidyVoucherAnonym || null,
@@ -33,7 +36,9 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
     const [loading, setLoading] = useState(false);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
     const [terminalSearch, setTerminalSearch] = useState("");
+    const [terminalHistoryId, setTerminalHistoryId] = useState()
     const terminalDropdownRef = useRef(null);
+    const [isTerminalModal, setIsTerminalModal] = useState(false)
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -52,6 +57,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
         };
     }, []);
 
+
     const filteredTerminals = terminals?.filter((item) => {
         const search = terminalSearch.toLowerCase();
 
@@ -67,6 +73,87 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
             setLoading(true);
 
             const isEdit = !!existingLocation;
+
+            let updatedFormData = { ...formData };
+
+            // =========================
+            // CREATE LOCATION
+            // =========================
+            if (!isEdit) {
+                const payload = {
+                    customTerminalId: formData.terminalId,
+                    machineFriendlyName: formData.friendlyName,
+                };
+
+                const assignRes = await api.assignTerminalToMachine(payload);
+                const data = await assignRes.json()
+                data?.terminal?.terminalHistoryId;
+
+                updatedFormData = {
+                    ...updatedFormData,
+                    terminalHistoryId: data?.terminal?.terminalHistoryId,
+                };
+
+                setFormData(updatedFormData);
+            }
+
+            // =========================
+            // EDIT LOCATION
+            // =========================
+            // =========================
+            // EDIT LOCATION
+            // =========================
+            if (isEdit) {
+                const oldTerminalId = existingLocation?.terminalId;
+                const newTerminalId = formData?.terminalId?.trim();
+
+                // Check if terminal changed
+                if (oldTerminalId !== newTerminalId) {
+
+                    if (existingLocation?.terminalHistoryId) {
+                        // 1. Unassign old terminal
+                        await api.unassignTerminal({
+                            terminalHistoryId:
+                                existingLocation?.terminalHistoryId,
+                        });
+
+                    }
+
+                    // 2. If new terminal is empty
+                    // only unassign and clear terminalHistoryId
+                    if (!newTerminalId) {
+                        updatedFormData = {
+                            ...updatedFormData,
+                            terminalHistoryId: "",
+                        };
+
+                        setFormData(updatedFormData);
+                    } else {
+
+                        // 3. Assign new terminal
+                        const assignRes = await api.assignTerminalToMachine({
+                            customTerminalId: newTerminalId,
+                            machineFriendlyName: formData.friendlyName,
+                        });
+
+                        const data = await assignRes.json();
+
+                        const terminalHistoryId =
+                            data?.terminal?.terminalHistoryId;
+
+                        updatedFormData = {
+                            ...updatedFormData,
+                            terminalHistoryId,
+                        };
+
+                        setFormData(updatedFormData);
+                    }
+                }
+            }
+
+            // =========================
+            // SAVE LOCATION API
+            // =========================
             const url = isEdit
                 ? `https://reporting241024.frydge.com/location-config/api.php?id=${existingLocation.id}`
                 : "https://reporting241024.frydge.com/location-config/api.php";
@@ -74,19 +161,14 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
             const res = await fetch(url, {
                 method: isEdit ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(updatedFormData),
             });
 
-            if (!res.ok) throw new Error(`${isEdit ? "Update" : "Add"} location failed`);
-            // Call second API only when creating new location
-            if (!isEdit) {
-                const payload = {
-                    terminalId: formData.terminalId,
-                    machineFriendlyName: formData.friendlyName
-                }
-                await api.assignTerminalToMachine(payload)
+            if (!res.ok) {
+                throw new Error(
+                    `${isEdit ? "Update" : "Add"} location failed`
+                );
             }
-
 
             fetchLocationConfig?.();
             closeModal();
@@ -101,6 +183,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                     subsidyVariant: 0,
                     subsidyValueLimit: "0.00",
                     note: "",
+                    terminalHistoryId: "",
                 });
             }
         } catch (err) {
@@ -209,8 +292,12 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                         </div>
 
                         <div className="relative" ref={terminalDropdownRef}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Terminal
+                            <label className="flex justify-between relative">
+                                <span className="block text-sm font-medium text-gray-700 mb-1">Terminal</span>
+                                {formData.terminalId &&
+                                    <button onClick={() => setIsTerminalModal(!isTerminalModal)} className="block p-0.5 absolute border-green-500 bg-green-500 text-white bottom-[-4px] right-1 text-[13px] font-semibold rounded-t-md mb-1 border border-b-0">
+                                        Terminal History
+                                    </button>}
                             </label>
 
                             {/* Selected Value */}
@@ -228,7 +315,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                             {
                                                 terminals?.find(
                                                     (item) =>
-                                                        item.terminalId === formData.terminalId
+                                                        item.customTerminalId === formData.terminalId
                                                 )?.protocol
                                             }
                                         </span>
@@ -284,8 +371,8 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                             onClick={() => {
                                                 setFormData({
                                                     ...formData,
-                                                    terminalId: "Empty",
-                                                    protocol: "Empty",
+                                                    terminalId: "",
+                                                    protocol: "",
                                                 });
 
                                                 setIsTerminalOpen(false);
@@ -307,18 +394,18 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                                     onClick={() => {
                                                         setFormData({
                                                             ...formData,
-                                                            terminalId: item.terminalId,
+                                                            terminalId: item.customTerminalId,
                                                             protocol:
                                                                 item.protocol,
                                                         });
-
+                                                        setTerminalHistoryId(item.customTerminalId)
                                                         setIsTerminalOpen(false);
                                                         setTerminalSearch("");
                                                     }}
                                                     className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
                                                 >
                                                     <p className="text-sm font-medium text-gray-800">
-                                                        {item.terminalId}
+                                                        {item.customTerminalId}
                                                     </p>
 
                                                     <p className="text-xs text-gray-500">
@@ -544,6 +631,12 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                         </div>
                     </div>
                 </div>
+
+
+
+                {/* history modal */}
+                {isTerminalModal && <TerminalHistoryModal closeModal={() => setIsTerminalModal(false)} terminalHistoryId={terminalHistoryId || existingLocation?.terminalId} />}
+
 
                 {/* Footer */}
                 <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
