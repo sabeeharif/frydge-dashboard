@@ -536,7 +536,41 @@ function UsersPageContent() {
         .filter((m) => selectedIds.includes(String(m.id)))
         .map((m) => ({
           machineId: m.id,
-          machineName: m.friendlyName,
+          friendlyName: m.friendlyName,
+          venueName: m.venue?.name
+        }));
+
+      // merge + avoid duplicates
+      const merged = [
+        ...existing,
+        ...newMachines,
+      ].filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex(
+            (t) => t.machineId === item.machineId
+          )
+      );
+
+      return {
+        ...prev,
+        machines: merged,
+      };
+    });
+  };
+  const handleEditMachinesSelect = (e) => {
+    const selectedIds = Array.from(
+      e.target.selectedOptions
+    ).map((option) => option.value);
+
+    setEditFormData((prev) => {
+      const existing = prev.machines || [];
+
+      const newMachines = machines
+        .filter((m) => selectedIds.includes(String(m.id)))
+        .map((m) => ({
+          machineId: m.id,
+          friendlyName: m.friendlyName,
           venueName: m.venue?.name
         }));
 
@@ -894,6 +928,65 @@ function UsersPageContent() {
                   </select>
                 </div>
 
+                {/* select machines */}
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select machines
+                  </label>
+
+                  <select
+                    multiple
+                    value={formData.machines.map((m) =>
+                      String(m.machineId)
+                    )}
+                    onChange={handleExcludeMachinesSelect}
+                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {machines.filter(
+                      (machine) =>
+                        !formData.machines.some(
+                          (item) => item.machineId === machine.id
+                        )
+                    ).map((machine) => (
+                      <option
+                        key={machine.id}
+                        value={machine.id}
+                      >
+                        {machine.friendlyName}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Preview */}
+                  {formData.machines.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {formData.machines.map((machine) => (
+                        <div
+                          key={machine.machineId}
+                          className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
+                        >
+                          <span>{machine.friendlyName}</span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                machines: prev.machines.filter(
+                                  (m) => m.machineId !== machine.machineId
+                                ),
+                              }));
+                            }}
+                            className="font-bold hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Date Picker Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Date</label>
@@ -915,59 +1008,6 @@ function UsersPageContent() {
                     placeholder="e.g., Maintenance Required"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                   />
-                </div>
-
-                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select machines
-                  </label>
-
-                  <select
-                    multiple
-                    value={formData.machines.map((m) =>
-                      String(m.machineId)
-                    )}
-                    onChange={handleExcludeMachinesSelect}
-                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  >
-                    {machines.map((machine) => (
-                      <option
-                        key={machine.id}
-                        value={machine.id}
-                      >
-                        {machine.friendlyName}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Preview */}
-                  {formData.machines.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {formData.machines.map((machine) => (
-                        <div
-                          key={machine.machineId}
-                          className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
-                        >
-                          <span>{machine.machineName}</span>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                machines: prev.machines.filter(
-                                  (m) => m.machineId !== machine.machineId
-                                ),
-                              }));
-                            }}
-                            className="font-bold hover:text-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Description Textarea */}
@@ -1069,31 +1109,36 @@ function UsersPageContent() {
 
                 <select
                   multiple
-                  value={editFormData.machines.map((m) =>
-                    String(m.machineId)
+                  value={editFormData?.machines?.map((m) =>
+                    String(m?.machineId)
                   )}
-                  onChange={handleExcludeMachinesSelect}
+                  onChange={handleEditMachinesSelect}
                   className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  {machines.map((machine) => (
+                  {machines?.filter(
+                    (machine) =>
+                      !editFormData?.machines?.some(
+                        (item) => item?.machineId === machine?.id
+                      )
+                  ).map((machine) => (
                     <option
-                      key={machine.id}
-                      value={machine.id}
+                      key={machine?.id}
+                      value={machine?.id}
                     >
-                      {machine.friendlyName}
+                      {machine?.friendlyName}
                     </option>
                   ))}
                 </select>
 
                 {/* Preview */}
-                {editFormData.machines.length > 0 && (
+                {editFormData?.machines?.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {editFormData.machines.map((machine) => (
+                    {editFormData?.machines?.map((machine) => (
                       <div
-                        key={machine.machineId}
+                        key={machine?.machineId}
                         className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
                       >
-                        <span>{machine.machineName}</span>
+                        <span>{machine?.friendlyName}</span>
 
                         <button
                           type="button"
