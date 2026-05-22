@@ -47,11 +47,11 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                         <tr>
                             <th className="px-4 py-3"></th>
                             <th className="px-6 py-3 text-left">Venue</th>
-                            <th className="px-6 py-3 text-left">Machine SN</th>
+                            <th className="px-6 py-3 text-left">Friendly Name</th>
                             <th className="px-6 py-3 text-left">Type</th>
                             <th className="px-6 py-3 text-left">Terminal</th>
                             <th className="px-6 py-3 text-left">Insurance</th>
-                            <th className="px-6 py-3 text-left">Subsidy Voucher Anonym</th>
+                            {/* <th className="px-6 py-3 text-left">Subsidy Voucher Anonym</th> */}
                             <th className="px-6 py-3 text-left">Pricing</th>
                             <th className="px-6 py-3 text-left">Fee</th>
                             <th className="px-6 py-3 text-left">Actions</th>
@@ -73,7 +73,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                     </td>
 
                                     <td className="px-6 py-3">{location.venueName || "N/A"}</td>
-                                    <td className="px-6 py-3">{location.machineSn}</td>
+                                    <td className="px-6 py-3">{location.friendlyName}</td>
                                     <td className="px-6 py-3">{location.machineType || "N/A"}</td>
                                     <td className="px-6 py-3">{location.terminalId}</td>
 
@@ -81,7 +81,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                         {location.insuranceActive ? "Active" : "Inactive"}
                                     </td>
 
-                                    <td className="px-6 py-3">{location.subsidyVoucherAnonym}</td>
+                                    {/* <td className="px-6 py-3">{location.subsidyVoucherAnonym}</td> */}
 
                                     <td className="px-6 py-3">
                                         {hasCustomPricing(location) ? "Custom" : "Default"}

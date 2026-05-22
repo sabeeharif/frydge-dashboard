@@ -30,6 +30,9 @@ const LocationConfig = () => {
                 search.toLowerCase();
 
             return (
+                terminal?.customTerminalId
+                    ?.toLowerCase()
+                    .includes(searchValue) ||
                 terminal?.protocol
                     ?.toLowerCase()
                     .includes(searchValue) ||
@@ -119,7 +122,7 @@ const LocationConfig = () => {
                 setTerminals((prev) =>
                     prev.filter((loc) => loc.terminalId !== terminal.terminalId)
                 );
-                alert("Location deleted successfully!");
+                alert("Payment terminal deleted successfully!");
             } else {
                 const errData = await res.json();
                 alert(`Failed to delete terminal: ${errData.message || res.statusText}`);
