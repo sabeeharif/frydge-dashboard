@@ -62,8 +62,9 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
         const search = terminalSearch.toLowerCase();
 
         return (
-            item?.terminalId?.toLowerCase().includes(search) ||
-            item?.protocol?.toLowerCase().includes(search)
+            item?.customTerminalId?.toLowerCase().includes(search) ||
+            item?.protocol?.toLowerCase().includes(search)||
+            item?.manufacturer?.toLowerCase().includes(search)
         );
     });
 

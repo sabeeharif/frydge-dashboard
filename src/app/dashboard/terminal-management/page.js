@@ -21,6 +21,7 @@ const LocationConfig = () => {
     const [lastKey, setLastKey] = useState(null);
     const [nextKey, setNextKey] = useState(null);
     const [pageHistory, setPageHistory] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -45,12 +46,17 @@ const LocationConfig = () => {
             );
         }
     );
-
+    const totalPages = Math.max(
+        1,
+        Math.ceil(totalCount / ITEMS_PER_PAGE)
+    );
 
     // Calculate Pagination
 
-    const hasNextPage = !!nextKey;
+    const hasNextPage =
+        !!nextKey && currentPage < totalPages;
     const hasPrevPage = pageHistory.length > 0;
+
 
     // Fetch
     const fetchTerminals = async (key = null) => {
@@ -68,7 +74,7 @@ const LocationConfig = () => {
 
             // backend should return this
             setNextKey(data.lastKey || null);
-
+            setTotalCount(data?.count || 0);
         } catch (err) {
             console.error("Failed to load terminals", err);
         } finally {
@@ -77,13 +83,15 @@ const LocationConfig = () => {
     };
 
     const handleNextPage = async () => {
-        if (!nextKey) return;
+        if (!nextKey || currentPage >= totalPages) return;
 
         setPageHistory((prev) => [...prev, lastKey]);
 
         setLastKey(nextKey);
 
-        setCurrentPage((prev) => prev + 1);
+        const newPage = currentPage + 1;
+
+        setCurrentPage(newPage);
 
         await fetchTerminals(nextKey);
     };
@@ -221,7 +229,7 @@ const LocationConfig = () => {
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
                 currentPage={currentPage}
-                totalPages={currentPage + (hasNextPage ? 1 : 0)}
+                totalPages={totalPages}
                 onRefresh={handlePrevPage}
                 onNextPage={handleNextPage}
             />

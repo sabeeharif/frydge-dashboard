@@ -39,6 +39,13 @@ function UsersPageContent() {
   const [lastKeys, setLastKeys] = useState([]) // lastKey per page
   const [hasNextPage, setHasNextPage] = useState(false)
   const [viewingNotification, setViewingNotification] = useState(null);
+  const [machines, setMachines] = useState()
+  const [selectedMachines, setSelectedMachines] = useState([])
+  const [errors, setErrors] = useState({
+    machine: "",
+    primePlanogram: "",
+  });
+
 
   const [allNotifications, setAllNotifications] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
@@ -68,6 +75,7 @@ function UsersPageContent() {
     notificationDate: "",
     createdById: "",
     createdByName: "",
+    machines: []
   });
 
   const formatDate = (dateString) => {
@@ -89,6 +97,7 @@ function UsersPageContent() {
     checked: false,
     checkedDateTime: "",
     createdAt: "",
+    machines: []
   })
 
   // Password visibility states
@@ -173,7 +182,7 @@ function UsersPageContent() {
     try {
       const response = await api.getDrivers()
       const data = await response.json();
-      
+
       // Assuming the API returns an array or an object with a drivers property
       const driversList = Array.isArray(data) ? data : (data.drivers || []);
       setDrivers(driversList);
@@ -182,8 +191,35 @@ function UsersPageContent() {
     }
   };
 
+  const fetchMachines = async (page) => {
+    try {
+      // setLoading(true);
+      const pageSize = 100
+      console.log("Fetching machines for page:", page);
+      const response = await api.getMachines({});
+      console.log("Client fetch response status:", response.status);
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Client received data:", {
+        count: data.count,
+        resultsLength: data.results?.length,
+      });
+      setMachines(data.results || []);
+    } catch (err) {
+      console.error("Error fetching machines:", err);
+      setMachines([]);
+    } finally {
+      // setLoading(false);
+    }
+  };
   useEffect(() => {
     fetchDrivers();
+    fetchMachines()
   }, []);
 
 
@@ -214,7 +250,8 @@ function UsersPageContent() {
       notificationDescription: "",
       notificationDate: "",
       createdById: "",
-      createdByName: ""
+      createdByName: "",
+      machines: []
     })
     setCreateError("")
     setShowCreateModal(true)
@@ -229,7 +266,8 @@ function UsersPageContent() {
       notificationDescription: "",
       notificationDate: "",
       createdById: "",
-      createdByName: ""
+      createdByName: "",
+      machines: []
     })
     setCreateError("")
   }
@@ -248,6 +286,7 @@ function UsersPageContent() {
       checked: notification.checked,
       checkedDateTime: notification.checkedDateTime || "",
       createdAt: notification.createdAt || "",
+      machines: notification.machines
     })
     setEditError("")
     setShowEditModal(true)
@@ -268,6 +307,7 @@ function UsersPageContent() {
       checked: false,
       checkedDateTime: "",
       createdAt: "",
+      machines: []
     })
     setEditError("")
   }
@@ -484,7 +524,26 @@ function UsersPageContent() {
     setHasNextPage(!!lastKeys[prevIndex])
   }
 
+const handleExcludeMachinesSelect = (e) => {
+  const selectedIds = Array.from(
+    e.target.selectedOptions
+  ).map((option) => String(option.value));
+  console.log(selectedIds);
 
+  const selectedMachines = machines
+    .filter((machine) =>
+      selectedIds.includes(String(machine.id))
+    )
+    .map((machine) => ({
+      machineId: machine.id,
+      machineName: machine.friendlyName,
+    }));
+
+  setFormData((prev) => ({
+    ...prev,
+    machines: selectedMachines,
+  }));
+};
 
   if (loading) {
     return (
@@ -699,14 +758,14 @@ function UsersPageContent() {
       {viewingNotification && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] px-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-            
+
             {/* Modal Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-800">
                 {viewingNotification.notificationTitle || "Description"}
               </h3>
-              <button 
-                onClick={() => setViewingNotification(null)} 
+              <button
+                onClick={() => setViewingNotification(null)}
                 className="p-2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-6 w-6" />
@@ -776,7 +835,7 @@ function UsersPageContent() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
           {/* Reduced max-w from 6xl to 3xl for a more focused, centered look */}
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-            
+
             {/* Modal Header */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -791,7 +850,7 @@ function UsersPageContent() {
             <div className="p-8 overflow-y-auto">
               {/* Centralized Form Container */}
               <div className="max-w-xl mx-auto space-y-6">
-                
+
                 {/* Driver Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Select Driver</label>
@@ -805,8 +864,8 @@ function UsersPageContent() {
                       handleInputChange("createdForId", selectedId);
 
                       // Update Name
-                      const fullName = selectedDriver 
-                        ? `${selectedDriver.firstName} ${selectedDriver.lastName}` 
+                      const fullName = selectedDriver
+                        ? `${selectedDriver.firstName} ${selectedDriver.lastName}`
                         : "";
                       handleInputChange("createdForName", fullName);
                     }}
@@ -820,7 +879,7 @@ function UsersPageContent() {
                     ))}
                   </select>
                 </div>
-                
+
                 {/* Date Picker Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Date</label>
@@ -842,6 +901,59 @@ function UsersPageContent() {
                     placeholder="e.g., Maintenance Required"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                   />
+                </div>
+
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select machines
+                  </label>
+
+                  <select
+                    multiple
+                    value={formData.machines.map((m) =>
+                      String(m.machineId)
+                    )}
+                    onChange={handleExcludeMachinesSelect}
+                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {machines.map((machine) => (
+                      <option
+                        key={machine.id}
+                        value={machine.id}
+                      >
+                        {machine.friendlyName}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Preview */}
+                  {formData.machines.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {formData.machines.map((machine) => (
+                        <div
+                          key={machine.machineId}
+                          className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
+                        >
+                          <span>{machine.machineName}</span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                machines: prev.machines.filter(
+                                  (m) => m.machineId !== machine.machineId
+                                ),
+                              }));
+                            }}
+                            className="font-bold hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Description Textarea */}
@@ -972,8 +1084,8 @@ function UsersPageContent() {
                     handleEditInputChange("createdForId", selectedId);
 
                     // Update Name
-                    const fullName = selectedDriver 
-                      ? `${selectedDriver.firstName} ${selectedDriver.lastName}` 
+                    const fullName = selectedDriver
+                      ? `${selectedDriver.firstName} ${selectedDriver.lastName}`
                       : "";
                     handleEditInputChange("createdForName", fullName);
                   }}
@@ -999,7 +1111,7 @@ function UsersPageContent() {
                   id="editIsChecked"
                   type="checkbox"
                   // Force evaluation: only check if it is exactly true or 1
-                  checked={editFormData.checked === true || editFormData.checked === 1} 
+                  checked={editFormData.checked === true || editFormData.checked === 1}
                   onChange={(e) => handleEditInputChange("checked", e.target.checked)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
                 />

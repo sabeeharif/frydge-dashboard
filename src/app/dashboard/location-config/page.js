@@ -140,7 +140,7 @@ const LocationConfig = () => {
             setLoading(true);
 
             const res = await api.getTerminals({
-                limit: ITEMS_PER_PAGE,
+                limit: -1,
             });
 
             const data = await res.json();
