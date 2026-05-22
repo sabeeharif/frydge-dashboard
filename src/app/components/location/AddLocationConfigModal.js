@@ -63,7 +63,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
 
         return (
             item?.customTerminalId?.toLowerCase().includes(search) ||
-            item?.protocol?.toLowerCase().includes(search)||
+            item?.protocol?.toLowerCase().includes(search) ||
             item?.manufacturer?.toLowerCase().includes(search)
         );
     });
@@ -108,9 +108,12 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                 const oldTerminalId = existingLocation?.terminalId;
                 const newTerminalId = formData?.terminalId?.trim();
 
+                console.log(oldTerminalId, "oldTer")
+                console.log(newTerminalId, "NewTer")
                 // Check if terminal changed
                 if (oldTerminalId !== newTerminalId) {
-
+                    console.log("start");
+                    console.log(existingLocation.terminalHistoryId, "terminalHistoryId");
                     if (existingLocation?.terminalHistoryId) {
                         // 1. Unassign old terminal
                         await api.unassignTerminal({
@@ -130,6 +133,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
 
                         setFormData(updatedFormData);
                     } else {
+                        console.log("end");
 
                         // 3. Assign new terminal
                         const assignRes = await api.assignTerminalToMachine({
@@ -317,7 +321,7 @@ const AddLocationConfigModal = ({ closeModal, fetchLocationConfig, existingLocat
                                                 terminals?.find(
                                                     (item) =>
                                                         item.customTerminalId === formData.terminalId
-                                                )?.protocol
+                                                )?.customTerminalId
                                             }
                                         </span>
                                     ) : (

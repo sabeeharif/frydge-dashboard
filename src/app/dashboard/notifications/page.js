@@ -524,26 +524,40 @@ function UsersPageContent() {
     setHasNextPage(!!lastKeys[prevIndex])
   }
 
-const handleExcludeMachinesSelect = (e) => {
-  const selectedIds = Array.from(
-    e.target.selectedOptions
-  ).map((option) => String(option.value));
-  console.log(selectedIds);
+  const handleExcludeMachinesSelect = (e) => {
+    const selectedIds = Array.from(
+      e.target.selectedOptions
+    ).map((option) => option.value);
 
-  const selectedMachines = machines
-    .filter((machine) =>
-      selectedIds.includes(String(machine.id))
-    )
-    .map((machine) => ({
-      machineId: machine.id,
-      machineName: machine.friendlyName,
-    }));
+    setFormData((prev) => {
+      const existing = prev.machines || [];
 
-  setFormData((prev) => ({
-    ...prev,
-    machines: selectedMachines,
-  }));
-};
+      const newMachines = machines
+        .filter((m) => selectedIds.includes(String(m.id)))
+        .map((m) => ({
+          machineId: m.id,
+          machineName: m.friendlyName,
+          venueName: m.venue?.name
+        }));
+
+      // merge + avoid duplicates
+      const merged = [
+        ...existing,
+        ...newMachines,
+      ].filter(
+        (item, index, self) =>
+          index ===
+          self.findIndex(
+            (t) => t.machineId === item.machineId
+          )
+      );
+
+      return {
+        ...prev,
+        machines: merged,
+      };
+    });
+  };
 
   if (loading) {
     return (
@@ -552,7 +566,7 @@ const handleExcludeMachinesSelect = (e) => {
       </div>
     )
   }
-
+  console.log(formData);
   if (error) {
     return (
       <div className="p-8 space-y-8">
@@ -1046,6 +1060,59 @@ const handleExcludeMachinesSelect = (e) => {
                   placeholder="Enter notification title"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select machines
+                </label>
+
+
+                <select
+                  multiple
+                  value={editFormData.machines.map((m) =>
+                    String(m.machineId)
+                  )}
+                  onChange={handleExcludeMachinesSelect}
+                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  {machines.map((machine) => (
+                    <option
+                      key={machine.id}
+                      value={machine.id}
+                    >
+                      {machine.friendlyName}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Preview */}
+                {editFormData.machines.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {editFormData.machines.map((machine) => (
+                      <div
+                        key={machine.machineId}
+                        className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
+                      >
+                        <span>{machine.machineName}</span>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditFormData((prev) => ({
+                              ...prev,
+                              machines: prev.machines.filter(
+                                (m) => m.machineId !== machine.machineId
+                              ),
+                            }));
+                          }}
+                          className="font-bold hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
