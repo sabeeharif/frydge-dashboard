@@ -134,10 +134,10 @@ const InventoryCalculateModal = ({
             setLoading(true);
 
             const payload = {
-                machines: excludeMachines
+                excludedMachineIds: excludeMachines
                     ? selectedMachines
                     : [],
-                categories: excludeCategories
+                excludedProductCategoryIds: excludeCategories
                     ? selectedCategories
                     : [],
             };
@@ -417,7 +417,7 @@ const InventoryCalculateModal = ({
                                                     className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50"
                                                 >
                                                     <input
-                                                    className="cursor-pointer"
+                                                        className="cursor-pointer"
                                                         type="checkbox"
                                                         checked={selectedCategories.includes(
                                                             category.id
