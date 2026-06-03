@@ -1413,8 +1413,8 @@ export const api = {
     }
 
     // Add lastKey only if it's not null or undefined
-    if (params.continuationToken && params.continuationToken !== 'null' && params.continuationToken !== null) {
-      queryParams.append('lastKey', params.lastKey);
+    if (params.nextToken && params.nextToken !== 'null' && params.nextToken !== null) {
+      queryParams.append('continuationToken', params.nextToken);
     }
 
     const queryString = queryParams.toString();

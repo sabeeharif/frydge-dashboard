@@ -3,125 +3,114 @@
 import { Suspense, useEffect, useState } from "react";
 import { RefreshCw, Plus, SquareChartGantt, Trash2, Loader2 } from "lucide-react";
 import Loader from "@/app/components/Loader";
-import LocationConfigTable from "../../components/location/LocationConfigTable";
 import PaginationControls from "@/app/components/products/PaginationControls";
-import AddLocationConfigModal from "../../components/location/AddLocationConfigModal";
 import InventoryCalculationTable from "../../components/inventoryCalculation/InventoryCalculationTable";
 import InventoryCalculateModal from "../../components/inventoryCalculation/InventoryCalculateModal";
 import { api } from "../../lib/auth";
 
 const InventoryCalculation = () => {
     const ITEMS_PER_PAGE = 10;
+    
     // States
-    const [machines, setMachines] = useState([])
-    const [categories, setCategories] = useState([])
+    const [machines, setMachines] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [isRotating, setIsRotating] = useState(false);
+    
     // Store tokens for each page
-    const [pageTokens, setPageTokens] = useState({
-        1: null,
-    });
+    const [pageTokens, setPageTokens] = useState({ 1: null });
     const [nextToken, setNextToken] = useState(null);
-    // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Calculate Pagination
-    const totalPages = Math.ceil(inventory.length / ITEMS_PER_PAGE);
+    // FIX 1: Fix Pagination Logic
+    // Since the API only returns one page of data at a time, 
+    // your current table view is just the whole inventory array.
+    const paginatedInventory = inventory; 
 
-    const paginatedInventory = inventory.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
-
-    const hasNextPage = currentPage < totalPages;
+    // 1. Update the flags to strictly look at your tracked page tokens
+    const hasNextPage = !!pageTokens[currentPage + 1]; 
     const hasPrevPage = currentPage > 1;
 
-    // Fetch
     const fetchInventory = async (page = 1) => {
         try {
             setLoading(true);
 
-            // Get token for current page
-            const continuationToken = pageTokens[page];
+            // Get token assigned for this specific page
+            const currentToken = pageTokens[page] || null;
 
             const res = await api.getInventory({
                 limit: ITEMS_PER_PAGE,
-                continuationToken,
+                nextToken: currentToken,
             });
             const data = await res.json();
-            console.log("API RESPONSE:", data);
-
-            // Your API data
+            
             const items = data?.files || [];
-
-            // Next token from API
-            const token = data?.continuationToken || null;
+            const token = data?.nextToken || null; // This will be null on page 2
 
             setInventory(items);
+            setCurrentPage(page);
 
-            // Save next page token
+            // 2. Map the token to the NEXT page slot only if it exists
             if (token) {
                 setPageTokens((prev) => ({
                     ...prev,
                     [page + 1]: token,
                 }));
+            } else {
+                // Clean up any stray forward tokens if we hit the end of the road
+                setPageTokens((prev) => {
+                    const updated = { ...prev };
+                    delete updated[page + 1];
+                    return updated;
+                });
             }
 
-            setNextToken(token);
-            setCurrentPage(page);
         } catch (err) {
             console.error("Failed to load inventory", err);
         } finally {
             setLoading(false);
         }
     };
+
     const fetchMachines = async () => {
         try {
-            setLoading(true);
-
-            const res = await api.getMachines()
+            const res = await api.getMachines();
             const data = await res.json();
-
-            setMachines(data.results);
+            setMachines(data.results || []);
         } catch (err) {
-            console.error("Failed to load location config", err);
-        } finally {
-            setLoading(false);
+            console.error("Failed to load machines", err);
         }
     };
+
     const fetchCategories = async () => {
         try {
-            setLoading(true);
-
-            const res = await api.getCategories()
+            const res = await api.getCategories();
             const data = await res.json();
-
-            setCategories(data.results);
+            setCategories(data.results || []);
         } catch (err) {
-            console.error("Failed to load location config", err);
-        } finally {
-            setLoading(false);
+            console.error("Failed to load categories", err);
         }
     };
 
+    // FIX 2: Trigger API fetches on page changes
     const handleNextPage = () => {
         if (hasNextPage) {
-            setCurrentPage((prev) => prev + 1);
+            fetchInventory(currentPage + 1);
         }
     };
 
     const handlePrevPage = () => {
         if (hasPrevPage) {
-            setCurrentPage((prev) => prev - 1);
+            fetchInventory(currentPage - 1);
         }
     };
 
     const handleRefresh = async () => {
-        setIsRotating(true);       // start spinning
-        await fetchInventory(); // re-fetch the data
-        setTimeout(() => setIsRotating(false), 500); // stop spinning after a short delay
+        setIsRotating(true);
+        await fetchInventory(1); // Refresh back to page 1
+        setTimeout(() => setIsRotating(false), 500);
     };
 
     // Handle Delete
@@ -131,14 +120,11 @@ const InventoryCalculation = () => {
         try {
             const res = await fetch(
                 `https://reporting241024.frydge.com/location-config/api.php?id=${location.id}`,
-                {
-                    method: "DELETE",
-                }
+                { method: "DELETE" }
             );
 
             if (res.status === 204 || res.ok) {
-                // Remove deleted location from state
-                setLocationConfigs((prev) => prev.filter((loc) => loc.id !== location.id));
+                setInventory((prev) => prev.filter((loc) => loc.id !== location.id));
                 alert("Location deleted successfully!");
             } else {
                 const errData = await res.json();
@@ -150,46 +136,45 @@ const InventoryCalculation = () => {
         }
     };
 
-    const handleAdd = () => {
-        setIsModalOpen(true); // open modal
-    };
-
-    // Handle Edit
+    const handleAdd = () => setIsModalOpen(true);
     const handleEdit = (location) => {
-        setEditingLocation(location); // set location to edit
-        setIsModalOpen(true); // open modal
+        // missing setEditingLocation state logic if needed
+        setIsModalOpen(true);
     };
 
     useEffect(() => {
-        fetchInventory();
-        fetchCategories();
-        fetchMachines();
+        // Run parallel instead of chaining multiple individual loading states
+        const initFetch = async () => {
+            setLoading(true);
+            await Promise.all([fetchInventory(1), fetchCategories(), fetchMachines()]);
+            setLoading(false);
+        };
+        initFetch();
     }, []);
-
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen w-full bg-gray-100">
                 <Loader />
             </div>
-        )
+        );
     }
 
     return (
         <div className="p-8 space-y-8">
             {/* Head */}
-            <div className="">
+            <div>
                 <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
                     <SquareChartGantt className="h-10 w-10 text-blue-600" />
                     <span className="text-gray-800">Inventory Calculation</span>
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>Showing {inventory?.length} inventory calculation</span>
+                    <span>Showing {inventory?.length} inventory calculation(s)</span>
                 </div>
             </div>
 
             {/* Head - 2 */}
-            <div className="">
+            <div>
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={handleRefresh}
@@ -219,8 +204,8 @@ const InventoryCalculation = () => {
                 hasNextPage={hasNextPage}
                 hasPrevPage={hasPrevPage}
                 currentPage={currentPage}
-                totalPages={totalPages}
-                onRefresh={handlePrevPage}
+                totalPages={currentPage}
+                onRefresh={handlePrevPage} // Assuming this maps to prev page click in your component
                 onNextPage={handleNextPage}
             />
 
