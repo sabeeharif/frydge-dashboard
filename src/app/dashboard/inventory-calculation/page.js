@@ -207,6 +207,7 @@ const InventoryCalculation = () => {
                 totalPages={currentPage}
                 onRefresh={handlePrevPage} // Assuming this maps to prev page click in your component
                 onNextPage={handleNextPage}
+                pageName="InventoryCalculation"
             />
 
             {/* Inventory Calculate Modal */}

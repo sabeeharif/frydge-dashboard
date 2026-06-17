@@ -6,10 +6,11 @@ const PaginationControls = ({
   paginatedItems = [],
   hasNextPage = false,
   hasPrevPage = false,
-  currentPage ,
-  totalPages ,
+  currentPage,
+  totalPages,
   onRefresh,
   onNextPage,
+  pageName,
 }) => {
   if (!hasNextPage && paginatedItems.length === 0) return null;
 
@@ -28,8 +29,8 @@ const PaginationControls = ({
           onClick={onRefresh}
           disabled={!hasPrevPage}
           className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasPrevPage
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+            ? "text-gray-300 cursor-not-allowed"
+            : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
             }`}
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
@@ -37,17 +38,20 @@ const PaginationControls = ({
         </button>
 
         {/* ✅ PAGE NUMBER DISPLAY */}
-        <span className="px-3 py-2 text-sm font-semibold text-gray-800">
-          Page {currentPage} of {totalPages}
-        </span>
+        {
+          pageName === "InventoryCalculation" ? " " :
+            < span className="px-3 py-2 text-sm font-semibold text-gray-800">
+              Page {currentPage} of {totalPages}
+            </span>
+        }
 
         {/* Next Page */}
         <button
           onClick={onNextPage}
           disabled={!hasNextPage}
           className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasNextPage
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+            ? "text-gray-300 cursor-not-allowed"
+            : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
             }`}
         >
           Next
@@ -55,7 +59,7 @@ const PaginationControls = ({
         </button>
       </div>
 
-    </div>
+    </div >
   );
 };
 
