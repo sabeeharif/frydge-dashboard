@@ -137,6 +137,7 @@ const InventoryCalculation = () => {
     };
 
     const handleAdd = () => setIsModalOpen(true);
+    
     const handleEdit = (location) => {
         // missing setEditingLocation state logic if needed
         setIsModalOpen(true);
