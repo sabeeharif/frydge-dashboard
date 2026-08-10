@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { RefreshCw, Plus, Search, SquareTerminal } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { RefreshCw, Plus, Search, SquareTerminal, Loader2 } from "lucide-react";
 import Loader from "@/app/components/Loader";
 import PaginationControls from "@/app/components/products/PaginationControls";
 import TerminalManagementTable from "../../components/terminalManagement/TerminalManagementTable";
@@ -9,61 +9,135 @@ import { api } from "../../lib/auth";
 import AddTerminalModal from "../../components/terminalManagement/AddTerminalModal";
 
 const TerminalManagement = () => {
-    const ITEMS_PER_PAGE = 10;
-    // States
+    const pageSize = 10;
+
     const [terminals, setTerminals] = useState([]);
     const [editingTerminal, setEditingTerminal] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
     const [isRotating, setIsRotating] = useState(false);
     const [search, setSearch] = useState("");
-    // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const filteredTerminals = terminals.filter((terminal) => {
+    // Cursor pagination cache (same pattern as Users)
+    const [pages, setPages] = useState([]);
+    const [pageIndex, setPageIndex] = useState(0);
+    const [lastKeys, setLastKeys] = useState([]);
+    const [hasNextPage, setHasNextPage] = useState(false);
+
+    // Progressive full load for search
+    const [allTerminals, setAllTerminals] = useState([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [fetchProgress, setFetchProgress] = useState({ current: 0, total: 0 });
+    const searchTimeoutRef = useRef(null);
+    const isFetchingAllRef = useRef(false);
+
+    const filteredTerminals = (() => {
+        if (!search) {
+            return terminals;
+        }
+
+        const searchData = allTerminals.length > 0 ? allTerminals : terminals;
         const searchValue = search.toLowerCase();
 
-        return (
-            terminal?.customTerminalId
-                ?.toLowerCase()
-                .includes(searchValue) ||
-            terminal?.protocol
-                ?.toLowerCase()
-                .includes(searchValue) ||
-            terminal?.manufacturer
-                ?.toLowerCase()
-                .includes(searchValue) ||
-            terminal?.paymentServiceProvider
-                ?.toLowerCase()
-                .includes(searchValue)
+        return searchData.filter(
+            (terminal) =>
+                terminal?.customTerminalId
+                    ?.toLowerCase()
+                    .includes(searchValue) ||
+                terminal?.protocol
+                    ?.toLowerCase()
+                    .includes(searchValue) ||
+                terminal?.manufacturer
+                    ?.toLowerCase()
+                    .includes(searchValue) ||
+                terminal?.paymentServiceProvider
+                    ?.toLowerCase()
+                    .includes(searchValue)
         );
-    });
+    })();
 
-    // Calculate Pagination (client-side, same as Location Configuration)
-    const totalPages = Math.ceil(
-        filteredTerminals.length / ITEMS_PER_PAGE
-    );
+    const fetchAllTerminalsProgressively = async () => {
+        if (isFetchingAllRef.current) return;
 
-    const paginatedTerminals = filteredTerminals.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+        isFetchingAllRef.current = true;
+        setSearchLoading(true);
 
-    const hasNextPage = currentPage < totalPages;
-    const hasPrevPage = currentPage > 1;
+        try {
+            let allFetchedTerminals = [];
+            let currentLastKey = null;
+            let pageCount = 0;
+            const maxPages = 50;
 
-    // Fetch all terminals at once so search works across every page
-    const fetchTerminals = async () => {
+            setFetchProgress({ current: 0, total: maxPages });
+
+            do {
+                pageCount++;
+                setFetchProgress({ current: pageCount, total: maxPages });
+
+                const response = await api.getTerminals({
+                    limit: 20,
+                    lastKey: currentLastKey,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const newTerminals = data.terminals || data.results || [];
+                    allFetchedTerminals = [...allFetchedTerminals, ...newTerminals];
+                    setAllTerminals([...allFetchedTerminals]);
+                    currentLastKey = data.lastKey || null;
+                } else {
+                    break;
+                }
+
+                if (pageCount < maxPages && currentLastKey) {
+                    await new Promise((resolve) => setTimeout(resolve, 300));
+                }
+            } while (currentLastKey && pageCount < maxPages);
+
+            console.log(
+                `Successfully fetched ${allFetchedTerminals.length} terminals for search`
+            );
+        } catch (error) {
+            console.error("Error fetching all terminals:", error);
+        } finally {
+            setSearchLoading(false);
+            isFetchingAllRef.current = false;
+        }
+    };
+
+    const fetchTerminals = async (useLastKey = null, targetIndex = 0) => {
         try {
             setLoading(true);
 
-            const res = await api.getTerminals({
-                limit: -1,
+            const response = await api.getTerminals({
+                limit: pageSize,
+                lastKey: useLastKey,
             });
 
-            const data = await res.json();
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || `HTTP ${response.status}`);
+            }
 
-            setTerminals(data.terminals || []);
+            const data = await response.json();
+            const fetchedTerminals = data.terminals || data.results || [];
+            const newLastKey = data.lastKey || null;
+
+            setPages((prev) => {
+                const updated = [...prev];
+                updated[targetIndex] = fetchedTerminals;
+                return updated;
+            });
+
+            setLastKeys((prev) => {
+                const updated = [...prev];
+                updated[targetIndex] = newLastKey;
+                return updated;
+            });
+
+            setTerminals(fetchedTerminals);
+            setHasNextPage(!!newLastKey);
+            setPageIndex(targetIndex);
         } catch (err) {
             console.error("Failed to load terminals", err);
         } finally {
@@ -71,25 +145,46 @@ const TerminalManagement = () => {
         }
     };
 
+    const resetAndFetch = async () => {
+        setPages([]);
+        setLastKeys([]);
+        setPageIndex(0);
+        setAllTerminals([]);
+        isFetchingAllRef.current = false;
+        await fetchTerminals(null, 0);
+    };
+
     const handleNextPage = () => {
-        if (hasNextPage) {
-            setCurrentPage((prev) => prev + 1);
+        const nextIndex = pageIndex + 1;
+
+        if (pages[nextIndex]) {
+            setTerminals(pages[nextIndex]);
+            setPageIndex(nextIndex);
+            setHasNextPage(!!lastKeys[nextIndex]);
+            return;
+        }
+
+        const currentLastKey = lastKeys[pageIndex];
+        if (currentLastKey) {
+            fetchTerminals(currentLastKey, nextIndex);
         }
     };
 
     const handlePrevPage = () => {
-        if (hasPrevPage) {
-            setCurrentPage((prev) => prev - 1);
-        }
+        if (pageIndex === 0) return;
+
+        const prevIndex = pageIndex - 1;
+        setTerminals(pages[prevIndex]);
+        setPageIndex(prevIndex);
+        setHasNextPage(!!lastKeys[prevIndex]);
     };
 
     const handleRefresh = async () => {
         setIsRotating(true);
-        await fetchTerminals();
+        await resetAndFetch();
         setTimeout(() => setIsRotating(false), 500);
     };
 
-    // Handle Delete
     const handleDelete = async (terminal) => {
         if (!window.confirm(`Are you sure you want to delete ${terminal.protocol}?`)) return;
         const data = { terminalId: terminal.terminalId };
@@ -98,6 +193,9 @@ const TerminalManagement = () => {
 
             if (res.status === 204 || res.ok) {
                 setTerminals((prev) =>
+                    prev.filter((loc) => loc.terminalId !== terminal.terminalId)
+                );
+                setAllTerminals((prev) =>
                     prev.filter((loc) => loc.terminalId !== terminal.terminalId)
                 );
                 alert("Payment terminal deleted successfully!");
@@ -116,15 +214,36 @@ const TerminalManagement = () => {
         setIsModalOpen(true);
     };
 
-    // Handle Edit
     const handleEdit = (terminal) => {
         setEditingTerminal(terminal);
         setIsModalOpen(true);
     };
 
     useEffect(() => {
-        fetchTerminals();
+        fetchTerminals(null, 0);
     }, []);
+
+    useEffect(() => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        if (
+            terminals.length > 0 &&
+            !isFetchingAllRef.current &&
+            allTerminals.length === 0
+        ) {
+            searchTimeoutRef.current = setTimeout(() => {
+                fetchAllTerminalsProgressively();
+            }, 500);
+        }
+
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, [terminals.length]);
 
     if (loading) {
         return (
@@ -133,6 +252,10 @@ const TerminalManagement = () => {
             </div>
         );
     }
+
+    const canGoNext = hasNextPage || !!pages[pageIndex + 1];
+    const currentPage = pageIndex + 1;
+    const totalPages = canGoNext ? currentPage + 1 : currentPage;
 
     return (
         <div className="p-8 space-y-8">
@@ -144,8 +267,16 @@ const TerminalManagement = () => {
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                     <span>
-                        Showing {filteredTerminals?.length} terminals
+                        Showing {search ? filteredTerminals.length : terminals.length} terminals
                     </span>
+                    {searchLoading && (
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>
+                                Loading search data... ({fetchProgress.current}/{fetchProgress.total})
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -158,12 +289,13 @@ const TerminalManagement = () => {
 
                         <input
                             type="text"
-                            placeholder="Search Terminals..."
+                            placeholder={
+                                allTerminals.length > 0
+                                    ? `Search through all ${allTerminals.length} terminals...`
+                                    : "Search Terminals..."
+                            }
                             value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
+                            onChange={(e) => setSearch(e.target.value)}
                             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
@@ -186,28 +318,42 @@ const TerminalManagement = () => {
                 </div>
             </div>
 
+            {search && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-800 text-sm">
+                        Found {filteredTerminals.length} terminal
+                        {filteredTerminals.length !== 1 ? "s" : ""} matching &quot;{search}&quot;
+                        {allTerminals.length > 0
+                            ? ` (searching through ${allTerminals.length} total terminals)`
+                            : " (searching current page only)"}
+                    </p>
+                </div>
+            )}
+
             <TerminalManagementTable
-                terminals={paginatedTerminals}
+                terminals={filteredTerminals}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
             />
 
-            {/* Pagination Controls */}
-            <PaginationControls
-                paginatedItems={paginatedTerminals}
-                hasNextPage={hasNextPage}
-                hasPrevPage={hasPrevPage}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onRefresh={handlePrevPage}
-                onNextPage={handleNextPage}
-            />
+            {/* Pagination Controls — hidden while searching */}
+            {!search && (
+                <PaginationControls
+                    paginatedItems={terminals}
+                    hasNextPage={canGoNext}
+                    hasPrevPage={pageIndex > 0}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onRefresh={handlePrevPage}
+                    onNextPage={handleNextPage}
+                />
+            )}
 
             {/* Add Terminal Modal */}
             {isModalOpen && (
                 <AddTerminalModal
                     closeModal={() => setIsModalOpen(false)}
-                    fetchTerminals={fetchTerminals}
+                    fetchTerminals={resetAndFetch}
                     existingTerminal={editingTerminal}
                 />
             )}
