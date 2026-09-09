@@ -1,6 +1,6 @@
 // PaginationControls.jsx
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 const PaginationControls = ({
   paginatedItems = [],
@@ -11,6 +11,10 @@ const PaginationControls = ({
   onRefresh,
   onNextPage,
   pageName,
+  showSave = false,
+  onSave,
+  saving = false,
+  saveDisabled = false,
 }) => {
   if (!hasNextPage && paginatedItems.length === 0) return null;
 
@@ -24,6 +28,21 @@ const PaginationControls = ({
       </div>
 
       <div className="flex items-center space-x-2">
+        {showSave && (
+          <button
+            onClick={onSave}
+            disabled={saveDisabled || saving}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${
+              saveDisabled || saving
+                ? "bg-gradient-to-r from-blue-600 to-purple-600 opacity-50 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            }`}
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            {saving ? "Saving..." : "Save Order"}
+          </button>
+        )}
+
         {/* Prev Page */}
         <button
           onClick={onRefresh}

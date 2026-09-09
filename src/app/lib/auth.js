@@ -1061,6 +1061,14 @@ export const api = {
     });
   },
 
+  // Update Planogram Version sequence / row order
+  updatePlanogramVersionSequence: (payload) => {
+    return ApiService.awsRequest('/planogram_versions/sequence', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
   // Init Planogram Structure
   initPlanogramStructure: (planogramId, data) => {
     const queryParams = new URLSearchParams();
