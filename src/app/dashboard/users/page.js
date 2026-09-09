@@ -30,7 +30,9 @@ function UsersPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [search, setSearch] = useState("")
-  const [lastKey, setLastKey] = useState(null)
+  const [pages, setPages] = useState([])   // cache pages
+  const [pageIndex, setPageIndex] = useState(0)
+  const [lastKeys, setLastKeys] = useState([]) // lastKey per page
   const [hasNextPage, setHasNextPage] = useState(false)
 
   const [allUsers, setAllUsers] = useState([])
@@ -91,8 +93,9 @@ function UsersPageContent() {
   const pageSize = 10
 
   useEffect(() => {
-    fetchUsers()
+    fetchUsers(null, 0)
   }, [])
+
 
   useEffect(() => {
     if (searchTimeoutRef.current) {
@@ -159,46 +162,50 @@ function UsersPageContent() {
     }
   }
 
-  const fetchUsers = async (useLastKey = null) => {
+  const fetchUsers = async (useLastKey = null, targetIndex = 0) => {
     try {
       setLoading(true)
       setError("")
-      console.log("Fetching users...")
-
-      let apiUrl = `/api/users?limit=${pageSize}`
-      if (useLastKey) {
-        apiUrl += `&lastKey=${encodeURIComponent(useLastKey)}`
-      }
 
       const response = await api.getUsers({
         limit: pageSize,
-        lastKey: useLastKey
+        lastKey: useLastKey,
       })
-      console.log("Client fetch response status:", response.status)
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
-      console.log("Client received data:", data)
-
-      // Handle different response structures
       const fetchedUsers = data.users || data.results || []
       const newLastKey = data.lastKey || null
 
+      // ✅ Cache page
+      setPages((prev) => {
+        const updated = [...prev]
+        updated[targetIndex] = fetchedUsers
+        return updated
+      })
+
+      // ✅ Cache lastKey per page
+      setLastKeys((prev) => {
+        const updated = [...prev]
+        updated[targetIndex] = newLastKey
+        return updated
+      })
+
       setUsers(fetchedUsers)
-      setLastKey(newLastKey)
       setHasNextPage(!!newLastKey)
+      setPageIndex(targetIndex)
+
     } catch (err) {
-      console.error("Error fetching users:", err)
       setError(`Failed to load users: ${err.message}`)
-      setUsers([])
     } finally {
       setLoading(false)
     }
   }
+
 
   const filteredUsers = (() => {
     if (!search) {
@@ -409,15 +416,34 @@ function UsersPageContent() {
   }
 
   const handleNextPage = () => {
-    if (hasNextPage && lastKey) {
-      fetchUsers(lastKey)
+    const nextIndex = pageIndex + 1
+
+    // ✅ Already cached → NO API
+    if (pages[nextIndex]) {
+      setUsers(pages[nextIndex])
+      setPageIndex(nextIndex)
+      setHasNextPage(!!lastKeys[nextIndex])
+      return
+    }
+
+    // ❌ Not cached → API call
+    const currentLastKey = lastKeys[pageIndex]
+    if (currentLastKey) {
+      fetchUsers(currentLastKey, nextIndex)
     }
   }
 
+
   const handlePrevPage = () => {
-    // For simplicity, refresh from beginning
-    fetchUsers()
+    if (pageIndex === 0) return
+
+    const prevIndex = pageIndex - 1
+    setUsers(pages[prevIndex])
+    setPageIndex(prevIndex)
+    setHasNextPage(!!lastKeys[prevIndex])
   }
+
+
 
   if (loading) {
     return (
@@ -541,9 +567,8 @@ function UsersPageContent() {
                 filteredUsers.map((user, index) => (
                   <tr
                     key={user.userId}
-                    className={`${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-blue-50 transition-colors duration-200`}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      } hover:bg-blue-50 transition-colors duration-200`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -564,18 +589,16 @@ function UsersPageContent() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          user.dsbUserRole === "admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                        }`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${user.dsbUserRole === "admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
+                          }`}
                       >
                         {user.dsbUserRole || "driver"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          user.isAccountOwner ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                        }`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${user.isAccountOwner ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                          }`}
                       >
                         {user.isAccountOwner ? (
                           <>
@@ -589,9 +612,8 @@ function UsersPageContent() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          user.isOperator ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
-                        }`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${user.isOperator ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                          }`}
                       >
                         {user.isOperator ? (
                           <>
@@ -640,21 +662,29 @@ function UsersPageContent() {
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePrevPage}
-              className="flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              disabled={pageIndex === 0}
+              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageIndex === 0
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                }`}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Refresh
+              Prev
             </button>
+
             <button
               onClick={handleNextPage}
-              disabled={!hasNextPage}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !hasNextPage ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-              }`}
+              disabled={!hasNextPage && !pages[pageIndex + 1]}
+              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasNextPage && !pages[pageIndex + 1]
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                }`}
             >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
+
+
           </div>
         </div>
       )}

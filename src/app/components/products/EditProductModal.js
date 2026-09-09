@@ -1,0 +1,188 @@
+import { X, Loader2 } from "lucide-react";
+
+const EditProductModal = ({
+  closeModal,
+  updatingProduct,
+  handleUpdateProduct,
+  formData,
+  handleInputChange,
+  allSuppliers,
+  allCategories
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-bold text-gray-800">Edit Product</h3>
+            <button
+              onClick={closeModal}
+              className="p-2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Form */}
+        <div className="p-6 space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+              Product Information
+            </h3>
+
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Product Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  disabled
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Enter product name"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* External ID */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Type
+                </label>
+                <input
+                  type="text"
+                  value={formData.productType || ""}
+                  onChange={(e) =>
+                    handleInputChange("productType", e.target.value)
+                  }
+                  disabled
+                  placeholder="Enter Product Type"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {/* Category + Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={formData.productCategoryId || ""}
+                  onChange={(e) =>
+                    handleInputChange("productCategoryId", e.target.value)
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  {allCategories?.map((s) => (
+                    <option key={s.supplierId} value={s.productCategoryId}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Cost Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cost Price
+                </label>
+                <input
+                  type="number"
+                  value={formData.costPrice ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("costPrice", Number(e.target.value))
+                  }
+                  placeholder="Enter cost price"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Selling Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Selling Price
+                </label>
+                <input
+                  type="number"
+                  value={formData.sellingPrice ?? ""}
+                  onChange={(e) =>
+                    handleInputChange("sellingPrice", Number(e.target.value))
+                  }
+                  placeholder="Enter selling price"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* External ID */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  External ID
+                </label>
+                <input
+                  type="text"
+                  value={formData.externalId || ""}
+                  onChange={(e) =>
+                    handleInputChange("externalId", e.target.value)
+                  }
+                  disabled
+                  placeholder="Enter external ID"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+
+              {/* Supplier */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Supplier
+                </label>
+                <select
+                  value={formData.supplierId || ""}
+                  onChange={(e) =>
+                    handleInputChange("supplierId", e.target.value)
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Supplier</option>
+                  {allSuppliers.map((s) => (
+                    <option key={s.supplierId} value={s.supplierId}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+          <button
+            onClick={closeModal}
+            className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleUpdateProduct}
+            disabled={updatingProduct}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+            hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
+            transition-colors flex items-center gap-2"
+          >
+            {updatingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
+            {updatingProduct ? "Updating..." : "Update Product"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EditProductModal;

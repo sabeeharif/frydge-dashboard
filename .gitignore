@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+/Backup-02-01-2026
+/Backup-20-01-2026
+
 # dependencies
 /node_modules
 /.pnp
