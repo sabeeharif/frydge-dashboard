@@ -48,6 +48,17 @@ const PlanogramManagement = () => {
     const pageCacheRef = React.useRef({});
     const currentPageRef = React.useRef(0);
     const { success: toastSucess } = useToast()
+    const [hasUnsavedOrder, setHasUnsavedOrder] = useState(false);
+    const [savingOrder, setSavingOrder] = useState(false);
+    const orderBaselineRef = React.useRef([]);
+
+    const setOrderBaseline = (items = []) => {
+        orderBaselineRef.current = items.map((item) => ({
+            planogramVersionId: item.planogramVersionId,
+            rowNumber: item.rowNumber,
+        }));
+        setHasUnsavedOrder(false);
+    };
 
     // Handle next page
     const handleNextPage = () => {
@@ -59,11 +70,13 @@ const PlanogramManagement = () => {
         if (pageCacheRef.current[nextPage]) {
             currentPageRef.current = nextPage;
             const cached = pageCacheRef.current[nextPage];
+            const items = sortByRowNumber(cached.items);
 
-            setPlanograms(cached.items);
+            setPlanograms(items);
+            setOrderBaseline(items);
             setPlanogramLastKey(cached.lastKey);
             setHasPrevPage(true);
-            setHasNextPage(cached.items.length === pageSize);
+            setHasNextPage(items.length === pageSize);
             setCurrentPage(currentPage + 1)
             return;
         }
@@ -83,7 +96,9 @@ const PlanogramManagement = () => {
 
         currentPageRef.current = prevPage;
 
-        setPlanograms(cached.items);
+        const items = sortByRowNumber(cached.items);
+        setPlanograms(items);
+        setOrderBaseline(items);
         setPlanogramLastKey(cached.lastKey);
         setHasPrevPage(prevPage > 0);
         setHasNextPage(true);
@@ -268,6 +283,82 @@ const PlanogramManagement = () => {
         }
     };
 
+    const sortByRowNumber = (items = []) =>
+        [...items].sort((a, b) => {
+            const aNum = a?.rowNumber ?? Number.MAX_SAFE_INTEGER;
+            const bNum = b?.rowNumber ?? Number.MAX_SAFE_INTEGER;
+            return aNum - bNum;
+        });
+
+    // Drag only updates local order; Save button persists to backend
+    const handleReorderPlanograms = (fromIndex, toIndex) => {
+        const reordered = [...planograms];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.splice(toIndex, 0, moved);
+
+        const pageOffset = currentPageRef.current * pageSize;
+        const withRowNumbers = reordered.map((item, index) => ({
+            ...item,
+            rowNumber: pageOffset + index + 1,
+        }));
+
+        setPlanograms(withRowNumbers);
+        pageCacheRef.current[currentPageRef.current] = {
+            ...(pageCacheRef.current[currentPageRef.current] || {}),
+            items: withRowNumbers,
+            lastKey: planogramLastKey,
+        };
+
+        const isDirty = withRowNumbers.some((item) => {
+            const baseline = orderBaselineRef.current.find(
+                (b) => b.planogramVersionId === item.planogramVersionId
+            );
+            return !baseline || baseline.rowNumber !== item.rowNumber;
+        });
+        setHasUnsavedOrder(isDirty);
+    };
+
+    const handleSaveRowOrder = async () => {
+        if (!hasUnsavedOrder) return;
+
+        const changed = planograms.filter((item) => {
+            const baseline = orderBaselineRef.current.find(
+                (b) => b.planogramVersionId === item.planogramVersionId
+            );
+            return !baseline || baseline.rowNumber !== item.rowNumber;
+        });
+
+        if (!changed.length) {
+            setHasUnsavedOrder(false);
+            return;
+        }
+
+        setSavingOrder(true);
+        try {
+            const results = await Promise.all(
+                changed.map((item) =>
+                    api.updatePlanogramVersionSequence({
+                        planogramVersionId: item.planogramVersionId,
+                        sequence: item.rowNumber,
+                    })
+                )
+            );
+
+            const failed = results.find((res) => !res.ok);
+            if (failed) {
+                throw new Error("Failed to save row order");
+            }
+
+            setOrderBaseline(planograms);
+            toastSucess("Planogram version sequence updated successfully.");
+        } catch (error) {
+            console.error("Failed to save row order:", error);
+            alert("Failed to save row order. Please try again.");
+        } finally {
+            setSavingOrder(false);
+        }
+    };
+
     // Fetch
     const fetchPlanogramVersions = async (lastKey = null) => {
         try {
@@ -281,7 +372,7 @@ const PlanogramManagement = () => {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            const fetched = data.planogramVersions || [];
+            const fetched = sortByRowNumber(data.planogramVersions || []);
             const newLastKey = data.lastKey || null;
 
             // 🔹 Cache current page
@@ -292,6 +383,7 @@ const PlanogramManagement = () => {
 
             // console.log("dd", fetched)
             setPlanograms(fetched);
+            setOrderBaseline(fetched);
             setPlanogramLastKey(newLastKey);
 
             // ✅ CRITICAL FIX
@@ -320,7 +412,7 @@ const PlanogramManagement = () => {
             if (!response.ok) {
                 throw new Error("Failed to delete Planogram");
             }
-            toastSucess("Planogram Delete Sucessfully")
+            toastSucess("Planogram version deleted successfully.")
             await fetchPlanogramVersions(null);
 
         } catch (error) {
@@ -393,6 +485,7 @@ const PlanogramManagement = () => {
                 planogram={planograms}
                 onEdit={openEditModal}
                 onDelete={openDeleteModal}
+                onReorder={handleReorderPlanograms}
             />
 
             {/* Pagination Controls */}
@@ -404,6 +497,10 @@ const PlanogramManagement = () => {
                 currentPage={currentPage}
                 onRefresh={handlePrevPage}
                 onNextPage={handleNextPage}
+                showSave
+                onSave={handleSaveRowOrder}
+                saving={savingOrder}
+                saveDisabled={!hasUnsavedOrder}
             />
 
             {showCreatePlanogramModal && (

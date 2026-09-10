@@ -61,12 +61,50 @@ const transformVenues = (venues = []) => {
 
     return result
 }
+const getUserDisplayName = (user) => {
+    if (!user) return null
+    if (typeof user === "string") return user
+
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
+    return (
+        user.name ||
+        user.userName ||
+        user.driverName ||
+        user.displayName ||
+        fullName ||
+        user.email ||
+        user.userId ||
+        user.id ||
+        null
+    )
+}
+
+const transformUsers = (users = []) => {
+    if (!Array.isArray(users)) return []
+
+    return users
+        .map((user, index) => {
+            const name = getUserDisplayName(user)
+            if (!name) return null
+
+            return {
+                id:
+                    (typeof user === "object" && (user.userId || user.id)) ||
+                    `user-${index}`,
+                name,
+                raw: user,
+            }
+        })
+        .filter(Boolean)
+}
+
 const transformGroups = (groups = []) => {
     return groups.map((group, index) => ({
         id: group.id || group.groupId || `group-${index}`,
         groupId: group.groupId || group.id,
         name: group.name || group.groupName || `Group ${index + 1}`,
         venues: transformVenues(group.venues || group.venueList || []),
+        users: transformUsers(group.users || []),
         used: group.used,
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
@@ -152,6 +190,7 @@ function VenueGroupManagerContent({ context = "driver" }) {
                 group.name,
                 group.groupId,
                 ...(group.venues || []).map((venue) => venue.name),
+                ...(group.users || []).map((user) => user.name),
             ]
             return tokens
                 .filter(Boolean)
@@ -528,16 +567,28 @@ function VenueGroupManagerContent({ context = "driver" }) {
                             >
                                 <div className="p-6 space-y-4">
                                     <div className="flex items-start justify-between gap-3">
-                                        <div>
+                                        <div className="min-w-0 flex-1">
                                             <p className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                                                <MapPin className="h-5 w-5 text-blue-600" />
-                                                {group.name}
+                                                <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
+                                                <span className="truncate">{group.name}</span>
                                             </p>
+                                            {group.users?.length > 0 && (
+                                                <div className="mt-1 space-y-0.5">
+                                                    {group.users.map((user) => (
+                                                        <p
+                                                            key={user.id}
+                                                            className="text-md font-medium text-slate-500"
+                                                        >
+                                                            {context === "cleaner" ? "Cleaner" : "Driver"}: {user.name}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <p className="text-sm text-slate-500 mt-1">
                                                 {group.venues.length} venue{group.venues.length !== 1 ? "s" : ""}
                                             </p>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex shrink-0 gap-2">
                                             <button
                                                 onClick={() => handleEditGroup(group)}
                                                 className="p-2 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition-colors"
