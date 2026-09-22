@@ -106,12 +106,84 @@ function SuppliersPageContent() {
     setShowCreateModal(true)
   }
 
-  const filterSuppliers = suppliers?.filter(
-    (s) =>
-      s.companyName?.toLowerCase().includes(search?.toLowerCase()) ||
-      s.contactName?.toLowerCase().includes(search?.toLowerCase()) ||
-      s.supplierId?.toLowerCase().includes(search?.toLowerCase())
-  )
+  const filterSuppliers = (() => {
+    if (!search) {
+      return suppliers || [];
+    }
+
+    const searchData = allSuppliers.length > 0 ? allSuppliers : (suppliers || []);
+    const searchValue = search.toLowerCase().trim();
+
+    return searchData.filter((s) => {
+      const supplierId = String(s.supplierId ?? "").toLowerCase();
+      return (
+        supplierId.includes(searchValue) ||
+        s.companyName?.toLowerCase().includes(searchValue) ||
+        s.contactName?.toLowerCase().includes(searchValue) ||
+        s.name?.toLowerCase().includes(searchValue) ||
+        s.email?.toLowerCase().includes(searchValue) ||
+        s.contactEmail?.toLowerCase().includes(searchValue)
+      );
+    });
+  })();
+
+  const fetchAllSuppliersProgressively = async () => {
+    if (isFetchingAllRef.current) return;
+
+    isFetchingAllRef.current = true;
+    setSearchLoading(true);
+
+    try {
+      let allFetchedSuppliers = [];
+      let currentLastKey = null;
+      let pageCount = 0;
+      const maxPages = 50;
+
+      setFetchProgress({ current: 0, total: maxPages });
+
+      do {
+        pageCount++;
+        setFetchProgress({ current: pageCount, total: maxPages });
+
+        const response = await api.getSuppliers({
+          limit: 20,
+          lastKey: currentLastKey,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const newSuppliers = data.suppliers || data.results || [];
+          allFetchedSuppliers = [...allFetchedSuppliers, ...newSuppliers];
+          setAllSuppliers([...allFetchedSuppliers]);
+          currentLastKey = data.lastKey || null;
+        } else {
+          break;
+        }
+
+        if (pageCount < maxPages && currentLastKey) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      } while (currentLastKey && pageCount < maxPages);
+
+      console.log(
+        `Successfully fetched ${allFetchedSuppliers.length} suppliers for search`
+      );
+    } catch (error) {
+      console.error("Error fetching all suppliers:", error);
+    } finally {
+      setSearchLoading(false);
+      isFetchingAllRef.current = false;
+    }
+  };
+
+  const resetAndFetchSuppliers = async () => {
+    supplierCurrentPageRef.current = 0;
+    supplierPageCacheRef.current = {};
+    setSupplierLastKey(null);
+    setAllSuppliers([]);
+    isFetchingAllRef.current = false;
+    await fetchSuppliers(null);
+  };
 
   const handleCreateSupplier = async (supplierData) => {
 
@@ -127,12 +199,7 @@ function SuppliersPageContent() {
 
       const createdSupplier = await response.json();
 
-      // 🔁 Reset pagination & refetch first page
-      supplierCurrentPageRef.current = 0;
-      supplierPageCacheRef.current = {};
-      setSupplierLastKey(null);
-
-      await fetchSuppliers(null);
+      await resetAndFetchSuppliers();
 
     } catch (error) {
       console.error("Create supplier error:", error);
@@ -167,12 +234,19 @@ function SuppliersPageContent() {
   }
 
   const handleUpdateSupplier = async (supplierId, updatedData) => {
+    const previousSuppliers = [...(suppliers || [])];
+    const previousAllSuppliers = [...allSuppliers];
+
     try {
       setUpdatingSupplier(true);
 
       // Optimistic update
-      const previousSuppliers = [...suppliers];
       setSuppliers((prev) =>
+        prev.map((s) =>
+          s.supplierId === supplierId ? { ...s, ...updatedData } : s
+        )
+      );
+      setAllSuppliers((prev) =>
         prev.map((s) =>
           s.supplierId === supplierId ? { ...s, ...updatedData } : s
         )
@@ -196,6 +270,7 @@ function SuppliersPageContent() {
 
       // rollback
       setSuppliers(previousSuppliers);
+      setAllSuppliers(previousAllSuppliers);
     } finally {
       setUpdatingSupplier(false);
     }
@@ -238,11 +313,11 @@ function SuppliersPageContent() {
       setSuppliers((prev) =>
         prev.filter((s) => s.supplierId !== selectedSupplier.supplierId)
       );
+      setAllSuppliers((prev) =>
+        prev.filter((s) => s.supplierId !== selectedSupplier.supplierId)
+      );
 
-      // Clear cache & reload page
-      supplierPageCacheRef.current = {};
-      supplierCurrentPageRef.current = 0;
-      await fetchSuppliers(null);
+      await resetAndFetchSuppliers();
 
       setSelectedSupplier(null);
 
@@ -375,6 +450,28 @@ function SuppliersPageContent() {
     fetchSuppliers(null);
   }, []);
 
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (
+      suppliers?.length > 0 &&
+      !isFetchingAllRef.current &&
+      allSuppliers.length === 0
+    ) {
+      searchTimeoutRef.current = setTimeout(() => {
+        fetchAllSuppliersProgressively();
+      }, 500);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [suppliers?.length]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-gray-100">
@@ -413,7 +510,9 @@ function SuppliersPageContent() {
           <span className="text-gray-800">Suppliers</span>
         </h1>
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>Showing {suppliers?.length} suppliers</span>
+          <span>
+            Showing {search ? filterSuppliers.length : suppliers?.length} suppliers
+          </span>
           {searchLoading && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -428,7 +527,7 @@ function SuppliersPageContent() {
       <div className="mb-6">
         <div className="flex justify-end gap-3">
           <button
-            // onClick={() => fetchUsers()}
+            onClick={resetAndFetchSuppliers}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -450,7 +549,9 @@ function SuppliersPageContent() {
           <input
             type="text"
             placeholder={
-              allSuppliers?.length > 0 ? `Search through all ${allSuppliers?.length} suppliers...` : "Search by name, email, or ID..."
+              allSuppliers?.length > 0
+                ? `Search through all ${allSuppliers?.length} suppliers by Supplier ID, name...`
+                : "Search by Supplier ID, name, or email..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -462,7 +563,7 @@ function SuppliersPageContent() {
       {search && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-800 text-sm">
-            Found {filterSuppliers.length} user{filterSuppliers?.length !== 1 ? "s" : ""} matching "{search}"
+            Found {filterSuppliers.length} supplier{filterSuppliers?.length !== 1 ? "s" : ""} matching "{search}"
             {allSuppliers?.length > 0
               ? ` (searching through ${allSuppliers?.length} total suppliers)`
               : " (searching current page only)"}
@@ -578,8 +679,8 @@ function SuppliersPageContent() {
         </div>
       </div>
 
-      {/* Pagination Controls */}
-      {(
+      {/* Pagination Controls — hidden while searching */}
+      {!search && (
         <div className="mt-6 flex items-center justify-between bg-white p-4 rounded-lg shadow">
           <span className="text-sm text-gray-600">
             Showing {suppliers?.length} suppliers

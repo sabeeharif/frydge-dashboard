@@ -149,7 +149,7 @@ function UsersPageContent() {
         pageCount++
         setFetchProgress({ current: pageCount, total: maxPages })
 
-        const response = await api.getUsers({
+        const response = await api.getNotifications({
           limit: 20,
           lastKey: currentLastKey
         })
@@ -223,7 +223,7 @@ function UsersPageContent() {
   }, []);
 
 
-  const filteredUsers = (() => {
+  const filteredNotifications = (() => {
     if (!search) {
       return notifications
     }
@@ -231,16 +231,26 @@ function UsersPageContent() {
     const searchData = allNotifications.length > 0 ? allNotifications : notifications
     const lower = search.toLowerCase()
 
-    return searchData.filter((user) => {
-      const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.toLowerCase()
+    return searchData.filter((notification) => {
       return (
-        fullName.includes(lower) ||
-        (user.dsbEmail?.toLowerCase() ?? "").includes(lower) ||
-        (user.vlEmail?.toLowerCase() ?? "").includes(lower) ||
-        (user.userId?.toLowerCase() ?? "").includes(lower)
+        (notification.notificationTitle?.toLowerCase() ?? "").includes(lower) ||
+        (notification.notificationDescription?.toLowerCase() ?? "").includes(lower) ||
+        (notification.createdByName?.toLowerCase() ?? "").includes(lower) ||
+        (notification.createdForName?.toLowerCase() ?? "").includes(lower) ||
+        (notification.notificationId?.toLowerCase() ?? "").includes(lower) ||
+        (notification.notificationDate?.toLowerCase() ?? "").includes(lower)
       )
     })
   })()
+
+  const resetAndFetchNotifications = async () => {
+    setPages([])
+    setLastKeys([])
+    setPageIndex(0)
+    setAllNotifications([])
+    isFetchingAllRef.current = false
+    await fetchNotifications(null, 0)
+  }
 
   const openCreateModal = () => {
     setFormData({
@@ -415,10 +425,7 @@ function UsersPageContent() {
         success("Notification created successfully!")
         closeCreateModal()
         // Refresh notifications list
-        fetchNotifications()
-        // Reset all notifications cache to refetch
-        setAllNotifications([])
-        isFetchingAllRef.current = false
+        await resetAndFetchNotifications()
       } else {
         setCreateError(data.error || "Failed to create notification")
       }
@@ -450,10 +457,7 @@ function UsersPageContent() {
         success("Notification updated successfully!")
         closeEditModal()
         // Refresh notifications list
-        fetchNotifications()
-        // Reset all notifications cache to refetch
-        setAllNotifications([])
-        isFetchingAllRef.current = false
+        await resetAndFetchNotifications()
       } else {
         setEditError(data.error || "Failed to update notification")
       }
@@ -481,10 +485,7 @@ function UsersPageContent() {
         success("Notification deleted successfully!")
         closeDeleteModal()
         // Refresh notifications list
-        fetchNotifications()
-        // Reset all notifications cache to refetch
-        setAllNotifications([])
-        isFetchingAllRef.current = false
+        await resetAndFetchNotifications()
       } else {
         toastError(data.error || "Failed to delete notification")
       }
@@ -631,7 +632,9 @@ function UsersPageContent() {
           <span className="text-gray-800">Notifications</span>
         </h1>
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>Showing {notifications.length} notifications</span>
+          <span>
+            Showing {search ? filteredNotifications.length : notifications.length} notifications
+          </span>
           {searchLoading && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -646,7 +649,7 @@ function UsersPageContent() {
       <div className="mb-6">
         <div className="flex justify-end gap-3">
           <button
-            onClick={() => fetchUsers()}
+            onClick={resetAndFetchNotifications}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -668,7 +671,7 @@ function UsersPageContent() {
           <input
             type="text"
             placeholder={
-              allNotifications.length > 0 ? `Search through all ${allNotifications.length} notifications...` : "Search by name, email, or ID..."
+              allNotifications.length > 0 ? `Search through all ${allNotifications.length} notifications...` : "Search by title, description, or name..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -680,7 +683,7 @@ function UsersPageContent() {
       {search && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-800 text-sm">
-            Found {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""} matching "{search}"
+            Found {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? "s" : ""} matching "{search}"
             {allNotifications.length > 0
               ? ` (searching through ${allNotifications.length} total notifications)`
               : " (searching current page only)"}
@@ -707,7 +710,7 @@ function UsersPageContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredUsers.length === 0 ? (
+              {filteredNotifications.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -715,7 +718,7 @@ function UsersPageContent() {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((notification, index) => (
+                filteredNotifications.map((notification, index) => (
                   <tr
                     key={notification.notificationId}
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
