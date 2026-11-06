@@ -21,6 +21,7 @@ import {
   Power,
   PowerOff,
   RefreshCcw,
+  ArrowUpDown,
   Settings,
   Search,
 } from "lucide-react";
@@ -58,6 +59,8 @@ function MachineTableContent() {
   const [qrUrls, setQrUrls] = useState({});
   const [loadingQrCodes, setLoadingQrCodes] = useState({});
   const [isSync, setIsSync] = useState({});
+  const [isSorting, setIsSorting] = useState({});
+  const [isSortingAll, setIsSortingAll] = useState(false);
 
   // QR Modal state
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -462,6 +465,58 @@ function MachineTableContent() {
     }
   };
 
+  // Handle sort machine products
+  const handleSortMachineProducts = async (machineId) => {
+    try {
+      setIsSorting((prev) => ({ ...prev, [machineId]: true }));
+
+      const res = await api.sortMachineProducts({ machineId });
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success("Machine products sorted successfully.");
+      } else {
+        toastError(result.error || "Failed to sort machine products.");
+      }
+    } catch (error) {
+      console.error("Sort products error:", error);
+      toastError("Something went wrong while sorting products.");
+    } finally {
+      setIsSorting((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+
+  // Handle sort products for all machines
+  const handleSortAllMachineProducts = async () => {
+    try {
+      setIsSortingAll(true);
+
+      const res = await api.sortAllMachineProducts();
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success("All machine products sorted successfully.");
+      } else {
+        toastError(result.error || "Failed to sort all machine products.");
+      }
+    } catch (error) {
+      console.error("Sort all products error:", error);
+      toastError("Something went wrong while sorting all products.");
+    } finally {
+      setIsSortingAll(false);
+    }
+  };
+
   useEffect(() => {
     if (isModalOpen) {
       document.body.classList.add("overflow-hidden");
@@ -727,11 +782,23 @@ function MachineTableContent() {
 
   return (
     <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-4xl font-bold text-gray-800 mb-0 flex items-center gap-3">
           <Monitor className="h-10 w-10 text-blue-600" />
-          <p className="text-gray-800">Machines</p>
+          <span className="text-gray-800">Machines</span>
         </h1>
+        <button
+          onClick={handleSortAllMachineProducts}
+          disabled={isSortingAll}
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2 self-start sm:self-auto disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSortingAll ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowUpDown className="h-4 w-4" />
+          )}
+          {isSortingAll ? "Sorting All..." : "Sort All Machines"}
+        </button>
       </div>
 
       <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
@@ -990,6 +1057,16 @@ function MachineTableContent() {
                         >
                           <RefreshCcw className="h-3 w-3" />
                           {isSync[machine.id] ? "Syncing..." : "Sync"}
+                        </button>
+
+                        {/* Sort Button */}
+                        <button
+                          className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium hover:bg-purple-200 flex items-center gap-1"
+                          onClick={() => handleSortMachineProducts(machine.id)}
+                          disabled={isSorting[machine.id]}
+                        >
+                          <ArrowUpDown className="h-3 w-3" />
+                          {isSorting[machine.id] ? "Sorting..." : "Sort"}
                         </button>
                       </div>
                     </td>

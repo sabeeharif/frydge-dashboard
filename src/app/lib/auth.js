@@ -811,6 +811,30 @@ export const api = {
     }
   },
 
+  // Sort machine products (AWS)
+  sortMachineProducts: async (params = {}) => {
+    const { machineId } = params;
+
+    if (!machineId) {
+      return {
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: "Missing machineId" }),
+      };
+    }
+
+    return ApiService.awsRequest(`/internal_machine/sort-products/${machineId}`, {
+      method: 'PATCH',
+    });
+  },
+
+  // Sort products for all machines (AWS)
+  sortAllMachineProducts: async () => {
+    return ApiService.awsRequest(`/internal_machine/sort-products`, {
+      method: 'POST',
+    });
+  },
+
   // Get Encrypted Machine ID (AWS) - Direct call with CORS handling
   getEncryptedMachineId: async (params = {}) => {
     const { machineId } = params;
