@@ -22,6 +22,7 @@ import {
   PowerOff,
   RefreshCcw,
   ArrowUpDown,
+  Gift,
   Settings,
   Search,
 } from "lucide-react";
@@ -67,6 +68,16 @@ function MachineTableContent() {
   const [selectedQrCode, setSelectedQrCode] = useState("");
   const [selectedMachineForQr, setSelectedMachineForQr] = useState(null);
   const qrModalRef = useRef(null);
+
+  // Free Vend Modal state
+  const [isFreeVendModalOpen, setIsFreeVendModalOpen] = useState(false);
+  const [selectedMachineForFreeVend, setSelectedMachineForFreeVend] = useState(null);
+  const [freeVendState, setFreeVendState] = useState(false);
+  const [freeVendKnown, setFreeVendKnown] = useState(false);
+  const [loadingFreeVend, setLoadingFreeVend] = useState(false);
+  const freeVendModalRef = useRef(null);
+  // machineId -> boolean (only machines found in VendLive locations)
+  const [freeVendStatus, setFreeVendStatus] = useState({});
 
   // Enable/Disable Modal state
   const [isEnableModalOpen, setIsEnableModalOpen] = useState(false);
@@ -491,6 +502,91 @@ function MachineTableContent() {
     }
   };
 
+  const getFreeVendDisplay = (machineId) => {
+    const key = String(machineId);
+    if (!(key in freeVendStatus)) {
+      return { label: "Unknown", known: false, enabled: false };
+    }
+    const enabled = Boolean(freeVendStatus[key]);
+    return {
+      label: enabled ? "Enabled" : "Disabled",
+      known: true,
+      enabled,
+    };
+  };
+
+  // Open Free Vend modal
+  const handleFreeVend = (machine) => {
+    const status = getFreeVendDisplay(machine?.id);
+    setSelectedMachineForFreeVend(machine);
+    setFreeVendKnown(status.known);
+    setFreeVendState(status.enabled);
+    setIsFreeVendModalOpen(true);
+  };
+
+  const closeFreeVendModal = () => {
+    setIsFreeVendModalOpen(false);
+    setSelectedMachineForFreeVend(null);
+    setFreeVendState(false);
+    setFreeVendKnown(false);
+    setLoadingFreeVend(false);
+  };
+
+  const handleSubmitFreeVend = async () => {
+    if (!selectedMachineForFreeVend) return;
+
+    setLoadingFreeVend(true);
+    try {
+      const res = await api.setMachineFreeVend({
+        machineId: selectedMachineForFreeVend.id,
+        freeVend: freeVendState,
+      });
+
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success(
+          `Free Vend ${freeVendState ? "enabled" : "disabled"} successfully`
+        );
+
+        const machineKey = String(selectedMachineForFreeVend.id);
+        setFreeVendStatus((prev) => ({
+          ...prev,
+          [machineKey]: freeVendState,
+        }));
+
+        setMachines((prev) =>
+          prev.map((m) =>
+            m.id === selectedMachineForFreeVend.id
+              ? { ...m, freeVend: freeVendState }
+              : m
+          )
+        );
+        setAllMachines((prev) =>
+          prev.map((m) =>
+            m.id === selectedMachineForFreeVend.id
+              ? { ...m, freeVend: freeVendState }
+              : m
+          )
+        );
+
+        closeFreeVendModal();
+      } else {
+        toastError(result.error || "Failed to update Free Vend setting");
+      }
+    } catch (error) {
+      console.error("Free Vend Error:", error);
+      toastError("Something went wrong while updating Free Vend.");
+    } finally {
+      setLoadingFreeVend(false);
+    }
+  };
+
   // Handle sort products for all machines
   const handleSortAllMachineProducts = async () => {
     try {
@@ -541,6 +637,14 @@ function MachineTableContent() {
     }
   }, [isEnableModalOpen]);
 
+  useEffect(() => {
+    if (isFreeVendModalOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+  }, [isFreeVendModalOpen]);
+
   // Close modal on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -589,18 +693,68 @@ function MachineTableContent() {
     };
   }, [isEnableModalOpen]);
 
+  // Close Free Vend modal on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        freeVendModalRef.current &&
+        !freeVendModalRef.current.contains(event.target)
+      ) {
+        closeFreeVendModal();
+      }
+    }
+    if (isFreeVendModalOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isFreeVendModalOpen]);
+
   useEffect(() => {
     const pageFromUrl = Number.parseInt(searchParams.get("page")) || 1;
     setCurrentPage(pageFromUrl);
     fetchMachines(pageFromUrl);
   }, [searchParams]);
 
+  const fetchFreeVendStatuses = async () => {
+    try {
+      const response = await api.getMachineLocations();
+      if (!response.ok) {
+        console.error("Failed to fetch machine locations for Free Vend");
+        return;
+      }
+
+      const data = await response.json();
+      const locations = data.results || data || [];
+      const statusMap = {};
+
+      locations.forEach((location) => {
+        const machineId = location?.machine?.id ?? location?.machineId;
+        if (machineId == null) return;
+
+        statusMap[String(machineId)] = Boolean(
+          location?.machine?.freeVend ?? location?.freeVend
+        );
+      });
+
+      setFreeVendStatus(statusMap);
+    } catch (error) {
+      console.error("Error fetching Free Vend statuses:", error);
+    }
+  };
+
   const fetchMachines = async (page) => {
     try {
       setLoading(true);
       setError("");
       console.log("Fetching machines for page:", page);
-      const response = await api.getMachines({ page, pageSize });
+
+      const [response] = await Promise.all([
+        api.getMachines({ page, pageSize }),
+        fetchFreeVendStatuses(),
+      ]);
+
       console.log("Client fetch response status:", response.status);
       if (!response.ok) {
         const errorData = await response
@@ -790,7 +944,7 @@ function MachineTableContent() {
         <button
           onClick={handleSortAllMachineProducts}
           disabled={isSortingAll}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2 self-start sm:self-auto disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2 self-start sm:self-auto cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSortingAll ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -917,7 +1071,7 @@ function MachineTableContent() {
                         </span>
                       ) : (
                         <button
-                          className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium hover:bg-red-200"
+                          className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium hover:bg-red-200 cursor-pointer disabled:cursor-not-allowed"
                           type="button"
                           disabled={loadingEncryptedIds[machine.id]}
                           onClick={() => getEncryptedMachineId(machine.id)}
@@ -933,7 +1087,7 @@ function MachineTableContent() {
                     <td className="px-2 py-2 text-[11px]">
                       {qrUrls[machine.id] ? (
                         <button
-                          className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1"
+                          className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1 cursor-pointer"
                           type="button"
                           onClick={() => handleViewQr(machine)}
                         >
@@ -941,7 +1095,7 @@ function MachineTableContent() {
                         </button>
                       ) : (
                         <button
-                          className="px-3 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200"
+                          className="px-3 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200 cursor-pointer disabled:cursor-not-allowed"
                           type="button"
                           disabled={loadingQrCodes[machine.id]}
                           onClick={() => getQrCode(machine.id)}
@@ -1021,7 +1175,7 @@ function MachineTableContent() {
                           </span>
                         ) : (
                           <button
-                            className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium hover:bg-gray-200"
+                            className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium hover:bg-gray-200 cursor-pointer disabled:cursor-not-allowed"
                             type="button"
                             disabled={loadingDeviceStatus[machine.id]}
                             onClick={() => getDeviceStatus(machine.id)}
@@ -1032,7 +1186,7 @@ function MachineTableContent() {
 
                         {/* Planograms Button (NEW) */}
                         <button
-                          className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200"
+                          className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200 cursor-pointer"
                           onClick={() => handlePlanograms(machine)}
                         >
                           Planograms
@@ -1040,7 +1194,7 @@ function MachineTableContent() {
 
                         {/* Enable/Disable Button */}
                         <button
-                          className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200`}
+                          className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer`}
                           onClick={() => handleToggleMachine(machine)}
                         >
                           <>
@@ -1051,7 +1205,7 @@ function MachineTableContent() {
 
                         {/* Sync Button */}
                         <button
-                          className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium hover:bg-yellow-200 flex items-center gap-1"
+                          className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium hover:bg-yellow-200 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
                           onClick={() => handleSyncMachine(machine.id)}
                           disabled={isSync[machine.id]}
                         >
@@ -1061,12 +1215,22 @@ function MachineTableContent() {
 
                         {/* Sort Button */}
                         <button
-                          className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium hover:bg-purple-200 flex items-center gap-1"
+                          className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium hover:bg-purple-200 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
                           onClick={() => handleSortMachineProducts(machine.id)}
                           disabled={isSorting[machine.id]}
                         >
                           <ArrowUpDown className="h-3 w-3" />
                           {isSorting[machine.id] ? "Sorting..." : "Sort"}
+                        </button>
+
+                        {/* Free Vend Button */}
+                        <button
+                          className="px-2 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200 flex items-center gap-1 cursor-pointer"
+                          type="button"
+                          onClick={() => handleFreeVend(machine)}
+                        >
+                          <Gift className="h-3 w-3" />
+                          Free Vend
                         </button>
                       </div>
                     </td>
@@ -1146,6 +1310,113 @@ function MachineTableContent() {
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Free Vend Modal */}
+      {isFreeVendModalOpen && selectedMachineForFreeVend && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div
+            ref={freeVendModalRef}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+          >
+            <button
+              onClick={closeFreeVendModal}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-4">
+                <Gift className="h-8 w-8 text-orange-600 mr-2" />
+                <h2 className="text-2xl font-bold text-gray-800">Free Vend</h2>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Machine:{" "}
+                  {selectedMachineForFreeVend.friendlyName ||
+                    selectedMachineForFreeVend.id}
+                </p>
+                <p className="text-xs text-gray-500">
+                  ID: {selectedMachineForFreeVend.id}
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <label
+                    htmlFor="freeVend"
+                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                  >
+                    Free Vend :
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`text-xs font-medium ${
+                        !freeVendKnown
+                          ? "text-gray-600"
+                          : freeVendState
+                            ? "text-green-700"
+                            : "text-red-700"
+                      }`}
+                    >
+                      {!freeVendKnown
+                        ? "Unknown"
+                        : freeVendState
+                          ? "Enabled"
+                          : "Disabled"}
+                    </span>
+                    {freeVendKnown && (
+                      <button
+                        id="freeVend"
+                        type="button"
+                        role="switch"
+                        aria-checked={freeVendState}
+                        onClick={() => setFreeVendState((prev) => !prev)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                          freeVendState ? "bg-orange-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            freeVendState ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {!freeVendKnown && (
+                  <p className="text-xs text-gray-500 text-left">
+                    This machine ID was not found in VendLive machine locations.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={closeFreeVendModal}
+                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
+                >
+                  {freeVendKnown ? "Cancel" : "Close"}
+                </button>
+                {freeVendKnown && (
+                  <button
+                    onClick={handleSubmitFreeVend}
+                    disabled={loadingFreeVend}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loadingFreeVend && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    {loadingFreeVend ? "Updating..." : "Update Free Vend"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

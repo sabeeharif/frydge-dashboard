@@ -835,6 +835,33 @@ export const api = {
     });
   },
 
+  // Set Free Vend for a machine (AWS)
+  setMachineFreeVend: async (params = {}) => {
+    const { machineId, freeVend } = params;
+
+    if (!machineId || freeVend === undefined || freeVend === null) {
+      return {
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: "Missing machineId or freeVend" }),
+      };
+    }
+
+    // API expects "enable" | "disable"
+    const freeVendValue =
+      freeVend === true || freeVend === "enable" || freeVend === "enabled"
+        ? "enable"
+        : "disable";
+
+    return ApiService.awsRequest(`/internal_machine/free-vend`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        machineId: Number(machineId),
+        freeVend: freeVendValue,
+      }),
+    });
+  },
+
   // Get Encrypted Machine ID (AWS) - Direct call with CORS handling
   getEncryptedMachineId: async (params = {}) => {
     const { machineId } = params;
