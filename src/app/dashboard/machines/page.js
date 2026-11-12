@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Monitor,
   MapPin,
   Building2,
@@ -23,6 +24,7 @@ import {
   RefreshCcw,
   ArrowUpDown,
   Gift,
+  Filter,
   Settings,
   Search,
 } from "lucide-react";
@@ -51,7 +53,6 @@ function MachineTableContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageSize = 10;
-  const totalPages = Math.ceil(totalCount / pageSize);
   const modalRef = useRef(null);
 
   // Separate states for encrypted IDs and QR codes
@@ -69,15 +70,9 @@ function MachineTableContent() {
   const [selectedMachineForQr, setSelectedMachineForQr] = useState(null);
   const qrModalRef = useRef(null);
 
-  // Free Vend Modal state
-  const [isFreeVendModalOpen, setIsFreeVendModalOpen] = useState(false);
-  const [selectedMachineForFreeVend, setSelectedMachineForFreeVend] = useState(null);
-  const [freeVendState, setFreeVendState] = useState(false);
-  const [freeVendKnown, setFreeVendKnown] = useState(false);
-  const [loadingFreeVend, setLoadingFreeVend] = useState(false);
-  const freeVendModalRef = useRef(null);
-  // machineId -> boolean (only machines found in VendLive locations)
+  // Free Vend: machineId -> boolean (only machines found in VendLive locations)
   const [freeVendStatus, setFreeVendStatus] = useState({});
+  const [loadingFreeVend, setLoadingFreeVend] = useState({});
 
   // Enable/Disable Modal state
   const [isEnableModalOpen, setIsEnableModalOpen] = useState(false);
@@ -99,6 +94,7 @@ function MachineTableContent() {
   const { success, error: toastError } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [freeVendFilter, setFreeVendFilter] = useState("all");
   const [allMachines, setAllMachines] = useState([]);
   const [isLoadingAllMachines, setIsLoadingAllMachines] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState("");
@@ -177,61 +173,70 @@ function MachineTableContent() {
     isLoadingAllMachines,
   ]);
 
-  const getDisplayedMachines = () => {
-    if (!searchTerm) return machines;
-
-    // Search through all machines if available
-    if (allMachines.length === totalCount && totalCount > 0) {
-      return allMachines.filter(
-        (machine) =>
-          machine.id
-            ?.toString()
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.friendlyName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.venue?.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.location?.description
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.maxItemsPerDevice?.[0]?.deviceId
-            ?.toString()
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.maxItemsPerDevice?.[0]?.deviceName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Fallback to current page search
-    return machines.filter(
-      (machine) =>
-        machine.id
-          ?.toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.friendlyName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        machine.location?.description
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.maxItemsPerDevice?.[0]?.deviceId
-          ?.toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.maxItemsPerDevice?.[0]?.deviceName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
+  const matchesSearchTerm = (machine, term) => {
+    if (!term) return true;
+    const lower = term.toLowerCase();
+    return (
+      machine.id?.toString().toLowerCase().includes(lower) ||
+      machine.friendlyName?.toLowerCase().includes(lower) ||
+      machine.venue?.name?.toLowerCase().includes(lower) ||
+      machine.location?.description?.toLowerCase().includes(lower) ||
+      machine.maxItemsPerDevice?.[0]?.deviceId
+        ?.toString()
+        .toLowerCase()
+        .includes(lower) ||
+      machine.maxItemsPerDevice?.[0]?.deviceName
+        ?.toLowerCase()
+        .includes(lower)
     );
   };
 
-  const displayedMachines = getDisplayedMachines();
+  const matchesFreeVendFilter = (machine) => {
+    if (freeVendFilter === "all") return true;
+
+    const key = String(machine.id);
+    const isKnown = key in freeVendStatus;
+
+    if (freeVendFilter === "unknown") return !isKnown;
+    if (!isKnown) return false;
+
+    const enabled = Boolean(freeVendStatus[key]);
+    if (freeVendFilter === "enabled") return enabled;
+    if (freeVendFilter === "disabled") return !enabled;
+    return true;
+  };
+
+  const isClientFilterMode =
+    Boolean(searchTerm.trim()) || freeVendFilter !== "all";
+
+  const getFilteredMachines = () => {
+    if (!isClientFilterMode) return [];
+
+    // Prefer full machine list so filter finds machines on every page
+    const source = allMachines.length > 0 ? allMachines : machines;
+
+    return source.filter(
+      (machine) =>
+        matchesSearchTerm(machine, searchTerm.trim()) &&
+        matchesFreeVendFilter(machine)
+    );
+  };
+
+  const filteredMachines = getFilteredMachines();
+  const paginationTotalCount = isClientFilterMode
+    ? filteredMachines.length
+    : totalCount;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(paginationTotalCount / pageSize) || 1
+  );
+
+  const displayedMachines = isClientFilterMode
+    ? filteredMachines.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+      )
+    : machines;
 
   //=====change start
   // Get device status from VendLive
@@ -515,31 +520,20 @@ function MachineTableContent() {
     };
   };
 
-  // Open Free Vend modal
-  const handleFreeVend = (machine) => {
-    const status = getFreeVendDisplay(machine?.id);
-    setSelectedMachineForFreeVend(machine);
-    setFreeVendKnown(status.known);
-    setFreeVendState(status.enabled);
-    setIsFreeVendModalOpen(true);
-  };
+  const handleToggleFreeVend = async (machine) => {
+    const machineId = machine?.id;
+    if (!machineId) return;
 
-  const closeFreeVendModal = () => {
-    setIsFreeVendModalOpen(false);
-    setSelectedMachineForFreeVend(null);
-    setFreeVendState(false);
-    setFreeVendKnown(false);
-    setLoadingFreeVend(false);
-  };
+    const status = getFreeVendDisplay(machineId);
+    if (!status.known || loadingFreeVend[machineId]) return;
 
-  const handleSubmitFreeVend = async () => {
-    if (!selectedMachineForFreeVend) return;
+    const nextValue = !status.enabled;
 
-    setLoadingFreeVend(true);
+    setLoadingFreeVend((prev) => ({ ...prev, [machineId]: true }));
     try {
       const res = await api.setMachineFreeVend({
-        machineId: selectedMachineForFreeVend.id,
-        freeVend: freeVendState,
+        machineId,
+        freeVend: nextValue,
       });
 
       const result = await res.json().catch(() => ({}));
@@ -551,31 +545,25 @@ function MachineTableContent() {
 
       if (res.ok) {
         success(
-          `Free Vend ${freeVendState ? "enabled" : "disabled"} successfully`
+          `Free Vend ${nextValue ? "enabled" : "disabled"} successfully`
         );
 
-        const machineKey = String(selectedMachineForFreeVend.id);
+        const machineKey = String(machineId);
         setFreeVendStatus((prev) => ({
           ...prev,
-          [machineKey]: freeVendState,
+          [machineKey]: nextValue,
         }));
 
         setMachines((prev) =>
           prev.map((m) =>
-            m.id === selectedMachineForFreeVend.id
-              ? { ...m, freeVend: freeVendState }
-              : m
+            m.id === machineId ? { ...m, freeVend: nextValue } : m
           )
         );
         setAllMachines((prev) =>
           prev.map((m) =>
-            m.id === selectedMachineForFreeVend.id
-              ? { ...m, freeVend: freeVendState }
-              : m
+            m.id === machineId ? { ...m, freeVend: nextValue } : m
           )
         );
-
-        closeFreeVendModal();
       } else {
         toastError(result.error || "Failed to update Free Vend setting");
       }
@@ -583,7 +571,7 @@ function MachineTableContent() {
       console.error("Free Vend Error:", error);
       toastError("Something went wrong while updating Free Vend.");
     } finally {
-      setLoadingFreeVend(false);
+      setLoadingFreeVend((prev) => ({ ...prev, [machineId]: false }));
     }
   };
 
@@ -637,14 +625,6 @@ function MachineTableContent() {
     }
   }, [isEnableModalOpen]);
 
-  useEffect(() => {
-    if (isFreeVendModalOpen) {
-      document.body.classList.add("overflow-hidden");
-    } else {
-      document.body.classList.remove("overflow-hidden");
-    }
-  }, [isFreeVendModalOpen]);
-
   // Close modal on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -693,29 +673,23 @@ function MachineTableContent() {
     };
   }, [isEnableModalOpen]);
 
-  // Close Free Vend modal on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        freeVendModalRef.current &&
-        !freeVendModalRef.current.contains(event.target)
-      ) {
-        closeFreeVendModal();
-      }
-    }
-    if (isFreeVendModalOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isFreeVendModalOpen]);
-
   useEffect(() => {
     const pageFromUrl = Number.parseInt(searchParams.get("page")) || 1;
     setCurrentPage(pageFromUrl);
     fetchMachines(pageFromUrl);
   }, [searchParams]);
+
+  // Reset to first page when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, freeVendFilter]);
+
+  // Keep page in range when filtered result count changes
+  useEffect(() => {
+    if (isClientFilterMode && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [isClientFilterMode, currentPage, totalPages]);
 
   const fetchFreeVendStatuses = async () => {
     try {
@@ -852,7 +826,9 @@ function MachineTableContent() {
     if (currentPage < totalPages) {
       const newPage = currentPage + 1;
       setCurrentPage(newPage);
-      updateUrlParams(newPage);
+      if (!isClientFilterMode) {
+        updateUrlParams(newPage);
+      }
     }
   };
 
@@ -860,13 +836,17 @@ function MachineTableContent() {
     if (currentPage > 1) {
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
-      updateUrlParams(newPage);
+      if (!isClientFilterMode) {
+        updateUrlParams(newPage);
+      }
     }
   };
 
   const handlePageClick = (page) => {
     setCurrentPage(page);
-    updateUrlParams(page);
+    if (!isClientFilterMode) {
+      updateUrlParams(page);
+    }
   };
 
   const getPageNumbers = () => {
@@ -955,26 +935,52 @@ function MachineTableContent() {
         </button>
       </div>
 
-      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="flex items-center bg-white  rounded-full px-3">
-          <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
-          <input
-            type="text"
-            placeholder="Search machines by ID, name, venue, location, or device..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full py-2 bg-transparent outline-none text-gray-900 "
-          />
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+          <div className="flex items-center bg-white rounded-full px-3">
+            <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+            <input
+              type="text"
+              placeholder="Search machines by ID, name, venue, location, or device..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full py-2 bg-transparent outline-none text-gray-900"
+            />
+          </div>
+        </div>
+
+        <div className="relative w-full sm:w-52">
+          <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <select
+            value={freeVendFilter}
+            onChange={(e) => setFreeVendFilter(e.target.value)}
+            className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white pl-9 pr-9 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="all">All Free Vend</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+            <option value="unknown">Unknown</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         </div>
       </div>
-      {searchTerm && (
+      {(searchTerm || freeVendFilter !== "all") && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-800 text-sm">
-            Found {displayedMachines.length} machine
-            {displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
+            Found {filteredMachines.length} machine
+            {filteredMachines.length !== 1 ? "s" : ""}
+            {searchTerm ? ` matching "${searchTerm}"` : ""}
+            {freeVendFilter !== "all"
+              ? ` with Free Vend: ${
+                  freeVendFilter.charAt(0).toUpperCase() +
+                  freeVendFilter.slice(1)
+                }`
+              : ""}
             {allMachines.length > 0
-              ? ` (searching through ${allMachines.length} total machines)`
-              : " (searching current page only)"}
+              ? ` (from ${allMachines.length} total machines)`
+              : isLoadingAllMachines
+                ? " (loading all machines...)"
+                : " (filtering loaded machines)"}
           </p>
         </div>
       )}
@@ -1020,6 +1026,12 @@ function MachineTableContent() {
                   Device Name
                 </th>
                 <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4" />
+                    Free Vend
+                  </div>
+                </th>
+                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">Action</div>
                 </th>
               </tr>
@@ -1029,7 +1041,7 @@ function MachineTableContent() {
               {displayedMachines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -1150,6 +1162,59 @@ function MachineTableContent() {
                       </div>
                     </td>
 
+                    {/* Free Vend */}
+                    <td className="px-2 py-2 text-[11px]">
+                      {(() => {
+                        const freeVendDisplay = getFreeVendDisplay(machine.id);
+                        const isLoading = Boolean(loadingFreeVend[machine.id]);
+
+                        if (!freeVendDisplay.known) {
+                          return (
+                            <span className="text-xs font-medium text-gray-500">
+                              Unknown
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-[10px] font-medium ${
+                                freeVendDisplay.enabled
+                                  ? "text-green-700"
+                                  : "text-red-700"
+                              }`}
+                            >
+                              {freeVendDisplay.label}
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={freeVendDisplay.enabled}
+                              disabled={isLoading}
+                              onClick={() => handleToggleFreeVend(machine)}
+                              className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                freeVendDisplay.enabled
+                                  ? "bg-orange-500"
+                                  : "bg-gray-300"
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  freeVendDisplay.enabled
+                                    ? "translate-x-4"
+                                    : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                            {isLoading && (
+                              <Loader2 className="h-3 w-3 animate-spin text-orange-500" />
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </td>
+
                     {/* Actions */}
                     <td className="px-2 py-2 text-[11px]">
                       <div className="flex flex-col gap-2">
@@ -1222,16 +1287,6 @@ function MachineTableContent() {
                           <ArrowUpDown className="h-3 w-3" />
                           {isSorting[machine.id] ? "Sorting..." : "Sort"}
                         </button>
-
-                        {/* Free Vend Button */}
-                        <button
-                          className="px-2 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200 flex items-center gap-1 cursor-pointer"
-                          type="button"
-                          onClick={() => handleFreeVend(machine)}
-                        >
-                          <Gift className="h-3 w-3" />
-                          Free Vend
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1264,13 +1319,13 @@ function MachineTableContent() {
       /> */}
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {paginationTotalCount > 0 && totalPages > 1 && (
         <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
           <div className="flex items-center text-sm text-gray-700">
             <span>
               Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
-              results
+              {Math.min(currentPage * pageSize, paginationTotalCount)} of{" "}
+              {paginationTotalCount} results
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -1310,113 +1365,6 @@ function MachineTableContent() {
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Free Vend Modal */}
-      {isFreeVendModalOpen && selectedMachineForFreeVend && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div
-            ref={freeVendModalRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
-          >
-            <button
-              onClick={closeFreeVendModal}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
-
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-4">
-                <Gift className="h-8 w-8 text-orange-600 mr-2" />
-                <h2 className="text-2xl font-bold text-gray-800">Free Vend</h2>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  Machine:{" "}
-                  {selectedMachineForFreeVend.friendlyName ||
-                    selectedMachineForFreeVend.id}
-                </p>
-                <p className="text-xs text-gray-500">
-                  ID: {selectedMachineForFreeVend.id}
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <label
-                    htmlFor="freeVend"
-                    className="text-sm font-medium text-gray-700 cursor-pointer"
-                  >
-                    Free Vend :
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`text-xs font-medium ${
-                        !freeVendKnown
-                          ? "text-gray-600"
-                          : freeVendState
-                            ? "text-green-700"
-                            : "text-red-700"
-                      }`}
-                    >
-                      {!freeVendKnown
-                        ? "Unknown"
-                        : freeVendState
-                          ? "Enabled"
-                          : "Disabled"}
-                    </span>
-                    {freeVendKnown && (
-                      <button
-                        id="freeVend"
-                        type="button"
-                        role="switch"
-                        aria-checked={freeVendState}
-                        onClick={() => setFreeVendState((prev) => !prev)}
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
-                          freeVendState ? "bg-orange-500" : "bg-gray-300"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            freeVendState ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {!freeVendKnown && (
-                  <p className="text-xs text-gray-500 text-left">
-                    This machine ID was not found in VendLive machine locations.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={closeFreeVendModal}
-                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
-                >
-                  {freeVendKnown ? "Cancel" : "Close"}
-                </button>
-                {freeVendKnown && (
-                  <button
-                    onClick={handleSubmitFreeVend}
-                    disabled={loadingFreeVend}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {loadingFreeVend && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
-                    {loadingFreeVend ? "Updating..." : "Update Free Vend"}
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
