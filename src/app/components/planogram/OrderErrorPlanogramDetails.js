@@ -52,27 +52,30 @@ const OrderErrorPlanogramDetails = ({
   // console.log("machineErrors", machineErrors)
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-3xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-gray-800">
+        <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base sm:text-2xl font-bold text-gray-800">
               View Order Error
             </h3>
             <button
               onClick={closeModal}
-              className="p-2 text-gray-400 hover:text-gray-600"
+              className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
         </div>
 
         {/* Form */}
-        <div className="p-6 space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-4 sm:space-y-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
               Order Details
             </h3>
 
@@ -113,17 +116,17 @@ const OrderErrorPlanogramDetails = ({
             ) : (
               /* Table */
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+                  <table className="w-full min-w-[520px]">
                     <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
+                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-left text-[10px] sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap">
                           Planned Date
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
+                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-left text-[10px] sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap">
                           Error Message
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
+                        <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-left text-[10px] sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap">
                           Actions
                         </th>
                       </tr>
@@ -143,22 +146,22 @@ const OrderErrorPlanogramDetails = ({
                         return (
                           <tr key={index} className="border-t border-gray-300">
                             {/* Planned Date */}
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">
                               {formattedDate}
                             </td>
 
                             {/* Error Message */}
-                            <td className="px-4 text-red-500 py-3 text-sm font-medium">
+                            <td className="px-3 sm:px-4 text-red-500 py-2.5 sm:py-3 text-xs sm:text-sm font-medium">
                               {row?.errorMessage || "N/A"}
                             </td>
 
                             {/* Actions */}
-                            <td className="px-4 py-3 text-center space-x-3">
+                            <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-center whitespace-nowrap">
                               <button
                                 disabled={
                                   loadingRow === `${row?.orderSnapshotId}-${row?.machineId}`
                                 }
-                                className="text-green-600 cursor-pointer hover:underline font-medium"
+                                className="text-green-600 cursor-pointer hover:underline font-medium text-xs sm:text-sm"
                                 onClick={() => handleMarkAsRead(row)}
                               >
                                 {loadingRow === `${row?.orderSnapshotId}-${row?.machineId}`
@@ -178,10 +181,10 @@ const OrderErrorPlanogramDetails = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6  border-gray-200 flex justify-end gap-3">
+        <div className="p-3 sm:p-6 border-t border-gray-200 flex justify-end gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
           <button
             onClick={closeModal}
-            className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
           >
             Cancel
           </button>

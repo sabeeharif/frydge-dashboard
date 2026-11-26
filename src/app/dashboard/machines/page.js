@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Monitor,
   MapPin,
   Building2,
@@ -21,6 +22,9 @@ import {
   Power,
   PowerOff,
   RefreshCcw,
+  ArrowUpDown,
+  Gift,
+  Filter,
   Settings,
   Search,
 } from "lucide-react";
@@ -49,7 +53,6 @@ function MachineTableContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pageSize = 10;
-  const totalPages = Math.ceil(totalCount / pageSize);
   const modalRef = useRef(null);
 
   // Separate states for encrypted IDs and QR codes
@@ -58,12 +61,18 @@ function MachineTableContent() {
   const [qrUrls, setQrUrls] = useState({});
   const [loadingQrCodes, setLoadingQrCodes] = useState({});
   const [isSync, setIsSync] = useState({});
+  const [isSorting, setIsSorting] = useState({});
+  const [isSortingAll, setIsSortingAll] = useState(false);
 
   // QR Modal state
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [selectedQrCode, setSelectedQrCode] = useState("");
   const [selectedMachineForQr, setSelectedMachineForQr] = useState(null);
   const qrModalRef = useRef(null);
+
+  // Free Vend: machineId -> boolean (only machines found in VendLive locations)
+  const [freeVendStatus, setFreeVendStatus] = useState({});
+  const [loadingFreeVend, setLoadingFreeVend] = useState({});
 
   // Enable/Disable Modal state
   const [isEnableModalOpen, setIsEnableModalOpen] = useState(false);
@@ -85,6 +94,7 @@ function MachineTableContent() {
   const { success, error: toastError } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [freeVendFilter, setFreeVendFilter] = useState("all");
   const [allMachines, setAllMachines] = useState([]);
   const [isLoadingAllMachines, setIsLoadingAllMachines] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState("");
@@ -163,61 +173,70 @@ function MachineTableContent() {
     isLoadingAllMachines,
   ]);
 
-  const getDisplayedMachines = () => {
-    if (!searchTerm) return machines;
-
-    // Search through all machines if available
-    if (allMachines.length === totalCount && totalCount > 0) {
-      return allMachines.filter(
-        (machine) =>
-          machine.id
-            ?.toString()
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.friendlyName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.venue?.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.location?.description
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.maxItemsPerDevice?.[0]?.deviceId
-            ?.toString()
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          machine.maxItemsPerDevice?.[0]?.deviceName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Fallback to current page search
-    return machines.filter(
-      (machine) =>
-        machine.id
-          ?.toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.friendlyName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        machine.location?.description
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.maxItemsPerDevice?.[0]?.deviceId
-          ?.toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        machine.maxItemsPerDevice?.[0]?.deviceName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
+  const matchesSearchTerm = (machine, term) => {
+    if (!term) return true;
+    const lower = term.toLowerCase();
+    return (
+      machine.id?.toString().toLowerCase().includes(lower) ||
+      machine.friendlyName?.toLowerCase().includes(lower) ||
+      machine.venue?.name?.toLowerCase().includes(lower) ||
+      machine.location?.description?.toLowerCase().includes(lower) ||
+      machine.maxItemsPerDevice?.[0]?.deviceId
+        ?.toString()
+        .toLowerCase()
+        .includes(lower) ||
+      machine.maxItemsPerDevice?.[0]?.deviceName
+        ?.toLowerCase()
+        .includes(lower)
     );
   };
 
-  const displayedMachines = getDisplayedMachines();
+  const matchesFreeVendFilter = (machine) => {
+    if (freeVendFilter === "all") return true;
+
+    const key = String(machine.id);
+    const isKnown = key in freeVendStatus;
+
+    if (freeVendFilter === "unknown") return !isKnown;
+    if (!isKnown) return false;
+
+    const enabled = Boolean(freeVendStatus[key]);
+    if (freeVendFilter === "enabled") return enabled;
+    if (freeVendFilter === "disabled") return !enabled;
+    return true;
+  };
+
+  const isClientFilterMode =
+    Boolean(searchTerm.trim()) || freeVendFilter !== "all";
+
+  const getFilteredMachines = () => {
+    if (!isClientFilterMode) return [];
+
+    // Prefer full machine list so filter finds machines on every page
+    const source = allMachines.length > 0 ? allMachines : machines;
+
+    return source.filter(
+      (machine) =>
+        matchesSearchTerm(machine, searchTerm.trim()) &&
+        matchesFreeVendFilter(machine)
+    );
+  };
+
+  const filteredMachines = getFilteredMachines();
+  const paginationTotalCount = isClientFilterMode
+    ? filteredMachines.length
+    : totalCount;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(paginationTotalCount / pageSize) || 1
+  );
+
+  const displayedMachines = isClientFilterMode
+    ? filteredMachines.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+      )
+    : machines;
 
   //=====change start
   // Get device status from VendLive
@@ -462,6 +481,126 @@ function MachineTableContent() {
     }
   };
 
+  // Handle sort machine products
+  const handleSortMachineProducts = async (machineId) => {
+    try {
+      setIsSorting((prev) => ({ ...prev, [machineId]: true }));
+
+      const res = await api.sortMachineProducts({ machineId });
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success("Machine products sorted successfully.");
+      } else {
+        toastError(result.error || "Failed to sort machine products.");
+      }
+    } catch (error) {
+      console.error("Sort products error:", error);
+      toastError("Something went wrong while sorting products.");
+    } finally {
+      setIsSorting((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+
+  const getFreeVendDisplay = (machineId) => {
+    const key = String(machineId);
+    if (!(key in freeVendStatus)) {
+      return { label: "Unknown", known: false, enabled: false };
+    }
+    const enabled = Boolean(freeVendStatus[key]);
+    return {
+      label: enabled ? "Enabled" : "Disabled",
+      known: true,
+      enabled,
+    };
+  };
+
+  const handleToggleFreeVend = async (machine) => {
+    const machineId = machine?.id;
+    if (!machineId) return;
+
+    const status = getFreeVendDisplay(machineId);
+    if (!status.known || loadingFreeVend[machineId]) return;
+
+    const nextValue = !status.enabled;
+
+    setLoadingFreeVend((prev) => ({ ...prev, [machineId]: true }));
+    try {
+      const res = await api.setMachineFreeVend({
+        machineId,
+        freeVend: nextValue,
+      });
+
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success(
+          `Free Vend ${nextValue ? "enabled" : "disabled"} successfully`
+        );
+
+        const machineKey = String(machineId);
+        setFreeVendStatus((prev) => ({
+          ...prev,
+          [machineKey]: nextValue,
+        }));
+
+        setMachines((prev) =>
+          prev.map((m) =>
+            m.id === machineId ? { ...m, freeVend: nextValue } : m
+          )
+        );
+        setAllMachines((prev) =>
+          prev.map((m) =>
+            m.id === machineId ? { ...m, freeVend: nextValue } : m
+          )
+        );
+      } else {
+        toastError(result.error || "Failed to update Free Vend setting");
+      }
+    } catch (error) {
+      console.error("Free Vend Error:", error);
+      toastError("Something went wrong while updating Free Vend.");
+    } finally {
+      setLoadingFreeVend((prev) => ({ ...prev, [machineId]: false }));
+    }
+  };
+
+  // Handle sort products for all machines
+  const handleSortAllMachineProducts = async () => {
+    try {
+      setIsSortingAll(true);
+
+      const res = await api.sortAllMachineProducts();
+      const result = await res.json().catch(() => ({}));
+
+      if ([400, 401, 403].includes(res.status)) {
+        toastError("Session expired. Please log in again.");
+        return;
+      }
+
+      if (res.ok) {
+        success("All machine products sorted successfully.");
+      } else {
+        toastError(result.error || "Failed to sort all machine products.");
+      }
+    } catch (error) {
+      console.error("Sort all products error:", error);
+      toastError("Something went wrong while sorting all products.");
+    } finally {
+      setIsSortingAll(false);
+    }
+  };
+
   useEffect(() => {
     if (isModalOpen) {
       document.body.classList.add("overflow-hidden");
@@ -540,12 +679,56 @@ function MachineTableContent() {
     fetchMachines(pageFromUrl);
   }, [searchParams]);
 
+  // Reset to first page when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, freeVendFilter]);
+
+  // Keep page in range when filtered result count changes
+  useEffect(() => {
+    if (isClientFilterMode && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [isClientFilterMode, currentPage, totalPages]);
+
+  const fetchFreeVendStatuses = async () => {
+    try {
+      const response = await api.getMachineLocations();
+      if (!response.ok) {
+        console.error("Failed to fetch machine locations for Free Vend");
+        return;
+      }
+
+      const data = await response.json();
+      const locations = data.results || data || [];
+      const statusMap = {};
+
+      locations.forEach((location) => {
+        const machineId = location?.machine?.id ?? location?.machineId;
+        if (machineId == null) return;
+
+        statusMap[String(machineId)] = Boolean(
+          location?.machine?.freeVend ?? location?.freeVend
+        );
+      });
+
+      setFreeVendStatus(statusMap);
+    } catch (error) {
+      console.error("Error fetching Free Vend statuses:", error);
+    }
+  };
+
   const fetchMachines = async (page) => {
     try {
       setLoading(true);
       setError("");
       console.log("Fetching machines for page:", page);
-      const response = await api.getMachines({ page, pageSize });
+
+      const [response] = await Promise.all([
+        api.getMachines({ page, pageSize }),
+        fetchFreeVendStatuses(),
+      ]);
+
       console.log("Client fetch response status:", response.status);
       if (!response.ok) {
         const errorData = await response
@@ -643,7 +826,9 @@ function MachineTableContent() {
     if (currentPage < totalPages) {
       const newPage = currentPage + 1;
       setCurrentPage(newPage);
-      updateUrlParams(newPage);
+      if (!isClientFilterMode) {
+        updateUrlParams(newPage);
+      }
     }
   };
 
@@ -651,13 +836,17 @@ function MachineTableContent() {
     if (currentPage > 1) {
       const newPage = currentPage - 1;
       setCurrentPage(newPage);
-      updateUrlParams(newPage);
+      if (!isClientFilterMode) {
+        updateUrlParams(newPage);
+      }
     }
   };
 
   const handlePageClick = (page) => {
     setCurrentPage(page);
-    updateUrlParams(page);
+    if (!isClientFilterMode) {
+      updateUrlParams(page);
+    }
   };
 
   const getPageNumbers = () => {
@@ -726,34 +915,82 @@ function MachineTableContent() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-          <Monitor className="h-10 w-10 text-blue-600" />
-          <p className="text-gray-800">Machines</p>
+    <div className="space-y-4 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 lg:gap-4">
+        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-0 flex items-center gap-2 lg:gap-3 text-left">
+          <Monitor className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+          <span className="text-gray-800">Machines</span>
         </h1>
+        <button
+          onClick={handleSortAllMachineProducts}
+          disabled={isSortingAll}
+          className="w-full sm:w-auto px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSortingAll ? (
+            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+          ) : (
+            <ArrowUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          )}
+          {isSortingAll ? (
+            <>
+              <span className="sm:hidden">Sorting...</span>
+              <span className="hidden sm:inline">Sorting All...</span>
+            </>
+          ) : (
+            <>
+              <span className="sm:hidden">Sort All</span>
+              <span className="hidden sm:inline">Sort All Machines</span>
+            </>
+          )}
+        </button>
       </div>
 
-      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="flex items-center bg-white  rounded-full px-3">
-          <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
-          <input
-            type="text"
-            placeholder="Search machines by ID, name, venue, location, or device..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full py-2 bg-transparent outline-none text-gray-900 "
-          />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+          <div className="flex items-center bg-white rounded-full px-3">
+            <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
+            <input
+              type="text"
+              placeholder="Search machines by ID, name, venue, location, or device..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full text-sm lg:text-base py-2 bg-transparent outline-none text-gray-900"
+            />
+          </div>
+        </div>
+
+        <div className="relative w-full sm:w-52">
+          <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <select
+            value={freeVendFilter}
+            onChange={(e) => setFreeVendFilter(e.target.value)}
+            className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white pl-9 pr-9 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="all">All Free Vend</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+            <option value="unknown">Unknown</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         </div>
       </div>
-      {searchTerm && (
+      {(searchTerm || freeVendFilter !== "all") && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-800 text-sm">
-            Found {displayedMachines.length} machine
-            {displayedMachines.length !== 1 ? "s" : ""} matching "{searchTerm}"
+            Found {filteredMachines.length} machine
+            {filteredMachines.length !== 1 ? "s" : ""}
+            {searchTerm ? ` matching "${searchTerm}"` : ""}
+            {freeVendFilter !== "all"
+              ? ` with Free Vend: ${
+                  freeVendFilter.charAt(0).toUpperCase() +
+                  freeVendFilter.slice(1)
+                }`
+              : ""}
             {allMachines.length > 0
-              ? ` (searching through ${allMachines.length} total machines)`
-              : " (searching current page only)"}
+              ? ` (from ${allMachines.length} total machines)`
+              : isLoadingAllMachines
+                ? " (loading all machines...)"
+                : " (filtering loaded machines)"}
           </p>
         </div>
       )}
@@ -761,44 +998,50 @@ function MachineTableContent() {
       {/* Table Card Wrapper */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-xs">
+          <table className="w-full min-w-[640px] lg:min-w-[1100px] text-xs">
             {/* Head */}
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 lg:px-2 lg:py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden md:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Encrypted Machine ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden md:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <QrCode className="h-4 w-4" />
                     QR Code
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Friendly Name
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
                     Venue
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     Location
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Device ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Device Name
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4" />
+                    Free Vend
+                  </div>
+                </th>
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">Action</div>
                 </th>
               </tr>
@@ -808,7 +1051,7 @@ function MachineTableContent() {
               {displayedMachines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-6 py-12 text-center text-gray-500"
                   >
                     <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -831,26 +1074,26 @@ function MachineTableContent() {
                         : "bg-gray-50"
                       } hover:bg-blue-100 transition-colors duration-200 cursor-pointer`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
+                    <td className="px-2 py-2 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-[10px] sm:text-sm shrink-0">
                           {index + 1 + (currentPage - 1) * pageSize}
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-[11px] sm:text-sm font-medium text-gray-900">
                           {machine.id}
                         </span>
                       </div>
                     </td>
 
                     {/* Encrypted ID Column */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden md:table-cell px-2 py-2 text-[11px]">
                       {encryptedIds[machine.id] ? (
                         <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold hover:bg-green-200">
                           {encryptedIds[machine.id]}
                         </span>
                       ) : (
                         <button
-                          className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium hover:bg-red-200"
+                          className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-medium hover:bg-red-200 cursor-pointer disabled:cursor-not-allowed"
                           type="button"
                           disabled={loadingEncryptedIds[machine.id]}
                           onClick={() => getEncryptedMachineId(machine.id)}
@@ -863,10 +1106,10 @@ function MachineTableContent() {
                     </td>
 
                     {/* QR Code Column */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden md:table-cell px-2 py-2 text-[11px]">
                       {qrUrls[machine.id] ? (
                         <button
-                          className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1"
+                          className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1 cursor-pointer"
                           type="button"
                           onClick={() => handleViewQr(machine)}
                         >
@@ -874,7 +1117,7 @@ function MachineTableContent() {
                         </button>
                       ) : (
                         <button
-                          className="px-3 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200"
+                          className="px-3 py-1 rounded-full bg-orange-100 text-orange-800 font-medium hover:bg-orange-200 cursor-pointer disabled:cursor-not-allowed"
                           type="button"
                           disabled={loadingQrCodes[machine.id]}
                           onClick={() => getQrCode(machine.id)}
@@ -892,7 +1135,7 @@ function MachineTableContent() {
                     </td>
 
                     {/* Venue */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full font-medium ${machine.venue
                           ? "bg-green-100 text-green-800"
@@ -904,7 +1147,7 @@ function MachineTableContent() {
                     </td>
 
                     {/* Location */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full font-medium ${machine.location
                           ? "bg-green-100 text-green-800"
@@ -916,17 +1159,70 @@ function MachineTableContent() {
                     </td>
 
                     {/* Device ID */}
-                    <td className="px-2 py-2 text-[11px] whitespace-nowrap">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px] whitespace-nowrap">
                       <div className="text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceId || "N/A"}
                       </div>
                     </td>
 
                     {/* Device Name */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <div className="font-medium text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceName || "N/A"}
                       </div>
+                    </td>
+
+                    {/* Free Vend */}
+                    <td className="px-2 py-2 text-[11px]">
+                      {(() => {
+                        const freeVendDisplay = getFreeVendDisplay(machine.id);
+                        const isLoading = Boolean(loadingFreeVend[machine.id]);
+
+                        if (!freeVendDisplay.known) {
+                          return (
+                            <span className="text-xs font-medium text-gray-500">
+                              Unknown
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-[10px] font-medium ${
+                                freeVendDisplay.enabled
+                                  ? "text-green-700"
+                                  : "text-red-700"
+                              }`}
+                            >
+                              {freeVendDisplay.label}
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={freeVendDisplay.enabled}
+                              disabled={isLoading}
+                              onClick={() => handleToggleFreeVend(machine)}
+                              className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                freeVendDisplay.enabled
+                                  ? "bg-orange-500"
+                                  : "bg-gray-300"
+                              }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  freeVendDisplay.enabled
+                                    ? "translate-x-4"
+                                    : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                            {isLoading && (
+                              <Loader2 className="h-3 w-3 animate-spin text-orange-500" />
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Actions */}
@@ -954,42 +1250,59 @@ function MachineTableContent() {
                           </span>
                         ) : (
                           <button
-                            className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium hover:bg-gray-200"
+                            className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 font-medium hover:bg-gray-200 cursor-pointer disabled:cursor-not-allowed"
                             type="button"
                             disabled={loadingDeviceStatus[machine.id]}
                             onClick={() => getDeviceStatus(machine.id)}
                           >
-                            {loadingDeviceStatus[machine.id] ? "Loading..." : "Check Status"}
+                            {loadingDeviceStatus[machine.id] ? "..." : (
+                              <>
+                                <span className="sm:hidden">Status</span>
+                                <span className="hidden sm:inline">Check Status</span>
+                              </>
+                            )}
                           </button>
                         )}
 
                         {/* Planograms Button (NEW) */}
                         <button
-                          className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200"
+                          className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200 cursor-pointer"
                           onClick={() => handlePlanograms(machine)}
                         >
-                          Planograms
+                          <span className="sm:hidden">Plans</span>
+                          <span className="hidden sm:inline">Planograms</span>
                         </button>
 
                         {/* Enable/Disable Button */}
                         <button
-                          className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200`}
+                          className={`px-2 py-1 rounded-full font-medium flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer`}
                           onClick={() => handleToggleMachine(machine)}
                         >
                           <>
                             <Power className="h-3 w-3" />
-                            Enable/Disable
+                            <span className="sm:hidden">Toggle</span>
+                            <span className="hidden sm:inline">Enable/Disable</span>
                           </>
                         </button>
 
                         {/* Sync Button */}
                         <button
-                          className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium hover:bg-yellow-200 flex items-center gap-1"
+                          className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium hover:bg-yellow-200 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
                           onClick={() => handleSyncMachine(machine.id)}
                           disabled={isSync[machine.id]}
                         >
                           <RefreshCcw className="h-3 w-3" />
                           {isSync[machine.id] ? "Syncing..." : "Sync"}
+                        </button>
+
+                        {/* Sort Button */}
+                        <button
+                          className="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-medium hover:bg-purple-200 flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+                          onClick={() => handleSortMachineProducts(machine.id)}
+                          disabled={isSorting[machine.id]}
+                        >
+                          <ArrowUpDown className="h-3 w-3" />
+                          {isSorting[machine.id] ? "Sorting..." : "Sort"}
                         </button>
                       </div>
                     </td>
@@ -1023,51 +1336,52 @@ function MachineTableContent() {
       /> */}
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
+      {paginationTotalCount > 0 && totalPages > 1 && (
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <div className="flex items-center text-[11px] sm:text-sm text-slate-600">
             <span>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
-              results
+              Showing {(currentPage - 1) * pageSize + 1}-
+              {Math.min(currentPage * pageSize, paginationTotalCount)} of{" "}
+              {paginationTotalCount} results
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${currentPage === 1
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
+              Prev
             </button>
-            <div className="flex space-x-1">
-              {getPageNumbers().map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageClick(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === page
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-                    }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+            {getPageNumbers().map((page) => (
+              <button
+                type="button"
+                key={page}
+                onClick={() => handlePageClick(page)}
+                className={`min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border transition-colors ${currentPage === page
+                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+                  }`}
+              >
+                {page}
+              </button>
+            ))}
             <button
+              type="button"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === totalPages
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${currentPage === totalPages
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
           </div>
         </div>
@@ -1075,11 +1389,14 @@ function MachineTableContent() {
 
       {/* Enable/Disable Modal */}
       {isEnableModalOpen && selectedMachineForToggle && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
           <div
             ref={enableModalRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl p-4 sm:p-6 relative pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6"
           >
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             <button
               onClick={closeEnableModal}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1199,11 +1516,14 @@ function MachineTableContent() {
 
       {/* QR Code Modal */}
       {isQrModalOpen && selectedQrCode && selectedMachineForQr && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
           <div
             ref={qrModalRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl p-4 sm:p-6 relative pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6"
           >
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             <button
               onClick={closeQrModal}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1258,14 +1578,17 @@ function MachineTableContent() {
       {/* Main Modal (existing reporting modal) */}
       {isModalOpen && selectedMachine && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-3xl flex items-center justify-center z-40 px-4"
+          className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-3xl p-0 sm:px-4"
           ref={modalRef}
         >
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex overflow-hidden">
+          <div className="bg-white w-full sm:max-w-7xl h-[92dvh] sm:h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col sm:flex-row overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             {/* Left Panel - Machine Details (30%) */}
-            <div className="w-[30%] bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: "black" }}>
+            <div className="w-full sm:w-[30%] bg-gray-50 p-3 sm:p-6 border-b sm:border-b-0 sm:border-r border-gray-200 overflow-y-auto max-h-[35%] sm:max-h-none shrink-0 sm:shrink">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+                <h2 className="text-base sm:text-2xl font-bold" style={{ color: "black" }}>
                   Machine Details
                 </h2>
                 <button
@@ -1350,7 +1673,7 @@ function MachineTableContent() {
               </div>
             </div>
             {/* Right Panel - Date Selection & Reporting (70%) */}
-            <div className="w-[70%] p-6 overflow-y-auto">
+            <div className="w-full sm:w-[70%] flex-1 p-3 sm:p-6 overflow-y-auto overscroll-contain pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center justify-start gap-2 ">
                   <BarChart3 className="h-6 w-6 text-blue-600" />

@@ -769,23 +769,26 @@ export default function RoutesPage() {
 
         {/* Create Route Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold text-gray-800">Create New Route</p>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-6xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+              <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+                <div className="w-10 h-1 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base sm:text-2xl font-bold text-gray-800">Create New Route</p>
                   <button onClick={closeAllModals} className="p-2 text-gray-400 hover:text-gray-600">
                     <X className="h-6 w-6" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex h-full">
+              <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-y-auto sm:overflow-hidden">
                 {/* Left Side - Vacant Locations */}
-                <div className="w-1/2 p-6 border-r border-gray-200">
+                <div className="w-full sm:w-1/2 p-3 sm:p-6 border-b sm:border-b-0 sm:border-r border-gray-200 sm:overflow-y-auto">
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Vacant Locations</h3>
-                    <p className="text-sm text-gray-600">Click on a location to add it to your route</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">Vacant Locations</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Click on a location to add it to your route</p>
                   </div>
 
                   <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
@@ -836,16 +839,16 @@ export default function RoutesPage() {
                 </div>
 
                 {/* Right Side - Form */}
-                <div className="w-1/2 p-6 space-y-6">
+                <div className="w-full sm:w-1/2 p-3 sm:p-6 space-y-4 sm:space-y-6 sm:overflow-y-auto pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
                   {/* Route Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Route Name</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Route Name</label>
                     <input
                       type="text"
                       value={routeName}
                       onChange={(e) => setRouteName(e.target.value)}
                       placeholder="Enter route name"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
 
@@ -996,21 +999,24 @@ export default function RoutesPage() {
         )}
         {/* Edit Route Modal */}
         {showEditModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold text-gray-800">Edit Route</p>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-7xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col">
+              <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+                <div className="w-10 h-1 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base sm:text-2xl font-bold text-gray-800">Edit Route</p>
                   <button onClick={closeAllModals} className="p-2 text-gray-400 hover:text-gray-600">
                     <X className="h-6 w-6" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex h-[calc(90vh-120px)]">
+              <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-y-auto sm:overflow-hidden">
                 {/* Left Panel - Vacant Locations */}
-                <div className="w-1/2 border-r border-gray-200 p-6 overflow-y-auto">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Available Vacant Locations</h3>
+                <div className="w-full sm:w-1/2 border-b sm:border-b-0 sm:border-r border-gray-200 p-3 sm:p-6 sm:overflow-y-auto">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">Available Vacant Locations</h3>
 
                   {/* Search Input for Vacant Locations */}
                   <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
@@ -1090,7 +1096,7 @@ export default function RoutesPage() {
                 </div>
 
                 {/* Right Panel - Route Form */}
-                <div className="w-1/2 p-6 overflow-y-auto">
+                <div className="w-full sm:w-1/2 p-3 sm:p-6 sm:overflow-y-auto pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
                   <div className="space-y-6">
                     {/* Route ID (Read-only) */}
                     <div>
@@ -1311,22 +1317,25 @@ export default function RoutesPage() {
 
         {/* View Route Modal */}
         {showViewModal && viewingRoute && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold text-gray-800">View Route Details</p>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-6xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+              <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+                <div className="w-10 h-1 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base sm:text-2xl font-bold text-gray-800">View Route Details</p>
                   <button onClick={closeAllModals} className="p-2 text-gray-400 hover:text-gray-600">
                     <X className="h-6 w-6" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
                 {/* Route Info */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-900 mb-2">Route Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+                  <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">Route Information</h3>
                     <p className="text-sm text-blue-700">
                       <strong>ID:</strong> {viewingRoute.routeId}
                     </p>
@@ -1433,11 +1442,14 @@ export default function RoutesPage() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && routeToDelete && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-              <div className="p-6">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                  <Trash2 className="h-6 w-6 text-red-600" />
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex justify-center pt-2 pb-1 sm:hidden">
+                <div className="w-10 h-1 rounded-full bg-slate-300" />
+              </div>
+              <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 bg-red-100 rounded-full">
+                  <Trash2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Route</h3>
                 <p className="text-gray-600 text-center mb-6">

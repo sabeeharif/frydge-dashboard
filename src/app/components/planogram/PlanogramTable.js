@@ -1,4 +1,4 @@
-// ProductTable.jsx
+// PlanogramTable.jsx
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GripVertical } from "lucide-react";
@@ -60,28 +60,28 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete, onReorder }) => {
     <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
       {/* HORIZONTAL SCROLL */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[520px] lg:min-w-[900px]">
           <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
             <tr>
-              <th className="px-3 py-4 text-left text-sm font-semibold uppercase tracking-wider w-10">
+              <th className="px-2 py-2.5 sm:px-3 sm:py-3 lg:px-3 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide w-8 sm:w-10">
                 
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 #
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 Version
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 Machines
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 UpComming Order
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 Order Status
               </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+              <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
                 Actions
               </th>
             </tr>
@@ -92,9 +92,9 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete, onReorder }) => {
               <tr>
                 <td
                   colSpan={7}
-                  className="px-6 py-12 text-center text-gray-500"
+                  className="px-3 py-8 sm:py-12 text-center text-gray-500"
                 >
-                  <p className="text-lg">No planogram available</p>
+                  <p className="text-sm sm:text-lg">No planogram available</p>
                 </td>
               </tr>
             ) : (
@@ -120,36 +120,36 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete, onReorder }) => {
                     }`}
                   >
                     {/* Drag handle */}
-                    <td className="px-3 py-4 text-gray-400">
+                    <td className="px-2 py-2.5 sm:px-3 sm:py-3 lg:px-3 lg:py-4 text-gray-400">
                       {onReorder && (
                         <GripVertical className="h-4 w-4" aria-hidden="true" />
                       )}
                     </td>
 
                     {/* # */}
-                    <td className="px-6 py-4">{rowNumber}</td>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-[11px] sm:text-xs lg:text-sm">{rowNumber}</td>
 
                     {/* Version */}
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">
+                      <div className="flex items-center gap-2 truncate max-w-[10rem] sm:max-w-none">
                         {item?.name}
                       </div>
                     </td>
 
                     {/* Machines */}
-                    <td className="px-6 py-4 text-gray-700">
+                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-[11px] sm:text-xs lg:text-sm text-gray-700">
                       {item?.machineCount || "No Machines"}
                     </td>
 
                     {/* UpComming Order */}
-                    <td className="px-6 py-4 text-gray-700 flex items-center gap-1">
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-[11px] sm:text-xs lg:text-sm text-gray-700">
                       {item?.orders ? item?.orders : "N/A"}
                     </td>
 
                     {/* Order Status */}
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-4 lg:py-4">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold whitespace-nowrap ${
                           item?.orderStatus === "COMPLETED"
                             ? "bg-green-100 text-green-700"
                             : item?.orderStatus === "ERROR"
@@ -164,23 +164,24 @@ const PlanogramTable = ({ planogram = [], onEdit, onDelete, onReorder }) => {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4 text-sm">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 text-[11px] sm:text-sm">
                         <button
                           onClick={() => navigate(item.planogramVersionId)}
-                          className="text-green-600 hover:underline cursor-pointer"
+                          className="text-green-600 hover:underline cursor-pointer text-left"
                         >
-                          View Details
+                          <span className="sm:hidden">Details</span>
+                          <span className="hidden sm:inline">View Details</span>
                         </button>
                         <button
                           onClick={() => onEdit(item)}
-                          className="text-blue-600 hover:underline cursor-pointer"
+                          className="text-blue-600 hover:underline cursor-pointer text-left"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => onDelete(item)}
-                          className="text-red-600 hover:underline cursor-pointer"
+                          className="text-red-600 hover:underline cursor-pointer text-left"
                         >
                           Delete
                         </button>

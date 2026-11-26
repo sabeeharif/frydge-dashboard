@@ -435,34 +435,33 @@ const PlanogramManagement = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+            <div className="flex items-center justify-center h-[60vh] w-full">
                 <Loader />
             </div>
         )
     }
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="space-y-4 lg:space-y-8">
 
             {/* Head */}
-            <div className="">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                    <SquareChartGantt className="h-10 w-10 text-blue-600" />
-                    <span className="text-gray-800">Planogram Versions </span>
-                </h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>Showing {planograms?.length} Planogram Versions</span>
+            <div className="space-y-3">
+                <div>
+                    <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+                        <SquareChartGantt className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+                        <span className="text-gray-800">Planogram Versions</span>
+                    </h1>
+                    <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600">
+                        <span>Showing {planograms?.length} Planogram Versions</span>
+                    </div>
                 </div>
-            </div>
 
-            {/* Head - 2 */}
-            <div className="">
-                <div className="flex justify-end gap-3">
+                <div className="flex gap-2 sm:gap-3 lg:justify-end">
                     <button
                         onClick={handleRefresh}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                        <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRotating ? "animate-spin" : ""}`} />
                         Refresh
                     </button>
                     <button
@@ -472,10 +471,11 @@ const PlanogramManagement = () => {
                                 versionDetails: [],
                             });
                         }}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                        <Plus className="h-4 w-4" />
-                        Add Planogram Versions
+                        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        <span className="sm:hidden">Add</span>
+                        <span className="hidden sm:inline">Add Planogram Versions</span>
                     </button>
                 </div>
             </div>
@@ -526,26 +526,29 @@ const PlanogramManagement = () => {
             )}
 
             {showDeletePlanogramModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-                        <div className="p-6">
-                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                                <Trash2 className="h-6 w-6 text-red-600" />
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+                    <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden">
+                        <div className="flex justify-center pt-2 pb-1 sm:hidden">
+                            <div className="w-10 h-1 rounded-full bg-slate-300" />
+                        </div>
+                        <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 bg-red-100 rounded-full">
+                                <Trash2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Planogram</h3>
-                            <p className="text-gray-600 text-center mb-6">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900 text-center mb-2">Delete Planogram</h3>
+                            <p className="text-gray-600 text-center mb-5 sm:mb-6 text-sm sm:text-base break-words px-1">
                                 Are you sure you want to delete ({formData.name}) and all its data?
                             </p>
-                            <div className="flex justify-end gap-3">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                                 <button
                                     onClick={() => setShowDeletePlanogramModal(false)}
-                                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:cursor-pointer transition-colors"
+                                    className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:cursor-pointer transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleDeletePalnogram}
-                                    className=" px-4 py-2 flex justify-center items-center gap-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    className="w-full sm:w-auto px-4 py-2.5 sm:py-2 flex justify-center items-center gap-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                                 >
                                     {deletingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
                                     {deletingPlanogram ? "Deleting..." : "Delete"}

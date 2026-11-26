@@ -43,16 +43,16 @@ export default function StatsGrid({ dashboardData }) {
 
   const getColorClasses = (color) => {
     const colorMap = {
-      blue: "bg-blue-50 border-blue-200 text-blue-600",
-      green: "bg-green-50 border-green-200 text-green-600",
-      purple: "bg-purple-50 border-purple-200 text-purple-600",
-      orange: "bg-orange-50 border-orange-200 text-orange-600",
+      blue: "bg-blue-50 text-blue-600",
+      green: "bg-emerald-50 text-emerald-600",
+      purple: "bg-violet-50 text-violet-600",
+      orange: "bg-orange-50 text-orange-500",
     }
     return colorMap[color] || colorMap.blue
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
       {stats.map((stat, index) => {
         const Icon = stat.icon
         const isPositive = stat.change.startsWith("+")
@@ -60,30 +60,30 @@ export default function StatsGrid({ dashboardData }) {
         return (
           <div
             key={index}
-            className="bg-white rounded-xl p-6 shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300"
+            className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm border border-slate-200/60"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-slate-600 text-sm font-medium">{stat.title}</h3>
-              <div className={`p-2 rounded-lg border ${getColorClasses(stat.color)}`}>
+            <div className="flex items-center justify-between mb-3 lg:mb-4">
+              <h3 className="text-slate-500 text-sm font-medium">{stat.title}</h3>
+              <div className={`p-2 rounded-xl ${getColorClasses(stat.color)}`}>
                 <Icon className="h-4 w-4" />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-slate-800">{stat.value}</span>
-              <div className="flex items-center gap-1">
+            <div className="flex items-end justify-between gap-2">
+              <span className="text-2xl lg:text-2xl font-bold text-slate-800 leading-none">
+                {stat.value}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg shrink-0 ${
+                  isPositive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                }`}
+              >
                 {isPositive ? (
-                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <TrendingUp className="h-3.5 w-3.5" />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-red-600" />
+                  <TrendingDown className="h-3.5 w-3.5" />
                 )}
-                <span
-                  className={`text-sm font-medium px-2 py-1 rounded-lg ${
-                    isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {stat.change}
-                </span>
-              </div>
+                {stat.change}
+              </span>
             </div>
           </div>
         )

@@ -503,47 +503,48 @@ function SuppliersPageContent() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-          <Users className="h-10 w-10 text-blue-600" />
-          <span className="text-gray-800">Suppliers</span>
-        </h1>
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>
-            Showing {search ? filterSuppliers.length : suppliers?.length} suppliers
-          </span>
-          {searchLoading && (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>
-                Loading search data... ({fetchProgress.current}/{fetchProgress.total})
-              </span>
-            </div>
-          )}
+    <div className="space-y-4 lg:space-y-8">
+      <div className="space-y-3 lg:space-y-0 lg:mb-8">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+            <Users className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+            <span className="text-gray-800">Suppliers</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
+            <span>
+              Showing {search ? filterSuppliers.length : suppliers?.length} suppliers
+            </span>
+            {searchLoading && (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>
+                  Loading search data... ({fetchProgress.current}/{fetchProgress.total})
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="mb-6">
-        <div className="flex justify-end gap-3">
+        <div className="flex gap-2 sm:gap-3 lg:justify-end">
           <button
             onClick={resetAndFetchSuppliers}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Refresh
           </button>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
           >
-            <Plus className="h-4 w-4" />
-            Create Supplier
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="sm:hidden">Create</span>
+            <span className="hidden sm:inline">Create Supplier</span>
           </button>
         </div>
       </div>
 
-      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+      <div className="relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="flex items-center bg-white rounded-full px-3">
           <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
           <input
@@ -555,7 +556,7 @@ function SuppliersPageContent() {
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 bg-transparent outline-none text-gray-900"
+            className="w-full text-sm lg:text-base py-2 bg-transparent outline-none text-gray-900"
           />
         </div>
       </div>
@@ -573,24 +574,20 @@ function SuppliersPageContent() {
 
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[420px]">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Supplier ID</th>
-                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Company Name</th> */}
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Name</th>
-                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Contct Email</th> */}
-                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Phone</th> */}
-                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">isActive</th> */}
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Actions</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Supplier ID</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Name</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filterSuppliers?.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">{search ? `No suppliers found matching "${search}"` : "No suppliers found"}</p>
+                  <td colSpan={3} className="px-3 py-8 sm:py-12 text-center text-gray-500">
+                    <Users className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                    <p className="text-sm sm:text-lg">{search ? `No suppliers found matching "${search}"` : "No suppliers found"}</p>
                   </td>
                 </tr>
               ) : (
@@ -600,77 +597,33 @@ function SuppliersPageContent() {
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       } hover:bg-blue-50 transition-colors duration-200`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-[10px] sm:text-sm shrink-0">
                           {index + 1}
                         </div>
-                        <span className="text-sm font-medium text-gray-900">{supplier.supplierId}</span>
+                        <span className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900 truncate">{supplier.supplierId}</span>
                       </div>
                     </td>
-                    {/* <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{supplier.companyName || "N/A"}</div>
-                    </td> */}
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{supplier.name || "N/A"}</div>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{supplier.name || "N/A"}</div>
                     </td>
-                    {/* <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{supplier.contactEmail || "N/A"}</div>
-                    </td> */}
-                    {/* <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${supplier.dsbUserRole === "admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                          }`}
-                      >
-                        {supplier.phone || "N/A"}
-                      </span>
-                    </td> */}
-                    {/* <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${supplier.isAccountOwner ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                          }`}
-                      >
-                        {supplier.isActive ? (
-                          <>
-                            <Crown className="h-3 w-3 mr-1" />
-                            Yes
-                          </>
-                        ) : (
-                          "No"
-                        )}
-                      </span>
-                    </td> */}
-                    <td className="px-6 py-4">
-                      <div className="flex text-xs items-center gap-3">
-
-                        {/* Product Management */}
-                        {/* <button
-                          onClick={() => openProductsModal(supplier)}
-                          className="text-green-600 hover:underline"
-                        >
-                          Product Management
-                        </button> */}
-
-                        {/* Edit */}
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="flex text-[11px] sm:text-xs items-center gap-2 sm:gap-3">
                         <button
                           onClick={() => openEditSupplierModal(supplier)}
                           className="text-blue-600 hover:underline"
                         >
                           Edit
                         </button>
-
-                        {/* Delete */}
                         <button
                           onClick={() => openDeleteSupplierModal(supplier)}
                           className="text-red-600 hover:underline"
                         >
                           Delete
                         </button>
-
-
                       </div>
                     </td>
-
                   </tr>
                 ))
               )}
@@ -681,34 +634,54 @@ function SuppliersPageContent() {
 
       {/* Pagination Controls — hidden while searching */}
       {!search && (
-        <div className="mt-6 flex items-center justify-between bg-white p-4 rounded-lg shadow">
-          <span className="text-sm text-gray-600">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <span className="text-[11px] sm:text-sm text-slate-600">
             Showing {suppliers?.length} suppliers
+            {hasNextPage ? " (more available)" : ""}
           </span>
 
-          <div className="flex gap-2">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={!hasPrevPage}
-              className={`px-3 flex py-2 rounded ${hasPrevPage
-                ? "bg-gray-100 hover:bg-gray-200"
-                : "bg-gray-50 text-gray-400 cursor-not-allowed"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${!hasPrevPage
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
               Prev
             </button>
 
             <button
+              type="button"
+              className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+            >
+              {supplierCurrentPageRef.current + 1}
+            </button>
+
+            {hasNextPage && (
+              <button
+                type="button"
+                onClick={handleNextPage}
+                className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+              >
+                {supplierCurrentPageRef.current + 2}
+              </button>
+            )}
+
+            <button
+              type="button"
               onClick={handleNextPage}
               disabled={!hasNextPage}
-              className={`px-3 py-2 flex rounded ${hasNextPage
-                ? "bg-gray-100 hover:bg-gray-200"
-                : "bg-gray-50 text-gray-400 cursor-not-allowed"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${!hasNextPage
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
           </div>
         </div>
@@ -718,12 +691,15 @@ function SuppliersPageContent() {
 
       {/* Create User Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             {/* Header */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-800">Create New Supplier</h3>
+            <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base sm:text-2xl font-bold text-gray-800">Create New Supplier</h3>
                 <button onClick={closeCreateModal} className="p-2 text-gray-400 hover:text-gray-600">
                   <X className="h-6 w-6" />
                 </button>
@@ -731,22 +707,22 @@ function SuppliersPageContent() {
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-4 sm:space-y-6">
               {/* Supplier Info */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                   Supplier Information
                 </h3>
 
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Name</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="Enter  name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 {/* Contact Info */}
@@ -864,17 +840,17 @@ function SuppliersPageContent() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-3 py-3 sm:p-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <button
                 onClick={closeCreateModal}
-                className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleCreateSupplier(formData)}
                 disabled={creatingSupplier}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {creatingSupplier && <Loader2 className="h-4 w-4 animate-spin" />}
                 {creatingSupplier ? "Creating..." : "Create Supplier"}
@@ -887,34 +863,37 @@ function SuppliersPageContent() {
 
       {/* Edit User Modal */}
       {showEditModal && selectedSupplier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-800">Edit Supplier</h3>
-                <button onClick={closeEditModal} className="p-2 text-gray-400 hover:text-gray-600">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base sm:text-2xl font-bold text-gray-800">Edit Supplier</h3>
+                <button onClick={closeEditModal} className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
                   <X className="h-6 w-6" />
                 </button>
               </div>
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-4 sm:space-y-6">
               {/* Supplier Info */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-sm sm:text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
                   Supplier Information
                 </h3>
 
                 {/*  Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Contact Name</label>
                     <input
                       type="text"
                       value={editFormData?.name}
                       onChange={(e) => handleEditInputChange("name", e.target.value)}
                       placeholder="Enter name"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 {/* Contact Info */}
@@ -1031,17 +1010,17 @@ function SuppliersPageContent() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-3 py-3 sm:p-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <button
                 onClick={closeEditModal}
-                className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleUpdateSupplier(selectedSupplier.supplierId, editFormData)}
                 disabled={updatingSupplier}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {updatingSupplier && <Loader2 className="h-4 w-4 animate-spin" />}
                 {updatingSupplier ? "Updating..." : "Update Supplier"}
@@ -1053,28 +1032,31 @@ function SuppliersPageContent() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedSupplier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                <Trash2 className="h-6 w-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+              <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 bg-red-100 rounded-full">
+                <Trash2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Supplier</h3>
-              <p className="text-gray-600 text-center mb-6">
-                Are you sure you want to delete Supplier "{selectedSupplier.name}"? This action
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 text-center mb-2">Delete Supplier</h3>
+              <p className="text-gray-600 text-center mb-5 sm:mb-6 text-sm sm:text-base break-words px-1">
+                Are you sure you want to delete Supplier &quot;{selectedSupplier.name}&quot;? This action
                 cannot be undone.
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                 <button
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteSupplier}
                   disabled={deletingUser}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {deletingUser && <Loader2 className="h-4 w-4 animate-spin" />}
                   {deletingUser ? "Deleting..." : "Delete"}
@@ -1234,12 +1216,15 @@ function ProductModal({ isOpen, onClose, onSave, editingProduct }) {
 
   return (
 
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl sm:rounded-xl shadow-2xl p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="flex justify-center sm:hidden pb-2">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
 
         {/* HEADER */}
         <div className="mb-4 flex justify-center flex-col items-center">
-          <h3 className="text-2xl font-semibold text-gray-800">
+          <h3 className="text-base sm:text-2xl font-semibold text-gray-800">
             {editingProduct ? "Edit Product" : "Add New Product"}
           </h3>
           <p className="text-sm text-gray-500">
@@ -1394,11 +1379,14 @@ function ProductsPage({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl min-h-[400px] max-h-[90vh] overflow-y-auto p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-2xl min-h-0 sm:min-h-[400px] max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain rounded-t-2xl sm:rounded-xl shadow-2xl p-3 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="flex justify-center sm:hidden pb-2">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
 
         {/* Header */}
-        <div className="mb-6 relative flex justify-center">
+        <div className="mb-4 sm:mb-6 relative flex justify-center">
           <div className="flex justify-center items-center flex-col">
             <h3 className="text-2xl font-bold text-gray-800">Products Management</h3>
             <p className="text-gray-500">Select a supplier to view and manage their products</p>

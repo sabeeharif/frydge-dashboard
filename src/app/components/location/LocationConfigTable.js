@@ -42,19 +42,18 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
     return (
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[520px] lg:min-w-[900px]">
                     <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                         <tr>
-                            <th className="px-4 py-3"></th>
-                            <th className="px-6 py-3 text-left">Venue</th>
-                            <th className="px-6 py-3 text-left">Friendly Name</th>
-                            <th className="px-6 py-3 text-left">Type</th>
-                            <th className="px-6 py-3 text-left">Terminal</th>
-                            <th className="px-6 py-3 text-left">Insurance</th>
-                            {/* <th className="px-6 py-3 text-left">Subsidy Voucher Anonym</th> */}
-                            <th className="px-6 py-3 text-left">Pricing</th>
-                            <th className="px-6 py-3 text-left">Fee</th>
-                            <th className="px-6 py-3 text-left">Actions</th>
+                            <th className="px-2 py-2.5 sm:px-4 sm:py-3"></th>
+                            <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Venue</th>
+                            <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Friendly Name</th>
+                            <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Type</th>
+                            <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Terminal</th>
+                            <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Insurance</th>
+                            <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Pricing</th>
+                            <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Fee</th>
+                            <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">Actions</th>
                         </tr>
                     </thead>
 
@@ -63,36 +62,34 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                             <React.Fragment key={location.id}>
                                 {/* Main Row */}
                                 <tr className="border-b hover:bg-gray-50">
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 py-2.5 sm:px-4 sm:py-3">
                                         <button
                                             onClick={() => toggleRow(location.id)}
-                                            className="text-blue-600"
+                                            className="text-blue-600 text-sm font-semibold"
                                         >
                                             {expandedRow === location.id ? "−" : "+"}
                                         </button>
                                     </td>
 
-                                    <td className="px-6 py-3">{location.venueName || "N/A"}</td>
-                                    <td className="px-6 py-3">{location.friendlyName}</td>
-                                    <td className="px-6 py-3">{location.machineType || "N/A"}</td>
-                                    <td className="px-6 py-3">{location.terminalId}</td>
+                                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">{location.venueName || "N/A"}</td>
+                                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm font-medium">{location.friendlyName}</td>
+                                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">{location.machineType || "N/A"}</td>
+                                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">{location.terminalId}</td>
 
-                                    <td className="px-6 py-3">
+                                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                         {location.insuranceActive ? "Active" : "Inactive"}
                                     </td>
 
-                                    {/* <td className="px-6 py-3">{location.subsidyVoucherAnonym}</td> */}
-
-                                    <td className="px-6 py-3">
+                                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                         {hasCustomPricing(location) ? "Custom" : "Default"}
                                     </td>
 
-                                    <td className="px-6 py-3">
+                                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                         {location.feePM ? `€${location.feePM}` : "N/A"}
                                     </td>
 
-                                    <td className="px-6 py-3 align-middle">
-                                        <div className="flex justify-center items-center gap-3 text-sm h-full">
+                                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 align-middle">
+                                        <div className="flex justify-start lg:justify-center items-center gap-2 sm:gap-3 text-[11px] sm:text-sm h-full">
                                             <button
                                                 onClick={() => onEdit(location)}
                                                 className="text-blue-600 hover:underline cursor-pointer"
@@ -113,8 +110,8 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                 {/* Expanded Row */}
                                 {expandedRow === location.id && (
                                     <tr className="bg-gray-100">
-                                        <td colSpan={9} className="px-6 py-4">
-                                            <div className="grid grid-cols-3 gap-4 text-sm">
+                                        <td colSpan={9} className="px-3 py-3 sm:px-6 sm:py-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
 
                                                 {/* BASIC */}
                                                 <div>
@@ -153,7 +150,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                                 </div>
 
                                                 {/* PRICING */}
-                                                <div className="col-span-3">
+                                                <div className="sm:col-span-2 lg:col-span-3">
                                                     <p className="font-semibold mt-2">Price Overrides:</p>
                                                     <p>Main: {location.mainPriceOverride || "-"}</p>
                                                     <p>Meal: {location.mealPriceOverride || "-"}</p>
@@ -163,7 +160,7 @@ const LocationConfigTable = ({ locations = [], onEdit, onDelete }) => {
                                                 </div>
 
                                                 {/* NOTE */}
-                                                <div className="col-span-3">
+                                                <div className="sm:col-span-2 lg:col-span-3">
                                                     <p className="font-semibold mt-2">Note:</p>
                                                     <p>{location.note || "No notes available"}</p>
                                                 </div>

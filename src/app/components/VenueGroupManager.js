@@ -638,11 +638,14 @@ function VenueGroupManagerContent({ context = "driver" }) {
             </div>
 
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 py-8">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:px-4 sm:py-8">
                     <div
                         ref={modalRef}
-                        className="relative flex h-[98vh] w-full max-w-6xl flex-col rounded-3xl bg-white shadow-2xl "
+                        className="relative flex h-[92dvh] sm:h-[98vh] w-full max-w-6xl flex-col rounded-t-2xl sm:rounded-3xl bg-white shadow-2xl"
                     >
+                        <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-slate-300" />
+                        </div>
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">

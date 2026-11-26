@@ -625,47 +625,48 @@ function UsersPageContent() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-          <Bell className="h-10 w-10 text-blue-600" />
-          <span className="text-gray-800">Notifications</span>
-        </h1>
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>
-            Showing {search ? filteredNotifications.length : notifications.length} notifications
-          </span>
-          {searchLoading && (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>
-                Loading search data... ({fetchProgress.current}/{fetchProgress.total})
-              </span>
-            </div>
-          )}
+    <div className="space-y-4 lg:space-y-8">
+      <div className="space-y-3 lg:space-y-0 lg:mb-8">
+        <div>
+          <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+            <Bell className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+            <span className="text-gray-800">Notifications</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
+            <span>
+              Showing {search ? filteredNotifications.length : notifications.length} notifications
+            </span>
+            {searchLoading && (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>
+                  Loading search data... ({fetchProgress.current}/{fetchProgress.total})
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="mb-6">
-        <div className="flex justify-end gap-3">
+        <div className="flex gap-2 sm:gap-3 lg:justify-end">
           <button
             onClick={resetAndFetchNotifications}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Refresh
           </button>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
           >
-            <Plus className="h-4 w-4" />
-            Create Notification
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="sm:hidden">Create</span>
+            <span className="hidden sm:inline">Create Notification</span>
           </button>
         </div>
       </div>
 
-      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+      <div className="relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="flex items-center bg-white rounded-full px-3">
           <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
           <input
@@ -675,7 +676,7 @@ function UsersPageContent() {
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 bg-transparent outline-none text-gray-900"
+            className="w-full text-sm lg:text-base py-2 bg-transparent outline-none text-gray-900"
           />
         </div>
       </div>
@@ -693,28 +694,27 @@ function UsersPageContent() {
 
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[520px] lg:min-w-[900px]">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
-                {/* <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Notification ID</th> */}
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Notification Date</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Title</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Description</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Created By</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Notification For</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Checked</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Checked Date</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Created At</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Updated At</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Actions</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Notification Date</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Title</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Description</th>
+                <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Created By</th>
+                <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Notification For</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Checked</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Checked Date</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Created At</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Updated At</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredNotifications.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                    <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">{search ? `No notifications found matching "${search}"` : "No notifications found"}</p>
+                  <td colSpan={10} className="px-3 py-8 sm:py-12 text-center text-gray-500">
+                    <Bell className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                    <p className="text-sm sm:text-lg">{search ? `No notifications found matching "${search}"` : "No notifications found"}</p>
                   </td>
                 </tr>
               ) : (
@@ -724,40 +724,32 @@ function UsersPageContent() {
                     className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                       } hover:bg-blue-50 transition-colors duration-200`}
                   >
-                    {/* <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
-                          {index + 1}
-                        </div>
-                        <span className="text-sm font-medium text-gray-900">{notification.notificationId}</span>
-                      </div>
-                    </td> */}
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{notification.notificationDate || "N/A"}</div>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{notification.notificationDate || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{notification.notificationTitle || "N/A"}</div>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{notification.notificationTitle || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setViewingNotification(notification)} // Set the data here
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={() => setViewingNotification(notification)}
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="View Description"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{notification.createdByName || "N/A"}</div>
+                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{notification.createdByName || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{notification.createdForName || "N/A"}</div>
+                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{notification.createdForName || "N/A"}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${notification.checked ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                        className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${notification.checked ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
                           }`}
                       >
                         {notification.checked ? (
@@ -770,30 +762,30 @@ function UsersPageContent() {
                         )}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{formatDate(notification.checkedDateTime)}</div>
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{formatDate(notification.checkedDateTime)}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{formatDate(notification.createdAt)}</div>
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{formatDate(notification.createdAt)}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{formatDate(notification.updatedAt)}</div>
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{formatDate(notification.updatedAt)}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           onClick={() => openEditModal(notification)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit Notification"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                         <button
                           onClick={() => openDeleteModal(notification)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete User"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       </div>
                     </td>
@@ -807,34 +799,39 @@ function UsersPageContent() {
 
       {/* View Description Modal */}
       {viewingNotification && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-lg max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-800">
+            <div className="px-3 py-3 sm:p-6 border-b border-gray-200 flex items-center justify-between gap-3 shrink-0">
+              <h3 className="text-base sm:text-xl font-bold text-gray-800 truncate">
                 {viewingNotification.notificationTitle || "Description"}
               </h3>
               <button
+                type="button"
                 onClick={() => setViewingNotification(null)}
-                className="p-2 text-gray-400 hover:text-gray-600"
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 shrink-0"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-8 max-h-[60vh] overflow-y-auto">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-8">
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
                 {viewingNotification.notificationDescription || viewingNotification.description || "No description available."}
               </p>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+            <div className="px-3 py-3 sm:p-6 border-t border-gray-200 bg-gray-50 flex justify-end shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <button
+                type="button"
                 onClick={() => setViewingNotification(null)}
-                className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm sm:text-base bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Close
               </button>
@@ -845,66 +842,89 @@ function UsersPageContent() {
 
       {/* Pagination Controls */}
       {(hasNextPage || notifications.length > 0) && !search && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <div className="flex items-center text-[11px] sm:text-sm text-slate-600">
             <span>
-              Showing {notifications.length} notifications {hasNextPage ? "(more available)" : ""}
+              Showing {notifications.length} notifications
+              {hasNextPage ? " (more available)" : ""}
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={pageIndex === 0}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pageIndex === 0
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${pageIndex === 0
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
               Prev
             </button>
 
             <button
+              type="button"
+              className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+            >
+              {pageIndex + 1}
+            </button>
+
+            {(hasNextPage || pages[pageIndex + 1]) && (
+              <button
+                type="button"
+                onClick={handleNextPage}
+                className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+              >
+                {pageIndex + 2}
+              </button>
+            )}
+
+            <button
+              type="button"
               onClick={handleNextPage}
               disabled={!hasNextPage && !pages[pageIndex + 1]}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!hasNextPage && !pages[pageIndex + 1]
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${!hasNextPage && !pages[pageIndex + 1]
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
-
-
           </div>
         </div>
       )}
 
       {/* Create Notification Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          {/* Reduced max-w from 6xl to 3xl for a more focused, centered look */}
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-3xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-800">Create New Notification</h3>
-                <button onClick={closeCreateModal} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <X className="h-6 w-6" />
+            <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base sm:text-2xl font-bold text-gray-800">Create New Notification</h3>
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
             </div>
 
             {/* Modal Body - Scrollable Area */}
-            <div className="p-8 overflow-y-auto">
-              {/* Centralized Form Container */}
-              <div className="max-w-xl mx-auto space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-8">
+              <div className="max-w-xl mx-auto space-y-4 sm:space-y-6">
 
                 {/* Driver Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Driver</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Select Driver</label>
                   <select
                     value={formData.createdForId}
                     onChange={(e) => {
@@ -920,7 +940,7 @@ function UsersPageContent() {
                         : "";
                       handleInputChange("createdForName", fullName);
                     }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   >
                     <option value="">Select a driver...</option>
                     {drivers.map((driver) => (
@@ -933,7 +953,7 @@ function UsersPageContent() {
 
                 {/* select machines */}
                 <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                     Select machines
                   </label>
 
@@ -943,7 +963,7 @@ function UsersPageContent() {
                       String(m.machineId)
                     )}
                     onChange={handleExcludeMachinesSelect}
-                    className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full min-h-[120px] sm:min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   >
                     {machines.filter(
                       (machine) =>
@@ -966,9 +986,9 @@ function UsersPageContent() {
                       {formData.machines.map((machine) => (
                         <div
                           key={machine.machineId}
-                          className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
+                          className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-2.5 sm:px-3 py-1 text-xs text-blue-700 max-w-full"
                         >
-                          <span>{machine.friendlyName}</span>
+                          <span className="truncate">{machine.friendlyName}</span>
 
                           <button
                             type="button"
@@ -980,7 +1000,7 @@ function UsersPageContent() {
                                 ),
                               }));
                             }}
-                            className="font-bold hover:text-red-600"
+                            className="font-bold hover:text-red-600 shrink-0"
                           >
                             ×
                           </button>
@@ -992,49 +1012,49 @@ function UsersPageContent() {
 
                 {/* Date Picker Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Date</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Schedule Date</label>
                   <input
                     type="date"
-                    value={formData.notificationDate} // Ensure this key exists in your formData state
+                    value={formData.notificationDate}
                     onChange={(e) => handleInputChange("notificationDate", e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                   />
                 </div>
 
                 {/* Title Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notification Title</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Notification Title</label>
                   <input
                     type="text"
                     value={formData.notificationTitle}
                     onChange={(e) => handleInputChange("notificationTitle", e.target.value)}
                     placeholder="e.g., Maintenance Required"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
                   />
                 </div>
 
                 {/* Description Textarea */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                     Notification Description
                   </label>
                   <textarea
-                    rows="5"
+                    rows={4}
                     value={formData.notificationDescription}
                     onChange={(e) => handleInputChange("notificationDescription", e.target.value)}
                     placeholder="Provide detailed instructions here..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y transition-all outline-none"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y transition-all outline-none"
                   />
                 </div>
 
                 {/* Error Message Section */}
                 {createError && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
+                  <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-1">
                     <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mt-0.5 mr-2 sm:mr-3 flex-shrink-0" />
                       <div>
-                        <h3 className="text-sm font-semibold text-red-800">Submission Error</h3>
-                        <p className="text-red-700 text-sm mt-1">{createError}</p>
+                        <h3 className="text-xs sm:text-sm font-semibold text-red-800">Submission Error</h3>
+                        <p className="text-red-700 text-xs sm:text-sm mt-1">{createError}</p>
                       </div>
                     </div>
                   </div>
@@ -1043,17 +1063,19 @@ function UsersPageContent() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+            <div className="px-3 py-3 sm:p-6 border-t border-gray-200 bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <button
+                type="button"
                 onClick={closeCreateModal}
-                className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 text-sm sm:text-base bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleCreateNotification}
                 disabled={creatingNotification}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
               >
                 {creatingNotification ? (
                   <>
@@ -1071,44 +1093,41 @@ function UsersPageContent() {
 
       {/* Edit Notification Modal */}
       {showEditModal && selectedNotification && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-gray-800">Edit Notification</h3>
-                <button onClick={closeEditModal} className="p-2 text-gray-400 hover:text-gray-600">
-                  <X className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+
+            <div className="px-3 py-3 sm:p-6 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base sm:text-2xl font-bold text-gray-800">Edit Notification</h3>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Notification ID (Read-only) */}
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notification ID (Cannot be changed)</label>
-                <input
-                  type="text"
-                  value={selectedNotification.notificationId}
-                  disabled
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
-                />
-              </div> */}
-
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notification Title</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Notification Title</label>
                 <input
                   type="text"
                   value={editFormData.notificationTitle}
                   onChange={(e) => handleEditInputChange("notificationTitle", e.target.value)}
                   placeholder="Enter notification title"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+
               <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Select machines
                 </label>
-
 
                 <select
                   multiple
@@ -1116,7 +1135,7 @@ function UsersPageContent() {
                     String(m?.machineId)
                   )}
                   onChange={handleEditMachinesSelect}
-                  className="w-full min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full min-h-[120px] sm:min-h-[160px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   {machines?.filter(
                     (machine) =>
@@ -1139,9 +1158,9 @@ function UsersPageContent() {
                     {editFormData?.machines?.map((machine) => (
                       <div
                         key={machine?.machineId}
-                        className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-3 py-1 text-xs text-blue-700"
+                        className="flex items-center gap-2 rounded-full bg-blue-100 border border-blue-300 px-2.5 sm:px-3 py-1 text-xs text-blue-700 max-w-full"
                       >
-                        <span>{machine?.friendlyName}</span>
+                        <span className="truncate">{machine?.friendlyName}</span>
 
                         <button
                           type="button"
@@ -1153,7 +1172,7 @@ function UsersPageContent() {
                               ),
                             }));
                           }}
-                          className="font-bold hover:text-red-600"
+                          className="font-bold hover:text-red-600 shrink-0"
                         >
                           ×
                         </button>
@@ -1164,31 +1183,30 @@ function UsersPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Notification Description
                 </label>
                 <textarea
-                  rows="5"
+                  rows={4}
                   value={editFormData.notificationDescription}
                   onChange={(e) => handleEditInputChange("notificationDescription", e.target.value)}
                   placeholder="Provide detailed instructions here..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y transition-all outline-none"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y transition-all outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notification Date</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Notification Date</label>
                 <input
                   type="date"
                   value={editFormData.notificationDate}
                   onChange={(e) => handleEditInputChange("notificationDate", e.target.value)}
-                  placeholder="Enter notification description"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Driver</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Select Driver</label>
                 <select
                   value={editFormData.createdForId}
                   onChange={(e) => {
@@ -1204,7 +1222,7 @@ function UsersPageContent() {
                       : "";
                     handleEditInputChange("createdForName", fullName);
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="">Select a driver...</option>
                   {drivers.map((driver) => (
@@ -1215,17 +1233,16 @@ function UsersPageContent() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
-                  <Check className="h-4 w-4 text-blue-600 mr-2" />
-                  <label htmlFor="editIsChecked" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  <Check className="h-4 w-4 text-blue-600 mr-2 shrink-0" />
+                  <label htmlFor="editIsChecked" className="text-xs sm:text-sm font-medium text-gray-700 cursor-pointer">
                     Checked
                   </label>
                 </div>
                 <input
                   id="editIsChecked"
                   type="checkbox"
-                  // Force evaluation: only check if it is exactly true or 1
                   checked={editFormData.checked === true || editFormData.checked === 1}
                   onChange={(e) => handleEditInputChange("checked", e.target.checked)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
@@ -1233,49 +1250,51 @@ function UsersPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Checked Date and Time</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Checked Date and Time</label>
                 <input
                   type="text"
                   disabled
                   value={formatDate(editFormData.checkedDateTime)}
-                  className="w-full px-4 py-3 border border-gray-100 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-100 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Created At</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Created At</label>
                 <input
                   type="text"
                   disabled
                   value={formatDate(editFormData.createdAt)}
-                  className="w-full px-4 py-3 border border-gray-100 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-100 bg-gray-50 text-gray-500 rounded-lg cursor-not-allowed"
                 />
               </div>
 
               {editError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+                <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start sm:items-center">
+                    <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 mr-2 shrink-0 mt-0.5 sm:mt-0" />
                     <div>
-                      <h3 className="text-sm font-medium text-red-800">Error</h3>
-                      <p className="text-red-700 text-sm mt-1">{editError}</p>
+                      <h3 className="text-xs sm:text-sm font-medium text-red-800">Error</h3>
+                      <p className="text-red-700 text-xs sm:text-sm mt-1">{editError}</p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-3 py-3 sm:p-6 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0 bg-white pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <button
+                type="button"
                 onClick={closeEditModal}
-                className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleUpdateNotification}
                 disabled={updatingNotification}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {updatingNotification && <Loader2 className="h-4 w-4 animate-spin" />}
                 {updatingNotification ? "Updating..." : "Update Notification"}
@@ -1287,28 +1306,33 @@ function UsersPageContent() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedNotification && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                <Trash2 className="h-6 w-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+              <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 bg-red-100 rounded-full">
+                <Trash2 className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Notification</h3>
-              <p className="text-gray-600 text-center mb-6">
-                Are you sure you want to delete notification "{selectedNotification.notificationTitle}"? This action
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 text-center mb-2">Delete Notification</h3>
+              <p className="text-gray-600 text-center mb-5 sm:mb-6 text-sm sm:text-base break-words px-1">
+                Are you sure you want to delete notification &quot;{selectedNotification.notificationTitle}&quot;? This action
                 cannot be undone.
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                 <button
+                  type="button"
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleDeleteNotification}
                   disabled={deletingNotification}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {deletingNotification && <Loader2 className="h-4 w-4 animate-spin" />}
                   {deletingNotification ? "Deleting..." : "Delete"}

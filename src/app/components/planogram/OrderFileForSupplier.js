@@ -175,8 +175,8 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
 
 
     return (
-        <div className="bg-white absolute border  border-gray-300 rounded-lg top-[-10px] right-0  p-8  w-full max-w-md z-10 ">
-            <h4 className="text-center text-gray-800 text-xl font-semibold mb-4">
+        <div className="bg-white relative lg:absolute border border-gray-300 rounded-lg lg:top-[-10px] lg:right-0 p-4 sm:p-6 lg:p-8 w-full max-w-full lg:max-w-md z-10">
+            <h4 className="text-center text-gray-800 text-base sm:text-xl font-semibold mb-3 sm:mb-4">
                 Order Files For Supplier
             </h4>
 
@@ -184,7 +184,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
                 <select
                     value={selectedSupplier}
                     onChange={handleSupplierChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-md text-gray-700 bg-white cursor-pointer transition-all duration-300 hover:border-blue-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 pr-10 appearance-none"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm border-2 border-gray-300 rounded-md text-gray-700 bg-white cursor-pointer transition-all duration-300 hover:border-blue-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 pr-10 appearance-none"
                     style={{
                         backgroundImage: `url("datFa:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
                         backgroundRepeat: 'no-repeat',
@@ -224,7 +224,7 @@ export const OrderFileForSupplier = ({ supplierOrderFiles }) => {
             <button
                 onClick={downloadFile}
                 disabled={!imageUrl}
-                className={`w-full flex items-center gap-2 px-6 py-3 border-2 rounded-md font-medium transition-all duration-300
+                className={`w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 text-sm border-2 rounded-md font-medium transition-all duration-300
                  ${imageUrl
                         ? "bg-white border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-500 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/20"
                         : "bg-gray-300 border-gray-300 text-gray-500 cursor-not-allowed"

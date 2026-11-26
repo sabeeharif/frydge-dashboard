@@ -169,14 +169,14 @@ const LocationConfig = () => {
     }
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="space-y-4 lg:space-y-8">
             {/* Head */}
-            <div className="">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                    <SquareChartGantt className="h-10 w-10 text-blue-600" />
+            <div>
+                <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+                    <SquareChartGantt className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
                     <span className="text-gray-800">Location Configuration</span>
                 </h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600">
                     <span>
                         Showing {filteredLocations?.length} location configs
                     </span>
@@ -184,11 +184,11 @@ const LocationConfig = () => {
             </div>
 
             {/* Head - 2 */}
-            <div className="">
-                <div className="flex flex-col items-center sm:flex-row justify-between gap-4">
+            <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     {/* SEARCH */}
                     <div className="relative w-full sm:max-w-sm">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
 
                         <input
                             type="text"
@@ -198,22 +198,22 @@ const LocationConfig = () => {
                                 setSearch(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm lg:text-base outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                         <button
                             onClick={handleRefresh}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                         >
-                            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRotating ? "animate-spin" : ""}`} />
                             Refresh
                         </button>
                         <button
                             onClick={handleAdd}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                            className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                         >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             Add
                         </button>
                     </div>

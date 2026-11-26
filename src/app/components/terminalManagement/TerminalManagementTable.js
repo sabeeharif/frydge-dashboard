@@ -110,26 +110,22 @@ const TerminalManagementTable = ({
     return (
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[420px] lg:min-w-[700px]">
                     <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                         <tr>
-
-                            <th className="px-6 py-3 text-left">
+                            <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">
                                 Terminal ID
                             </th>
-                            <th className="px-6 py-3 text-left">
+                            <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">
                                 Protocol
                             </th>
-
-                            <th className="px-6 py-3 text-left">
+                            <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">
                                 Manufacturer
                             </th>
-
-                            <th className="px-6 py-3 text-left">
+                            <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">
                                 Payment Service Provider
                             </th>
-
-                            <th className="px-6 py-3 text-left">
+                            <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-left text-[10px] sm:text-xs lg:text-sm font-semibold">
                                 Actions
                             </th>
                         </tr>
@@ -139,24 +135,23 @@ const TerminalManagementTable = ({
                         {sortedTerminal.map(
                             (terminal) => (
                                 <React.Fragment
+                                    key={terminal.id || terminal.customTerminalId}
                                 >
                                     <tr className="border-b hover:bg-gray-50">
-
-                                        <td className="px-6 py-3">
+                                        <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                             {terminal.customTerminalId || "N/A"}
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                             {terminal.protocol || "N/A"}
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                             {terminal.manufacturer || "N/A"}
                                         </td>
-                                        <td className="px-6 py-3">
+                                        <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 text-[11px] sm:text-xs lg:text-sm">
                                             {terminal.paymentServiceProvider || "N/A"}
                                         </td>
-
-                                        <td className="px-6 py-3 align-middle">
-                                            <div className="flex justify-center items-center gap-3 text-sm h-full">
+                                        <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-3 align-middle">
+                                            <div className="flex justify-start lg:justify-center items-center gap-2 sm:gap-3 text-[11px] sm:text-sm h-full">
                                                 <button
                                                     onClick={() => onEdit(terminal)}
                                                     className="text-blue-600 hover:underline cursor-pointer"
