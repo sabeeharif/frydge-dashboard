@@ -383,20 +383,20 @@ function AppOrdersContent() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-          {/* <ShoppingCart className="h-10 w-10 text-blue-600" /> */}
+    <div className="space-y-4 lg:space-y-8">
+      <div className="mb-2 lg:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+          <ShoppingCart className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
           <span className="text-gray-800">App Orders</span>
         </h1>
-        <div className="flex items-center gap-4 text-sm text-gray-600">
+        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
           <span>
             Showing {displayedOrders.length} orders on page {currentPage}
             {isSearchMode && allOrders.length > 0 && ` of ${allOrders.length} total`}
           </span>
           {searchLoading && (
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span>
                 Searching... ({fetchProgress.current}/{fetchProgress.total})
               </span>
@@ -406,7 +406,7 @@ function AppOrdersContent() {
       </div>
 
       {/* Search Input */}
-      <div className="mb-4 relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+      <div className="relative w-full p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="flex items-center bg-white rounded-full px-3">
           <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
           <input
@@ -418,7 +418,7 @@ function AppOrdersContent() {
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full py-2 bg-transparent outline-none text-gray-900"
+            className="w-full text-sm lg:text-base py-2 bg-transparent outline-none text-gray-900"
           />
         </div>
       </div>
@@ -438,29 +438,29 @@ function AppOrdersContent() {
       {/* Orders Table */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[520px] lg:min-w-[900px]">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Order ID</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Order ID</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Customer</th>
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Status
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
+                <th className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Amount
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Machine</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Payment</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Items</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
+                <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Machine</th>
+                <th className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Payment</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">Items</th>
+                <th className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 text-left text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wide">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Date
                   </div>
                 </th>
@@ -469,9 +469,9 @@ function AppOrdersContent() {
             <tbody className="divide-y divide-gray-200">
               {displayedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">{search ? `No orders found matching "${search}"` : "No orders found"}</p>
+                  <td colSpan={8} className="px-3 py-8 sm:py-12 text-center text-gray-500">
+                    <ShoppingCart className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                    <p className="text-sm sm:text-lg">{search ? `No orders found matching "${search}"` : "No orders found"}</p>
                   </td>
                 </tr>
               ) : (
@@ -482,55 +482,55 @@ function AppOrdersContent() {
                       index % 2 === 0 ? "bg-white" : "bg-gray-50"
                     } hover:bg-blue-50 transition-colors duration-200 cursor-pointer`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-[10px] sm:text-sm shrink-0">
                           {(currentPage - 1) * pageSize + index + 1}
                         </div>
-                        <span className="text-sm font-medium text-gray-900">{order.order_id}</span>
+                        <span className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900 truncate max-w-[8rem] sm:max-w-none">{order.order_id}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 text-gray-400 mr-2" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{getCustomerEmail(order)}</div>
-                          <div className="text-xs text-gray-500">ID: {order.order?.customerId}</div>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="flex items-center min-w-0">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 mr-1.5 sm:mr-2 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900 truncate">{getCustomerEmail(order)}</div>
+                          <div className="text-[10px] sm:text-xs text-gray-500 truncate">ID: {order.order?.customerId}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order)}`}
+                        className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(order)}`}
                       >
                         {order.order_processed ? "Processed" : "Pending"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{formatAmount(order)}</div>
-                      <div className="text-xs text-gray-500">{order.order?.paymentStatusDisplay}</div>
+                    <td className="px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">{formatAmount(order)}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">{order.order?.paymentStatusDisplay}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
+                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
+                      <div className="text-[11px] sm:text-xs lg:text-sm font-medium text-gray-900">
                         {order.order?.machine?.friendlyName || "N/A"}
                       </div>
-                      <div className="text-xs text-gray-500">ID: {order.order?.machine?.id}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">ID: {order.order?.machine?.id}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden md:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4">
                       <div className="flex items-center">
                         {getPaymentMethodIcon(order.payment_method_type)}
-                        <span className="ml-2 text-sm text-gray-900 capitalize">{order.payment_method_type}</span>
+                        <span className="ml-2 text-[11px] sm:text-xs lg:text-sm text-gray-900 capitalize">{order.payment_method_type}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="text-[11px] sm:text-xs lg:text-sm text-gray-900">
                         {getOrderItems(order).length} item{getOrderItems(order).length !== 1 ? "s" : ""}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(order.createdAt)}</div>
+                    <td className="hidden lg:table-cell px-3 py-2.5 sm:px-4 sm:py-3 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="text-[11px] sm:text-xs lg:text-sm text-gray-900">{formatDate(order.createdAt)}</div>
                       {order.order?.paidAt && (
-                        <div className="text-xs text-gray-500">Paid: {formatDate(order.order.paidAt)}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">Paid: {formatDate(order.order.paidAt)}</div>
                       )}
                     </td>
                   </tr>
@@ -543,36 +543,54 @@ function AppOrdersContent() {
 
       {/* Pagination Controls - Only show when not in search mode AND there's pagination needed */}
       {!isSearchMode && (hasNextPage || currentPage > 1) && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <div className="flex items-center text-[11px] sm:text-sm text-slate-600">
             <span>
-              Page {currentPage}
-              {hasNextPage ? " (more available)" : " (last page)"}
+              Showing {displayedOrders.length} orders
+              {hasNextPage ? " (more available)" : ""}
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${
                 currentPage === 1
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                  : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
               }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
+              Prev
             </button>
-            <span className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">{currentPage}</span>
             <button
+              type="button"
+              className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+            >
+              {currentPage}
+            </button>
+            {hasNextPage && (
+              <button
+                type="button"
+                onClick={handleNextPage}
+                className="min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+              >
+                {currentPage + 1}
+              </button>
+            )}
+            <button
+              type="button"
               onClick={handleNextPage}
               disabled={!hasNextPage}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !hasNextPage ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${
+                !hasNextPage
+                  ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                  : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
               }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
           </div>
         </div>

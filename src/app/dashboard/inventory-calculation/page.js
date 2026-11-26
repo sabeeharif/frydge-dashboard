@@ -162,33 +162,33 @@ const InventoryCalculation = () => {
     }
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="space-y-4 lg:space-y-8">
             {/* Head */}
-            <div>
-                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                    <SquareChartGantt className="h-10 w-10 text-blue-600" />
-                    <span className="text-gray-800">Inventory Calculation</span>
-                </h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>Showing {inventory?.length} inventory calculation(s)</span>
+            <div className="space-y-3">
+                <div>
+                    <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+                        <SquareChartGantt className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+                        <span className="text-gray-800">Inventory Calculation</span>
+                    </h1>
+                    <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600">
+                        <span>Showing {inventory?.length} inventory calculation(s)</span>
+                    </div>
                 </div>
-            </div>
 
-            {/* Head - 2 */}
-            <div>
-                <div className="flex justify-end gap-3">
+                <div className="flex gap-2 sm:gap-3 lg:justify-end">
                     <button
                         onClick={handleRefresh}
-                        className="px-4 py-2 cursor-pointer bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm cursor-pointer bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                        <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRotating ? "animate-spin" : ""}`} />
                         Refresh
                     </button>
                     <button
                         onClick={handleAdd}
-                        className="px-4 py-2 cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                        className="flex-1 sm:flex-none px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                        Calculate Inventory
+                        <span className="sm:hidden">Calculate</span>
+                        <span className="hidden sm:inline">Calculate Inventory</span>
                     </button>
                 </div>
             </div>

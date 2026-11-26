@@ -8,20 +8,29 @@ export default function RecentActivity() {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-slate-200/50 overflow-hidden">
-      <div className="p-6 border-b border-slate-200/50">
-        <h2 className="text-xl font-bold text-slate-800">Recent Activity</h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+      <div className="px-4 py-4 sm:px-5 lg:p-6 border-b border-slate-100">
+        <h3 className="text-base lg:text-xl font-bold text-slate-800 text-left">
+          Recent Activity
+        </h3>
       </div>
-      <div className="p-6">
-        <div className="space-y-4">
+      <div className="px-2 sm:px-3 lg:px-4 py-1">
+        <ul>
           {activities.map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors duration-200">
-              <div className="w-2 h-2 bg-blue-500 rounded-full" />
-              <span className="text-slate-700">{activity}</span>
-              <span className="text-slate-400 text-sm ml-auto">{index + 1}h ago</span>
-            </div>
+            <li
+              key={index}
+              className={`flex items-center gap-3 px-3 py-3.5 lg:py-4 ${
+                index !== activities.length - 1 ? "border-b border-slate-100" : ""
+              }`}
+            >
+              <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
+              <span className="text-slate-600 text-sm flex-1 min-w-0">{activity}</span>
+              <span className="text-slate-400 text-xs sm:text-sm shrink-0">
+                {index + 1}h ago
+              </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );

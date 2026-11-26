@@ -387,53 +387,54 @@ function MachineTableContent() {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <div className="flex items-center text-[11px] sm:text-sm text-slate-600">
             <span>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              Showing {(currentPage - 1) * pageSize + 1}-
               {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
               results
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${
                 currentPage === 1
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                  : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
               }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
+              Prev
             </button>
-            <div className="flex space-x-1">
-              {getPageNumbers().map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageClick(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === page
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+            {getPageNumbers().map((page) => (
+              <button
+                type="button"
+                key={page}
+                onClick={() => handlePageClick(page)}
+                className={`min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border transition-colors ${
+                  currentPage === page
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
             <button
+              type="button"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${
                 currentPage === totalPages
-                  ? "text-gray-300 cursor-not-allowed"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                  : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
               }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
           </div>
         </div>
@@ -442,7 +443,7 @@ function MachineTableContent() {
       {/* Modal */}
       {isModalOpen && selectedMachine && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-3xl flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-3xl p-0 sm:px-4"
           ref={modalRef}
         >
           {/* <button
@@ -451,11 +452,14 @@ function MachineTableContent() {
           >
             <X className="h-5 w-5 text-red-600" />
           </button> */}
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex overflow-hidden">
+          <div className="bg-white w-full sm:max-w-7xl h-[92dvh] sm:h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col sm:flex-row overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             {/* Left Panel - Machine Details (30%) */}
-            <div className="w-[30%] bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: "black" }}>
+            <div className="w-full sm:w-[30%] bg-gray-50 p-3 sm:p-6 border-b sm:border-b-0 sm:border-r border-gray-200 overflow-y-auto max-h-[35%] sm:max-h-none shrink-0 sm:shrink">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+                <h2 className="text-base sm:text-2xl font-bold" style={{ color: "black" }}>
                   Machine Details
                 </h2>
 
@@ -547,7 +551,7 @@ function MachineTableContent() {
             </div>
 
             {/* Right Panel - Date Selection & Reporting (70%) */}
-            <div className="w-[70%] p-6 overflow-y-auto">
+            <div className="w-full sm:w-[70%] flex-1 p-3 sm:p-6 overflow-y-auto overscroll-contain pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center justify-start gap-2 ">
                   <BarChart3 className="h-6 w-6 text-blue-600" />

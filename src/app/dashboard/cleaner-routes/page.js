@@ -2317,17 +2317,19 @@ export default function CleanerRoutesPage() {
     }
 
     return (
-        <><div className="p-8 space-y-8">
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                            <Navigation className="h-10 w-10 text-blue-600" />
-                            <span className="text-gray-800">Route Assignment Manager</span>
+        <><div className="space-y-4 lg:space-y-8">
+            <div className="mb-4 lg:mb-8">
+                <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-1 lg:mb-2 flex items-center gap-2 lg:gap-3 text-left">
+                            <Navigation className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+                            <span className="text-gray-800 leading-tight">Route Assignment Manager</span>
                         </h1>
-                        <p className="text-gray-600">Assign venues and groups to drivers using drag and drop</p>
+                        <p className="text-xs sm:text-sm lg:text-base text-gray-600">
+                            Assign venues and groups to drivers using drag and drop
+                        </p>
                     </div>
-                    <div className="">
+                    <div className="w-full lg:w-auto shrink-0">
                         {/* <button
                         onClick={async () => {
                             console.log('Manual refresh triggered')
@@ -2346,10 +2348,11 @@ export default function CleanerRoutesPage() {
                     </button> */}
                         <Link
                             href="/dashboard/cleaner-routes/manage-cleaner-venue-group"
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2"
+                            className="w-full lg:w-auto px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
                         >
-                            <Plus className="h-5 w-5" />
-                            <span className="font-semibold">Manage Venue Groups</span>
+                            <Plus className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span className="font-semibold sm:hidden">Venue Groups</span>
+                            <span className="font-semibold hidden sm:inline">Manage Venue Groups</span>
                         </Link>
                     </div>
                 </div>
@@ -2644,11 +2647,14 @@ export default function CleanerRoutesPage() {
 
                 {/* Manage Venue Group Modal */}
                 {showCreateModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-                        <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[95vh] overflow-hidden flex flex-col">
-                            <div className="p-6 border-b ">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-2xl font-bold text-gray-800">
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+                        <div className="bg-white w-full sm:w-[95vw] h-[92dvh] sm:h-[95vh] max-h-[92dvh] sm:max-h-[95vh] rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col">
+                            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+                                <div className="w-10 h-1 rounded-full bg-slate-300" />
+                            </div>
+                            <div className="px-3 py-3 sm:p-6 border-b shrink-0">
+                                <div className="flex items-center justify-between gap-3">
+                                    <h3 className="text-base sm:text-2xl font-bold text-gray-800 truncate">
                                         {editingGroup ? `Edit Venue Group: ${editingGroup.name}` : 'Manage Venue Group'}
                                     </h3>
                                     <button
@@ -2658,9 +2664,9 @@ export default function CleanerRoutesPage() {
                                             setSelectedVenues([])
                                             setEditingGroup(null)
                                         }}
-                                        className="p-2 text-gray-400 hover:text-gray-600"
+                                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 shrink-0"
                                     >
-                                        <X className="h-6 w-6" />
+                                        <X className="h-5 w-5 sm:h-6 sm:w-6" />
                                     </button>
                                 </div>
                             </div>

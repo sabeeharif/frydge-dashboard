@@ -4,18 +4,16 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import MobileSidebar from './MobileSidebar';
-import BottomNavigation from './BottomNavigation';
-import MobileMenuButton from './MobileMenuButton';
 
-export default function NavigationWrapper() {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+export default function NavigationWrapper({ isMobileOpen, setIsMobileOpen }) {
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // Listen for sidebar toggle events
     const handleSidebarToggle = (e) => {
       setSidebarCollapsed(e.detail.isCollapsed);
-      
+
       // Update main content margin
       const mainElement = document.querySelector('main');
       if (mainElement && window.innerWidth >= 1024) {
@@ -24,7 +22,7 @@ export default function NavigationWrapper() {
     };
 
     window.addEventListener('sidebarToggle', handleSidebarToggle);
-    
+
     // Handle window resize
     const handleResize = () => {
       const mainElement = document.querySelector('main');
@@ -38,7 +36,7 @@ export default function NavigationWrapper() {
     };
 
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       window.removeEventListener('sidebarToggle', handleSidebarToggle);
       window.removeEventListener('resize', handleResize);
@@ -48,12 +46,10 @@ export default function NavigationWrapper() {
   return (
     <>
       <Sidebar />
-      <MobileMenuButton onClick={() => setIsMobileOpen(true)} />
-      <MobileSidebar 
-        isOpen={isMobileOpen} 
-        onClose={() => setIsMobileOpen(false)} 
+      <MobileSidebar
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
       />
-      <BottomNavigation />
     </>
   );
 }

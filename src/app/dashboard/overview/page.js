@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Loader2, BarChart3, TrendingUp } from "lucide-react"
+import { AlertCircle, BarChart3 } from "lucide-react"
 import { useToast } from "@/app/contexts/ToastContext"
 import { AuthService, api } from "@/app/lib/auth"
 import StatsGrid from "@/app/components/StatsGrid"
@@ -79,7 +79,7 @@ export default function DashboardOverview() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen w-full bg-gray-100">
+      <div className="flex items-center justify-center h-[60vh] w-full">
         <Loader />
       </div>
     )
@@ -87,22 +87,23 @@ export default function DashboardOverview() {
 
   if (error) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-            <BarChart3 className="h-10 w-10 text-blue-600" />
-            <span className="text-gray-800">Dashboard Overview</span>
+      <div className="space-y-6 lg:space-y-8">
+        <div className="mb-4 lg:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-slate-800 mb-1 flex items-center gap-2 lg:gap-3 text-left">
+            <BarChart3 className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+            <span>Dashboard Overview</span>
           </h1>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center">
-            <AlertCircle className="h-6 w-6 text-red-600 mr-3" />
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 lg:p-6">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 lg:h-6 lg:w-6 text-red-600 mr-3 mt-0.5 shrink-0" />
             <div>
-              <h3 className="text-lg font-semibold text-red-800">Error Loading Dashboard</h3>
-              <p className="text-red-700 mt-1">{error}</p>
+              <h3 className="text-base lg:text-lg font-semibold text-red-800">Error Loading Dashboard</h3>
+              <p className="text-red-700 mt-1 text-sm lg:text-base">{error}</p>
               <button
+                type="button"
                 onClick={fetchDashboardData}
-                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
               >
                 Try Again
               </button>
@@ -114,19 +115,20 @@ export default function DashboardOverview() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-          <BarChart3 className="h-10 w-10 text-blue-600" />
-          <span className="text-gray-800">Dashboard Overview</span>
+    <div className="space-y-5 lg:space-y-8">
+      <div className="mb-2 lg:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-slate-800 mb-1 flex items-center gap-2 lg:gap-3 text-left">
+          <BarChart3 className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
+          <span>Dashboard Overview</span>
         </h1>
-        <p className="text-gray-600">Monitor your business performance and key metrics</p>
+        <p className="text-slate-500 text-xs sm:text-sm lg:text-base">
+          Monitor your business performance and key metrics
+        </p>
       </div>
 
       <StatsGrid dashboardData={dashboardData} />
 
-            <RecentActivity />
-
+      <RecentActivity />
     </div>
   )
 }

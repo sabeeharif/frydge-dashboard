@@ -66,7 +66,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               href={item.path}
-              className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              className={`group flex items-center space-x-3 p-2.5 rounded-xl transition-all duration-200 ${
                 isActive
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                   : 'text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-blue-900/50 hover:to-purple-900/50'

@@ -467,7 +467,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
     // console.log("db", groupMachines)
     return (
-        <div className="min-h-screen bg-gray-50 pt-4">
+        <div className="min-h-screen bg-gray-50 pt-2 sm:pt-4 w-full min-w-0">
             <button
                 onClick={() => {
                     if (structure && Object.keys(structure)?.length > 0) {
@@ -479,7 +479,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         setIsOpenOrder(false); // otherwise close
                     }
                 }}
-                className="mb-3 flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-800 hover:bg-gray-200"
+                className="mb-3 flex items-center gap-2 rounded-lg bg-gray-100 px-3 sm:px-4 py-2 text-sm sm:text-base text-gray-800 hover:bg-gray-200"
             >
                 <svg
                     width="16"
@@ -493,27 +493,33 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 >
                     <path d="m15 18-6-6 6-6" />
                 </svg>
-                Back to Planogram Details
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back to Planogram Details</span>
             </button>
-            <div className="mx-auto flex-1">
+            <div className="mx-auto flex-1 w-full min-w-0">
                 {/* Header */}
-                <div className="flex justify-between items-center">
-                    <div className="mb-8">
-                        <h3 className="text-4xl font-bold text-gray-900 mb-2 gap-3 flex">Planogram Version - Previous Orders
-                            {planogramMeta?.primeMachine && <span className=" px-3 bg-green-500 text-white rounded-lg text-sm font-semibold
-            flex items-center">{planogramMeta?.primeMachine ? "Prime" : ""}</span>} </h3>
-                        <p className="text-gray-600">Manage channel configurations and shelf assignments</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-8">
+                    <div className="min-w-0">
+                        <h3 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                            <span className="leading-tight">Planogram Version - Previous Orders</span>
+                            {planogramMeta?.primeMachine && (
+                                <span className="px-2.5 sm:px-3 py-0.5 bg-green-500 text-white rounded-lg text-xs sm:text-sm font-semibold flex items-center">
+                                    Prime
+                                </span>
+                            )}
+                        </h3>
+                        <p className="text-xs sm:text-sm lg:text-base text-gray-600">Manage channel configurations and shelf assignments</p>
                     </div>
                 </div>
 
                 {/* Date Selector */}
-                <div className="w-1/3 mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div className="w-full sm:w-1/2 lg:w-1/3 mb-4">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                         Select Date
                     </label>
                     <input
                         type="date"
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 sm:py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -521,68 +527,74 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                 {/* Table Container */}
                 {selectedDate && validEntries?.length === 0 && (
-                    <div className="overflow-hidden rounded-lg bg-white shadow">
-                        <table className="w-full border-collapse">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Machine ID</th>
-                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Machine Name</th>
-                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Venue Name</th>
-                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Prime Planogram</th>
-                                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-500">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {groupMachines?.map((machine, index) => (
-                                    <tr key={machine?.machineId} className={index !== 0 ? "border-t border-gray-200" : ""}>
-                                        {/* Machine ID */}
-                                        <td className="px-4 py-4">
-                                            <span className="inline-block rounded px-3 py-1 text-sm font-semibold text-gray-800">
-                                                {machine.machineId}
-                                            </span>
-                                        </td>
-
-                                        {/* Machine Name */}
-                                        <td className="px-4 py-4">
-                                            <div className="text-sm font-medium text-gray-800">{machine?.friendlyName}</div>
-                                        </td>
-
-                                        {/* Venue Name */}
-                                        <td className="px-4 py-4">
-                                            <div className="text-sm font-medium text-gray-800">
-                                                {machine?.venueName || "_"}
-                                            </div>
-                                        </td>
-
-                                        {/* Prime Planogram */}
-                                        <td className="px-4 py-4">
-                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${machine?.primePlanogram ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"}`}>
-                                                {machine?.primePlanogram ? "Yes" : "No"}
-                                            </span>
-                                        </td>
-
-                                        {/* Actions */}
-                                        <td className="px-4 py-4">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => fetchInteranalOrdersStructure(machine)}
-                                                    className="text-green-600 hover:underline cursor-pointer"
-                                                >
-                                                    View Order
-                                                </button>
-                                            </div>
-                                        </td>
+                    <div className="w-full min-w-0 rounded-xl bg-white shadow border border-gray-200">
+                        <div
+                            className="w-full overflow-x-auto overscroll-x-contain"
+                            style={{ WebkitOverflowScrolling: "touch" }}
+                        >
+                            <table className="w-full min-w-[640px] border-collapse">
+                                <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                                    <tr>
+                                        <th className="px-3 py-2.5 sm:px-4 sm:py-4 text-left text-[10px] sm:text-sm font-semibold whitespace-nowrap">Machine ID</th>
+                                        <th className="px-3 py-2.5 sm:px-4 sm:py-4 text-left text-[10px] sm:text-sm font-semibold whitespace-nowrap">Machine Name</th>
+                                        <th className="px-3 py-2.5 sm:px-4 sm:py-4 text-left text-[10px] sm:text-sm font-semibold whitespace-nowrap">Venue Name</th>
+                                        <th className="px-3 py-2.5 sm:px-4 sm:py-4 text-left text-[10px] sm:text-sm font-semibold whitespace-nowrap">Prime Planogram</th>
+                                        <th className="px-3 py-2.5 sm:px-4 sm:py-4 text-left text-[10px] sm:text-sm font-semibold whitespace-nowrap">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {groupMachines?.map((machine, index) => (
+                                        <tr key={machine?.machineId} className={index !== 0 ? "border-t border-gray-200" : ""}>
+                                            {/* Machine ID */}
+                                            <td className="px-3 py-2.5 sm:px-4 sm:py-4 whitespace-nowrap">
+                                                <span className="inline-block rounded px-2 sm:px-3 py-1 text-[11px] sm:text-sm font-semibold text-gray-800">
+                                                    {machine.machineId}
+                                                </span>
+                                            </td>
+
+                                            {/* Machine Name */}
+                                            <td className="px-3 py-2.5 sm:px-4 sm:py-4 whitespace-nowrap">
+                                                <div className="text-[11px] sm:text-sm font-medium text-gray-800">{machine?.friendlyName}</div>
+                                            </td>
+
+                                            {/* Venue Name */}
+                                            <td className="px-3 py-2.5 sm:px-4 sm:py-4 whitespace-nowrap">
+                                                <div className="text-[11px] sm:text-sm font-medium text-gray-800">
+                                                    {machine?.venueName || "_"}
+                                                </div>
+                                            </td>
+
+                                            {/* Prime Planogram */}
+                                            <td className="px-3 py-2.5 sm:px-4 sm:py-4 whitespace-nowrap">
+                                                <span className={`rounded-full px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold ${machine?.primePlanogram ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"}`}>
+                                                    {machine?.primePlanogram ? "Yes" : "No"}
+                                                </span>
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="px-3 py-2.5 sm:px-4 sm:py-4 whitespace-nowrap">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => fetchInteranalOrdersStructure(machine)}
+                                                        className="text-green-600 hover:underline cursor-pointer text-[11px] sm:text-sm"
+                                                    >
+                                                        View Order
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
                 {/* 🔹 TOP SCROLLBAR */}
-                {selectedDate && validEntries?.length === 0 && <div
+                {selectedDate && validEntries?.length > 0 && <div
                     ref={topScrollRef}
-                    className="overflow-x-scroll overflow-y-hidden mt-10 h-4 mb-4"
+                    className="overflow-x-auto overflow-y-hidden mt-4 sm:mt-10 h-3 sm:h-4 mb-3 sm:mb-4 w-full min-w-0"
+                    style={{ WebkitOverflowScrolling: "touch" }}
                     onScroll={(e) => {
                         if (contentScrollRef.current) {
                             contentScrollRef.current.scrollLeft = e.target.scrollLeft
@@ -593,24 +605,24 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 </div>}
 
                 {/* Machine Info Header */}
-                {validEntries?.length > 0 && <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {validEntries?.length > 0 && <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-4">
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Machine ID</p>
-                        <p className="text-sm font-semibold text-gray-800">
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Machine ID</p>
+                        <p className="text-xs sm:text-sm font-semibold text-gray-800 break-all">
                             {selectedMachine?.machineId || "N/A"}
                         </p>
                     </div>
 
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Machine Name</p>
-                        <p className="text-sm font-semibold text-gray-800">
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Machine Name</p>
+                        <p className="text-xs sm:text-sm font-semibold text-gray-800 break-words">
                             {selectedMachine?.friendlyName || "N/A"}
                         </p>
                     </div>
 
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Venue Name</p>
-                        <p className="text-sm font-semibold text-gray-800">
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Venue Name</p>
+                        <p className="text-xs sm:text-sm font-semibold text-gray-800 break-words">
                             {selectedMachine?.venueName || "N/A"}
                         </p>
                     </div>
@@ -619,7 +631,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                 {/* 🔹 ACTUAL CONTENT */}
                 <div
                     ref={contentScrollRef}
-                    className="flex gap-10 overflow-x-scroll hide-scrollbar"
+                    className="flex gap-4 sm:gap-10 overflow-x-auto overscroll-x-contain w-full min-w-0 pb-2"
+                    style={{ WebkitOverflowScrolling: "touch" }}
                     onScroll={(e) => {
                         if (topScrollRef.current) {
                             topScrollRef.current.scrollLeft = e.target.scrollLeft
@@ -629,8 +642,8 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
 
                     {validEntries.length === 0 ? (
                         /* 🔹 EMPTY STATE */
-                        <div className="min-w-full flex items-center justify-center py-20">
-                            <p className="text-gray-500 text-lg font-medium">
+                        <div className="min-w-full flex items-center justify-center py-12 sm:py-20">
+                            <p className="text-gray-500 text-sm sm:text-lg font-medium text-center px-4">
                                 No orders available to display
                             </p>
                         </div>
@@ -640,9 +653,9 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                             , shelvesByNumber]) => (
 
                             <div key={plannedPlanogramDate
-                            } className="mb-10 min-w-full border p-4 border-blue-600 rounded-lg">
+                            } className="mb-6 sm:mb-10 w-full min-w-full border p-3 sm:p-4 border-blue-600 rounded-lg">
                                 {/* Planogram Header */}
-                                <div className="text-lg font-bold mb-4">
+                                <div className="text-base sm:text-lg font-bold mb-3 sm:mb-4">
                                     {/* Date: {formatDate(plannedPlanogramDate, true)} */}
                                     Date: {formatDate(selectedDate, true)}
                                 </div>
@@ -653,9 +666,10 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                         <div key={shelfNumber} className="space-y-3 mb-6">
 
                                             <div
-                                                className="grid items-stretch"
+                                                className="flex sm:grid items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
                                                 style={{
-                                                    gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
+                                                    WebkitOverflowScrolling: "touch",
+                                                    gridTemplateColumns: `repeat(${shelves.length}, minmax(140px, 1fr))`,
                                                 }}
                                             >
                                                 {shelves.map((item, shelfIndex) => (
@@ -674,7 +688,7 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                                             shelfRefs.current[plannedPlanogramDate
                                                             ][shelfNumber][shelfIndex] = el;
                                                         }}
-                                                        className="relative border-1 border-gray-200 bg-white min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3"
+                                                        className="relative border border-gray-200 bg-white min-h-64 sm:min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 min-w-[160px] sm:min-w-0 w-[160px] sm:w-auto shrink-0 sm:shrink"
                                                     >
                                                         {/* Top Badge */}
                                                         <div className="flex items-center justify-between">
@@ -703,22 +717,22 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                                             </div>
                                                         )}
                                                         {item?.productImage?.file && (
-                                                            <div className="flex flex-col justify-center h-full items-center gap-2">
+                                                            <div className="flex flex-col justify-center h-full items-center gap-2 min-w-0">
                                                                 <img
                                                                     // src={`/products/${item.image}`}
                                                                     src={item?.productImage?.file}
-                                                                    className="h-24 w-auto object-contain rounded"
+                                                                    className="h-20 sm:h-24 w-auto max-w-full object-contain rounded"
                                                                     onError={(e) => {
                                                                         e.currentTarget.src = "/placeholder.png";
                                                                     }}
                                                                 />
-                                                                <div className="text-xs font-semibold text-gray-700 text-center">
+                                                                <div className="text-[11px] sm:text-xs font-semibold text-gray-700 text-center break-words w-full">
                                                                     {item.productName}
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        <div className="flex flex-col justify-center items-center ">
-                                                            <div className="flex  items-center gap-4">
+                                                        <div className="flex flex-col justify-center items-center min-w-0">
+                                                            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4">
 
                                                                 {/* Categories */}
                                                                 {item?.categoryIds?.length > 0 && (
@@ -843,11 +857,14 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
             {/* Edit Modal */}
             {editItem && (
                 action === "finalize" ?
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+                        <div className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-t-2xl sm:rounded-lg p-3 sm:p-6 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                            <div className="flex justify-center sm:hidden pb-2">
+                                <div className="w-10 h-1 rounded-full bg-slate-300" />
+                            </div>
                             {/* Modal Header */}
-                            <div className="mb-6 pb-4 border-b border-gray-200">
-                                <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                            <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+                                <h3 className="text-base sm:text-2xl font-bold text-gray-900 mb-1">
                                     Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
                                 </h3>
                                 <p className="text-sm text-gray-600">Edit product details, categories, suppliers, and capacity limits</p>
@@ -933,16 +950,16 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                                 )}
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
                                 <button
                                     onClick={() => setEditItem(null)}
-                                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                                 >
                                     Save Changes
                                 </button>
@@ -950,11 +967,14 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                         </div>
 
                     </div> :
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                        <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+                        <div className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-t-2xl sm:rounded-lg p-3 sm:p-6 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                            <div className="flex justify-center sm:hidden pb-2">
+                                <div className="w-10 h-1 rounded-full bg-slate-300" />
+                            </div>
                             {/* Modal Header */}
-                            <div className="mb-6 pb-4 border-b border-gray-200">
-                                <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                            <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+                                <h3 className="text-base sm:text-2xl font-bold text-gray-900 mb-1">
                                     Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
                                 </h3>
                                 <p className="text-sm text-gray-600">Set categories, suppliers, and capacity limits</p>
@@ -1079,16 +1099,16 @@ const PlanogramStructure = ({ setIsOpenOrder }) => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
                                 <button
                                     onClick={() => setEditItem(null)}
-                                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                                 >
                                     Save Changes
                                 </button>

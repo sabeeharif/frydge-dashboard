@@ -877,12 +877,12 @@ const PlanogramStructure = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-4">
+    <div className="min-h-screen bg-gray-50 pt-2 sm:pt-4 w-full min-w-0">
       <button
         onClick={() => router.push(
           `/dashboard/planogram-version-details?planogramVersionId=${planogramMeta?.planogramVersionId}`
         )}
-        className="mb-3 flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-800 hover:bg-gray-200"
+        className="mb-3 flex items-center gap-2 rounded-lg bg-gray-100 px-3 sm:px-4 py-2 text-sm sm:text-base text-gray-800 hover:bg-gray-200"
       >
         <svg
           width="16"
@@ -896,41 +896,42 @@ const PlanogramStructure = () => {
         >
           <path d="m15 18-6-6 6-6" />
         </svg>
-        Back to Planogram Details
+        <span className="sm:hidden">Back</span>
+        <span className="hidden sm:inline">Back to Planogram Details</span>
       </button>
 
 
-      <div className="mx-auto flex-1">
+      <div className="mx-auto flex-1 w-full min-w-0">
         {/* Header */}
 
-        <div className="flex justify-between items-center">
-          <div className="mb-8 space-y-2">
-            <h3 className="flex items-center gap-3 text-4xl font-bold text-gray-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start">
+          <div className="mb-2 lg:mb-8 space-y-2">
+            <h3 className="flex flex-wrap items-center gap-2 lg:gap-3 text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 text-left">
               Planogram Structure
 
               {planogramMeta?.primeMachine && (
-                <span className="flex items-center px-3 py-1 text-sm font-semibold text-white bg-green-500 rounded-full">
+                <span className="flex items-center px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold text-white bg-green-500 rounded-full">
                   Prime
                 </span>
               )}
             </h3>
 
-            <div className="flex flex-wrap gap-4 text-lg">
-              <span className="font-semibold text-gray-800">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-4 gap-y-1 text-xs sm:text-base lg:text-lg">
+              <span className="font-semibold text-gray-800 break-all">
                 Machine ID:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.machineId}
                 </span>
               </span>
 
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-gray-800 break-words">
                 Venue:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.venueName}
                 </span>
               </span>
 
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-gray-800 break-words">
                 Friendly Name:
                 <span className="ml-2 font-medium text-gray-800">
                   {planogramMeta?.friendlyName}
@@ -938,38 +939,53 @@ const PlanogramStructure = () => {
               </span>
             </div>
 
-            <p className="text-gray-600">
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
               Manage channel configurations and shelf assignments
             </p>
           </div>
 
-          <div>
+          <div className="w-full lg:w-auto shrink-0">
             {!selectedDate ? <button
               onClick={action === "finalize" ? handleFinalizePlanogram : handleUpdatePlanogram}
               disabled={updatingPlanogram}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+              className="w-full lg:w-auto px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
-            transition-colors flex items-center gap-2"
+            transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
             >
-              {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Apply Structure" : "Update Structure"}
+              {updatingPlanogram && <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />}
+              {updatingPlanogram ? "Updating..." : action === "finalize" ? (
+                <>
+                  <span className="sm:hidden">Apply</span>
+                  <span className="hidden sm:inline">Apply Structure</span>
+                </>
+              ) : (
+                <>
+                  <span className="sm:hidden">Update</span>
+                  <span className="hidden sm:inline">Update Structure</span>
+                </>
+              )}
             </button> : <button
               onClick={action === "finalize" && handleFinalizePlanogram}
               disabled={updatingPlanogram}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+              className="w-full lg:w-auto px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
-            transition-colors flex items-center gap-2"
+            transition-colors flex items-center justify-center gap-1.5 sm:gap-2"
             >
-              {updatingPlanogram && <Loader2 className="h-4 w-4 animate-spin" />}
-              {updatingPlanogram ? "Updating..." : action === "finalize" ? "Update Structure" : ""}
+              {updatingPlanogram && <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />}
+              {updatingPlanogram ? "Updating..." : action === "finalize" ? (
+                <>
+                  <span className="sm:hidden">Update</span>
+                  <span className="hidden sm:inline">Update Structure</span>
+                </>
+              ) : ""}
             </button>}
           </div>
         </div>
 
         {/* actions exclude ,include and apply meachines */}
         {action === "finalize" && (
-          <div className="flex  ">
-            <div className="mb-6 w-[55%]">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 mb-4">
+            <div className="mb-2 lg:mb-6 w-full lg:w-[55%] min-w-0">
 
               {/* Exclude Machines Checkbox */}
               <div className="mb-4">
@@ -1157,7 +1173,7 @@ const PlanogramStructure = () => {
             </div>
             {
               selectedDate &&
-              <div className="w-[55%] relative">
+              <div className="w-full lg:w-[45%] relative min-w-0">
                 <OrderFileForSupplier supplierOrderFiles={planogramMeta?.supplierOrderFiles} />
               </div>
             }
@@ -1165,17 +1181,18 @@ const PlanogramStructure = () => {
         )}
 
         {action === "finalize" &&
-          <div className="flex flex-wrap gap-2 items-end mb-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:items-end mb-6">
 
             {selectedDate &&
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <button
                   onClick={fetchPlanogramStructure}
-                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
+                  className="w-full sm:w-auto px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg 
             hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed 
-            transition-colors flex items-center gap-2"
+            transition-colors flex items-center justify-center gap-2"
                 >
-                  Current Applied Planogram
+                  <span className="sm:hidden">Current Planogram</span>
+                  <span className="hidden sm:inline">Current Applied Planogram</span>
                 </button>
                 <div
                   className="h-3 w-3 absolute top-[-4px] right-[-4px]  rounded-full bg-green-500 animate-pulse"
@@ -1185,7 +1202,7 @@ const PlanogramStructure = () => {
             }
 
             {/* Date Dropdown */}
-            <div className="flex flex-col gap-1 ml-2">
+            <div className="flex flex-col gap-1 w-full sm:w-auto sm:ml-2 min-w-0">
               <label className="text-sm font-semibold  block text-gray-900">
                 Select Order
               </label>
@@ -1197,7 +1214,7 @@ const PlanogramStructure = () => {
                   setSelectedPlanDate("")
                   if (selected) fetchInteranalOrdersStructure(selected); // pass the whole item
                 }}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select date</option>
                 {availableDates?.map((item) => (
@@ -1239,8 +1256,8 @@ const PlanogramStructure = () => {
               <>
                 <button
                   onClick={() => setIsPlanModalOpen(true)}
-                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
-               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
+               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center justify-center gap-2"
                 >
                   New Plan
                 </button>
@@ -1251,8 +1268,8 @@ const PlanogramStructure = () => {
               <>
                 <button
                   onClick={handelReapplyFunc}
-                  className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
-               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg
+               hover:from-blue-700 hover:to-purple-700 cursor-pointer transition-colors flex items-center justify-center gap-2"
                 >
                   Apply Again
                 </button>
@@ -1261,7 +1278,7 @@ const PlanogramStructure = () => {
 
 
             {selectedPlanDate && (
-              <div className="px-3 relative py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+              <div className="w-full sm:w-auto px-3 relative py-2 rounded-lg bg-green-100 text-green-700 text-xs sm:text-sm font-medium">
                 Plan Date: {formatNewPlanDate(`${selectedPlanDate}T${time}:00`)}
 
                 <button
@@ -1277,26 +1294,27 @@ const PlanogramStructure = () => {
           </div>
         }
 
-        <div className="">
-          <label className="text-2xl mb-2 font-semibold  block text-gray-900">
+        <div className="w-full min-w-0">
+          <label className="text-base sm:text-xl lg:text-2xl mb-2 font-semibold block text-gray-900 break-words">
             {selectedDate ? <>Selected Order ({formatNewPlanDate(selectedDate)}) <span> {planogramMeta?.draft && "(Draft)"} </span>  </> : <></>} </label>
           {structure.length === 0 ?
-            <div className="min-w-full flex items-center justify-center py-20">
-              <p className="text-gray-500 text-lg font-medium">
-                No orders available for machine <span className="text-red-500">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatNewPlanDate(selectedDate)}</span>.
+            <div className="min-w-full flex items-center justify-center py-12 sm:py-20 px-2">
+              <p className="text-gray-500 text-sm sm:text-lg font-medium text-center">
+                No orders available for machine <span className="text-red-500 break-all">{getMachineNameById(planogramMeta?.machineId)}({planogramMeta?.machineId})</span>, for the date <span className="text-red-500">{formatNewPlanDate(selectedDate)}</span>.
               </p>
             </div>
             :
             Object.entries(structure)
               .sort(([a], [b]) => Number(b) - Number(a)) // shelves descending
               .map(([shelfNumber, shelves]) => (
-                <div key={shelfNumber} className="space-y-3">
+                <div key={shelfNumber} className="space-y-3 mb-4 sm:mb-6">
 
                   {/* Shelves Grid */}
                   <div
-                    className="grid  items-stretch"
+                    className="flex sm:grid items-stretch gap-3 overflow-x-auto overscroll-x-contain pb-2"
                     style={{
-                      gridTemplateColumns: `repeat(${shelves.length}, 1fr)`,
+                      WebkitOverflowScrolling: "touch",
+                      gridTemplateColumns: `repeat(${shelves.length}, minmax(140px, 1fr))`,
                     }}
                   >
                     {shelves.map((item, shelfIndex) => {
@@ -1308,10 +1326,10 @@ const PlanogramStructure = () => {
                               shelfRefs.current[shelfNumber] = [];
                             shelfRefs.current[shelfNumber][shelfIndex] = el;
                           }}
-                          className={`relative border-1   ${item.isDifferent
+                          className={`relative border ${item.isDifferent
                             ? "border-green-500 bg-green-50"
                             : "border-gray-200 bg-white"
-                            } min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-4 flex flex-col gap-3`} >
+                            } min-h-64 sm:min-h-72 hover:border-blue-500 hover:shadow-lg transition-all duration-200 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 min-w-[160px] sm:min-w-0 w-[160px] sm:w-auto shrink-0 sm:shrink`} >
 
                           {/* Top Badge */}
                           <div className="flex items-center justify-between">
@@ -1342,23 +1360,23 @@ const PlanogramStructure = () => {
                           )}
 
                           {item?.productImage?.file && (
-                            <div className="flex flex-col items-center gap-2">
+                            <div className="flex flex-col items-center gap-2 min-w-0">
                               <img
                                 // src={`/products/${item.image}`}
                                 src={item?.productImage?.file}
-                                className="h-24 w-auto object-contain rounded"
+                                className="h-20 sm:h-24 w-auto max-w-full object-contain rounded"
                                 onError={(e) => {
                                   e.currentTarget.src = "/placeholder.png";
                                 }}
                               />
-                              <div className="text-xs font-semibold text-gray-700 text-center">
+                              <div className="text-[11px] sm:text-xs font-semibold text-gray-700 text-center break-words w-full">
                                 {item.productName}
                               </div>
                             </div>
                           )}
 
-                          <div className="flex flex-col justify-center items-center ">
-                            <div className="flex  items-center gap-4">
+                          <div className="flex flex-col justify-center items-center min-w-0">
+                            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4">
 
                               {/* Categories */}
                               {item?.categoryIds?.length > 0 && (
@@ -1488,11 +1506,14 @@ const PlanogramStructure = () => {
       {
         editItem && (
           action === "finalize" ?
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+              <div className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-t-2xl sm:rounded-lg p-3 sm:p-6 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                <div className="flex justify-center sm:hidden pb-2">
+                  <div className="w-10 h-1 rounded-full bg-slate-300" />
+                </div>
                 {/* Modal Header */}
-                <div className="mb-6 pb-4 border-b border-gray-200">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+                  <h3 className="text-base sm:text-2xl font-bold text-gray-900 mb-1">
                     Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
                   </h3>
                   <p className="text-sm text-gray-600">Edit product details, categories, suppliers, and capacity limits</p>
@@ -1569,16 +1590,16 @@ const PlanogramStructure = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => setEditItem(null)}
-                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
                     Save Changes
                   </button>
@@ -1586,11 +1607,14 @@ const PlanogramStructure = () => {
               </div>
 
             </div> :
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-lg p-6 shadow-2xl">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+              <div className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-t-2xl sm:rounded-lg p-3 sm:p-6 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+                <div className="flex justify-center sm:hidden pb-2">
+                  <div className="w-10 h-1 rounded-full bg-slate-300" />
+                </div>
                 {/* Modal Header */}
-                <div className="mb-6 pb-4 border-b border-gray-200">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+                  <h3 className="text-base sm:text-2xl font-bold text-gray-900 mb-1">
                     Configure Channel {editItem?.channel} - Shelf {editItem?.shelf}
                   </h3>
                   <p className="text-sm text-gray-600">Set categories, suppliers, and capacity limits</p>
@@ -1720,16 +1744,16 @@ const PlanogramStructure = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => setEditItem(null)}
-                    className="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
                     Save Changes
                   </button>
@@ -1741,10 +1765,13 @@ const PlanogramStructure = () => {
 
       {/* Modal */}
       {isPlanModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full max-w-sm pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
-            <h3 className="text-lg font-semibold mb-4">Select Date & Time</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-4">Select Date & Time</h3>
 
             {/* DATE */}
             <input
@@ -1772,14 +1799,14 @@ const PlanogramStructure = () => {
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   setIsPlanModalOpen(false);
                   setDate("")
                   setTime("")
                 }}
-                className="px-4 py-2 text-gray-600"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm text-gray-600"
               >
                 Cancel
               </button>
@@ -1791,7 +1818,7 @@ const PlanogramStructure = () => {
                   handelSelectDate(finalDateTime)
                   setIsPlanModalOpen(false);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-50"
               >
                 Confirm
               </button>
@@ -1803,19 +1830,22 @@ const PlanogramStructure = () => {
 
       {/* Modal */}
       {isNotify && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full max-w-lg pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
-            <h3 className="text-base font-semibold mb-4">
+            <h3 className="text-sm sm:text-base font-semibold mb-4">
               Are you sure you want to re-apply the structure for this plan date:
               <span className="text-red-600 text-center"> {formatNewPlanDate(selectedReApplyDate)}</span>
             </h3>
 
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => setIsNotify(false)}
-                className="px-4 py-2 text-gray-600"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm text-gray-600"
               >
                 Cancel
               </button>
@@ -1823,7 +1853,7 @@ const PlanogramStructure = () => {
               <button
                 disabled={!selectedReApplyDate}
                 onClick={handleConfirm}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {updatingPlanogram && isNotify && <Loader2 className="h-4 w-4 animate-spin" />}
                 {updatingPlanogram && isNotify ? "Updating" : "Confirm"}
@@ -1835,10 +1865,13 @@ const PlanogramStructure = () => {
 
       {/* Modal */}
       {isReapplyPlanModalDateOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full max-w-sm pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6">
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
 
-            <h3 className="text-lg font-semibold mb-4">Select Reapply Plan Date</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-4">Select Reapply Plan Date</h3>
 
             {/* DATE */}
             <input
@@ -1867,14 +1900,14 @@ const PlanogramStructure = () => {
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   setIsReapplyPlanModalDateOpen(false);
                   setDate("")
                   setTime("")
                 }}
-                className="px-4 py-2 text-gray-600"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm text-gray-600"
               >
                 Cancel
               </button>
@@ -1887,7 +1920,7 @@ const PlanogramStructure = () => {
                   setIsNotify(true)
                   setIsReapplyPlanModalDateOpen(false);
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-50"
               >
                 Confirm
               </button>

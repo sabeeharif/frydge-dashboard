@@ -130,22 +130,25 @@ export const TerminalHistoryModal = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white w-full sm:max-w-5xl max-h-[92dvh] sm:max-h-[90vh] overflow-hidden flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl">
+                <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0 bg-gradient-to-r from-blue-600 to-purple-600">
+                    <div className="w-10 h-1 rounded-full bg-white/50" />
+                </div>
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white/20 p-2 rounded-lg">
-                            <History className="h-5 w-5 text-white" />
+                <div className="flex items-center justify-between gap-3 px-3 py-3 sm:px-6 sm:py-5 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="bg-white/20 p-1.5 sm:p-2 rounded-lg shrink-0">
+                            <History className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                         </div>
 
-                        <div>
-                            <h3 className="text-xl font-bold text-white">
+                        <div className="min-w-0">
+                            <h3 className="text-base sm:text-xl font-bold text-white truncate">
                                 Terminal History
                             </h3>
 
-                            <p className="text-sm text-blue-100">
+                            <p className="text-xs sm:text-sm text-blue-100 hidden sm:block">
                                 View assigned and unassigned terminal records
                             </p>
                         </div>
@@ -153,14 +156,14 @@ export const TerminalHistoryModal = ({
 
                     <button
                         onClick={closeModal}
-                        className="p-2 rounded-lg text-white hover:bg-white/20 transition"
+                        className="p-1.5 sm:p-2 rounded-lg text-white hover:bg-white/20 transition shrink-0"
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
+                <div className="flex-1 overflow-y-auto overscroll-contain bg-gray-50 p-3 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
 
                     {/* Loader */}
                     {loading && (

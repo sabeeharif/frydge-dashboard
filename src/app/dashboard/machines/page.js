@@ -915,27 +915,37 @@ function MachineTableContent() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-4xl font-bold text-gray-800 mb-0 flex items-center gap-3">
-          <Monitor className="h-10 w-10 text-blue-600" />
+    <div className="space-y-4 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 lg:gap-4">
+        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-800 mb-0 flex items-center gap-2 lg:gap-3 text-left">
+          <Monitor className="h-6 w-6 lg:h-10 lg:w-10 text-blue-600 shrink-0" />
           <span className="text-gray-800">Machines</span>
         </h1>
         <button
           onClick={handleSortAllMachineProducts}
           disabled={isSortingAll}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center gap-2 self-start sm:self-auto cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSortingAll ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
           ) : (
-            <ArrowUpDown className="h-4 w-4" />
+            <ArrowUpDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           )}
-          {isSortingAll ? "Sorting All..." : "Sort All Machines"}
+          {isSortingAll ? (
+            <>
+              <span className="sm:hidden">Sorting...</span>
+              <span className="hidden sm:inline">Sorting All...</span>
+            </>
+          ) : (
+            <>
+              <span className="sm:hidden">Sort All</span>
+              <span className="hidden sm:inline">Sort All Machines</span>
+            </>
+          )}
         </button>
       </div>
 
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1 p-[2px] rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
           <div className="flex items-center bg-white rounded-full px-3">
             <Search className="w-5 h-5 text-gray-500 mr-2 absolute right-3" />
@@ -944,7 +954,7 @@ function MachineTableContent() {
               placeholder="Search machines by ID, name, venue, location, or device..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-2 bg-transparent outline-none text-gray-900"
+              className="w-full text-sm lg:text-base py-2 bg-transparent outline-none text-gray-900"
             />
           </div>
         </div>
@@ -988,50 +998,50 @@ function MachineTableContent() {
       {/* Table Card Wrapper */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-xs">
+          <table className="w-full min-w-[640px] lg:min-w-[1100px] text-xs">
             {/* Head */}
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <tr>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 lg:px-2 lg:py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden md:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Encrypted Machine ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden md:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <QrCode className="h-4 w-4" />
                     QR Code
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Friendly Name
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
                     Venue
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     Location
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Device ID
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   Device Name
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">
                     <Gift className="h-4 w-4" />
                     Free Vend
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-2 py-2 text-left text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-2">Action</div>
                 </th>
               </tr>
@@ -1064,19 +1074,19 @@ function MachineTableContent() {
                         : "bg-gray-50"
                       } hover:bg-blue-100 transition-colors duration-200 cursor-pointer`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm mr-3">
+                    <td className="px-2 py-2 lg:px-6 lg:py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-[10px] sm:text-sm shrink-0">
                           {index + 1 + (currentPage - 1) * pageSize}
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-[11px] sm:text-sm font-medium text-gray-900">
                           {machine.id}
                         </span>
                       </div>
                     </td>
 
                     {/* Encrypted ID Column */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden md:table-cell px-2 py-2 text-[11px]">
                       {encryptedIds[machine.id] ? (
                         <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold hover:bg-green-200">
                           {encryptedIds[machine.id]}
@@ -1096,7 +1106,7 @@ function MachineTableContent() {
                     </td>
 
                     {/* QR Code Column */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden md:table-cell px-2 py-2 text-[11px]">
                       {qrUrls[machine.id] ? (
                         <button
                           className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium hover:bg-blue-200 flex items-center gap-1 cursor-pointer"
@@ -1125,7 +1135,7 @@ function MachineTableContent() {
                     </td>
 
                     {/* Venue */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full font-medium ${machine.venue
                           ? "bg-green-100 text-green-800"
@@ -1137,7 +1147,7 @@ function MachineTableContent() {
                     </td>
 
                     {/* Location */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full font-medium ${machine.location
                           ? "bg-green-100 text-green-800"
@@ -1149,14 +1159,14 @@ function MachineTableContent() {
                     </td>
 
                     {/* Device ID */}
-                    <td className="px-2 py-2 text-[11px] whitespace-nowrap">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px] whitespace-nowrap">
                       <div className="text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceId || "N/A"}
                       </div>
                     </td>
 
                     {/* Device Name */}
-                    <td className="px-2 py-2 text-[11px]">
+                    <td className="hidden lg:table-cell px-2 py-2 text-[11px]">
                       <div className="font-medium text-gray-900">
                         {machine.maxItemsPerDevice?.[0]?.deviceName || "N/A"}
                       </div>
@@ -1245,7 +1255,12 @@ function MachineTableContent() {
                             disabled={loadingDeviceStatus[machine.id]}
                             onClick={() => getDeviceStatus(machine.id)}
                           >
-                            {loadingDeviceStatus[machine.id] ? "Loading..." : "Check Status"}
+                            {loadingDeviceStatus[machine.id] ? "..." : (
+                              <>
+                                <span className="sm:hidden">Status</span>
+                                <span className="hidden sm:inline">Check Status</span>
+                              </>
+                            )}
                           </button>
                         )}
 
@@ -1254,7 +1269,8 @@ function MachineTableContent() {
                           className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-[10px] hover:bg-blue-200 cursor-pointer"
                           onClick={() => handlePlanograms(machine)}
                         >
-                          Planograms
+                          <span className="sm:hidden">Plans</span>
+                          <span className="hidden sm:inline">Planograms</span>
                         </button>
 
                         {/* Enable/Disable Button */}
@@ -1264,7 +1280,8 @@ function MachineTableContent() {
                         >
                           <>
                             <Power className="h-3 w-3" />
-                            Enable/Disable
+                            <span className="sm:hidden">Toggle</span>
+                            <span className="hidden sm:inline">Enable/Disable</span>
                           </>
                         </button>
 
@@ -1320,50 +1337,51 @@ function MachineTableContent() {
 
       {/* Pagination Controls */}
       {paginationTotalCount > 0 && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between bg-white rounded-lg shadow-lg px-6 py-4">
-          <div className="flex items-center text-sm text-gray-700">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 bg-white rounded-xl shadow-sm border border-slate-200/80 px-2.5 py-2.5 sm:px-5 sm:py-4 lg:px-6">
+          <div className="flex items-center text-[11px] sm:text-sm text-slate-600">
             <span>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              Showing {(currentPage - 1) * pageSize + 1}-
               {Math.min(currentPage * pageSize, paginationTotalCount)} of{" "}
               {paginationTotalCount} results
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
             <button
+              type="button"
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === 1
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${currentPage === 1
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5" />
+              Prev
             </button>
-            <div className="flex space-x-1">
-              {getPageNumbers().map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageClick(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === page
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-                    }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+            {getPageNumbers().map((page) => (
+              <button
+                type="button"
+                key={page}
+                onClick={() => handlePageClick(page)}
+                className={`min-w-7 sm:min-w-8 h-7 sm:h-8 px-1.5 sm:px-2 rounded-lg text-[11px] sm:text-sm font-semibold border transition-colors ${currentPage === page
+                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-blue-300"
+                  }`}
+              >
+                {page}
+              </button>
+            ))}
             <button
+              type="button"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === totalPages
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+              className={`flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-sm font-medium border transition-colors ${currentPage === totalPages
+                ? "text-slate-300 border-slate-100 cursor-not-allowed bg-slate-50"
+                : "text-slate-700 border-slate-200 hover:border-blue-300 hover:text-blue-600 bg-white"
                 }`}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-0.5" />
             </button>
           </div>
         </div>
@@ -1371,11 +1389,14 @@ function MachineTableContent() {
 
       {/* Enable/Disable Modal */}
       {isEnableModalOpen && selectedMachineForToggle && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
           <div
             ref={enableModalRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl p-4 sm:p-6 relative pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6"
           >
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             <button
               onClick={closeEnableModal}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1495,11 +1516,14 @@ function MachineTableContent() {
 
       {/* QR Code Modal */}
       {isQrModalOpen && selectedQrCode && selectedMachineForQr && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
           <div
             ref={qrModalRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative"
+            className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-xl shadow-2xl p-4 sm:p-6 relative pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-6"
           >
+            <div className="flex justify-center sm:hidden pb-2">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             <button
               onClick={closeQrModal}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -1554,14 +1578,17 @@ function MachineTableContent() {
       {/* Main Modal (existing reporting modal) */}
       {isModalOpen && selectedMachine && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-3xl flex items-center justify-center z-40 px-4"
+          className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-3xl p-0 sm:px-4"
           ref={modalRef}
         >
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] flex overflow-hidden">
+          <div className="bg-white w-full sm:max-w-7xl h-[92dvh] sm:h-[90vh] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col sm:flex-row overflow-hidden">
+            <div className="flex justify-center pt-2 pb-1 sm:hidden shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
             {/* Left Panel - Machine Details (30%) */}
-            <div className="w-[30%] bg-gray-50 p-6 border-r border-gray-200 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold" style={{ color: "black" }}>
+            <div className="w-full sm:w-[30%] bg-gray-50 p-3 sm:p-6 border-b sm:border-b-0 sm:border-r border-gray-200 overflow-y-auto max-h-[35%] sm:max-h-none shrink-0 sm:shrink">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+                <h2 className="text-base sm:text-2xl font-bold" style={{ color: "black" }}>
                   Machine Details
                 </h2>
                 <button
@@ -1646,7 +1673,7 @@ function MachineTableContent() {
               </div>
             </div>
             {/* Right Panel - Date Selection & Reporting (70%) */}
-            <div className="w-[70%] p-6 overflow-y-auto">
+            <div className="w-full sm:w-[70%] flex-1 p-3 sm:p-6 overflow-y-auto overscroll-contain pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-6">
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center justify-start gap-2 ">
                   <BarChart3 className="h-6 w-6 text-blue-600" />
